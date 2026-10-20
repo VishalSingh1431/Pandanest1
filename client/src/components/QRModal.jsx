@@ -68,7 +68,19 @@ export function QRModal({ isOpen, onClose, onTestScan }) {
             boxShadow: '0 8px 24px rgba(16, 185, 129, 0.12)'
           }}
         >
-          <div style={{ fontSize: '42px', marginBottom: '6px' }}>🐼</div>
+          <img
+            src="/logo.jpeg"
+            alt="Panda Nest Logo"
+            style={{
+              height: '76px',
+              width: 'auto',
+              marginBottom: '10px',
+              borderRadius: '12px',
+              background: '#ffffff',
+              padding: '4px 10px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+            }}
+          />
           <h3 style={{ fontSize: '1.4rem', color: '#047857', marginBottom: '4px' }}>Welcome to Pandanest!</h3>
           <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px' }}>
             Scan to explore all toys & register for birthday surprises!

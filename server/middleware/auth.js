@@ -5,8 +5,8 @@ dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'pandanest_super_secret_jwt_key_2026_xyz';
 
-// Authenticates any admin or super_admin
-export function authenticateAdmin(req, res, next) {
+// Authenticates ANY valid user (super_admin, admin, or customer/user)
+export function authenticateUser(req, res, next) {
   const authHeader = req.headers['authorization'];
   if (!authHeader) {
     return res.status(401).json({ error: 'Access denied. No authorization token provided.' });
@@ -21,21 +21,29 @@ export function authenticateAdmin(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    if (!['super_admin', 'admin'].includes(decoded.role)) {
-      return res.status(403).json({ error: 'Access restricted to administrators only.' });
-    }
-    req.admin = decoded;
+    req.user = decoded;
+    req.admin = decoded; // For backwards compatibility
     next();
   } catch (err) {
-    return res.status(403).json({ error: 'Invalid or expired token. Please log in again.' });
+    return res.status(401).json({ error: 'Invalid or expired token. Please log in again.' });
   }
+}
+
+// Authenticates only admin or super_admin
+export function authenticateAdmin(req, res, next) {
+  authenticateUser(req, res, () => {
+    if (!['super_admin', 'admin'].includes(req.admin?.role)) {
+      return res.status(403).json({ error: 'Access restricted to administrators only.' });
+    }
+    next();
+  });
 }
 
 // Authenticates only super_admin
 export function authenticateSuperAdmin(req, res, next) {
   authenticateAdmin(req, res, () => {
-    if (req.admin.role !== 'super_admin') {
-      return res.status(403).json({ error: 'Permission denied. Only Super Admin can manage users and roles.' });
+    if (req.admin?.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Permission denied. Only Super Admin can perform this action.' });
     }
     next();
   });

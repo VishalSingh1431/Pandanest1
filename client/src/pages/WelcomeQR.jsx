@@ -13,6 +13,7 @@ export function WelcomeQR({ onContinueToCatalog }) {
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [awardedPoints, setAwardedPoints] = useState(100);
+  const [submissionResult, setSubmissionResult] = useState(null);
 
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -42,23 +43,32 @@ export function WelcomeQR({ onContinueToCatalog }) {
         throw new Error(data.error || 'Failed to submit details');
       }
 
-      // Store Panda Club points & member details locally
-      localStorage.setItem('pandanest_panda_points', '100');
+      setSubmissionResult(data);
+
+      // Only award 100 points on first registration; if already submitted before, do NOT give points again
+      if (data.points_awarded > 0) {
+        localStorage.setItem('pandanest_panda_points', '100');
+        // Confetti celebration
+        confetti({
+          particleCount: 120,
+          spread: 90,
+          origin: { y: 0.5 }
+        });
+      } else {
+        if (!localStorage.getItem('pandanest_panda_points')) {
+          localStorage.setItem('pandanest_panda_points', String(data.panda_points || 0));
+        }
+      }
+
+      // Store member details locally
       localStorage.setItem('pandanest_member_child', formData.child_name);
       localStorage.setItem('pandanest_member_phone', formData.phone);
-
-      // Confetti celebration
-      confetti({
-        particleCount: 120,
-        spread: 90,
-        origin: { y: 0.5 }
-      });
 
       setSubmitted(true);
 
       setTimeout(() => {
         onContinueToCatalog();
-      }, 1800);
+      }, 2000);
 
     } catch (err) {
       setError(err.message);
@@ -103,16 +113,22 @@ export function WelcomeQR({ onContinueToCatalog }) {
             position: 'relative'
           }}
         >
-          <div
-            style={{
-              fontSize: '56px',
-              marginBottom: '8px',
-              display: 'inline-block',
-              filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.15))'
-            }}
-            className="animate-float"
-          >
-            🐼
+          <div>
+            <img
+              src="/logo.jpeg"
+              alt="Panda Nest"
+              style={{
+                height: '84px',
+                width: 'auto',
+                marginBottom: '12px',
+                borderRadius: '16px',
+                background: '#ffffff',
+                padding: '4px 10px',
+                display: 'inline-block',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.18)'
+              }}
+              className="animate-float"
+            />
           </div>
 
           <div
@@ -173,10 +189,15 @@ export function WelcomeQR({ onContinueToCatalog }) {
                 <CheckCircle2 size={40} />
               </div>
               <h2 style={{ fontSize: '1.6rem', color: '#0f172a', marginBottom: '8px' }}>
-                Welcome to Panda Club! 🎉
+                {submissionResult?.already_registered ? `Welcome Back, ${formData.child_name}! 🐼` : 'Welcome to Panda Club! 🎉'}
               </h2>
-              <div className="badge badge-amber" style={{ fontSize: '0.95rem', padding: '8px 16px', marginBottom: '14px' }}>
-                🪙 +100 Panda Points Added to Your Bag!
+              <div
+                className={submissionResult?.already_registered ? 'badge badge-green' : 'badge badge-amber'}
+                style={{ fontSize: '0.92rem', padding: '8px 16px', marginBottom: '14px' }}
+              >
+                {submissionResult?.already_registered
+                  ? '⭐ Member Details Updated (Bonus points are one-time)'
+                  : '🪙 +100 Panda Points Added to Your Bag!'}
               </div>
               <p style={{ color: '#64748b', fontSize: '0.95rem' }}>
                 Taking you to the toy catalog now...

@@ -1,6 +1,6 @@
 import express from 'express';
 import { getDB, readLocalStore, writeLocalStore } from '../db.js';
-import { authenticateAdmin } from '../middleware/auth.js';
+import { authenticateAdmin, authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -65,6 +65,38 @@ router.post('/', async (req, res) => {
   } catch (err) {
     console.error('Order creation error:', err);
     res.status(500).json({ error: 'Failed to place order.' });
+  }
+});
+
+// GET /api/orders/my-orders - Customer: View personal orders
+router.get('/my-orders', authenticateUser, async (req, res) => {
+  try {
+    const userEmail = (req.user?.email || '').toLowerCase().trim();
+    const userPhone = (req.user?.phone || '').trim();
+
+    const { isPostgres, pool } = getDB();
+    let orders = [];
+
+    if (isPostgres && pool) {
+      const result = await pool.query(
+        `SELECT * FROM orders 
+         WHERE (phone != '' AND phone = $1) OR LOWER(address) LIKE $2 
+         ORDER BY created_at DESC`,
+        [userPhone, `%${userEmail}%`]
+      );
+      orders = result.rows;
+    } else {
+      const store = readLocalStore();
+      orders = (store.orders || []).filter(o => 
+        (userPhone && o.phone === userPhone) || 
+        (userEmail && o.address && o.address.toLowerCase().includes(userEmail))
+      );
+    }
+
+    res.json(orders);
+  } catch (err) {
+    console.error('Fetch personal orders error:', err);
+    res.status(500).json({ error: 'Failed to fetch personal orders.' });
   }
 });
 

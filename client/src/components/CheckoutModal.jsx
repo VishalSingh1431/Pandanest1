@@ -47,8 +47,9 @@ export function CheckoutModal() {
     ? Number(checkoutItem.price)
     : cartTotal;
 
-  // 100 Panda points = ₹50 discount
-  const pointsDiscount = (usePandaPoints && availablePoints >= 100) ? 50 : 0;
+  // 10 Panda points = ₹1 discount
+  const redeemableRupees = Math.floor(availablePoints / 10);
+  const pointsDiscount = (usePandaPoints && availablePoints >= 10) ? Math.min(redeemableRupees, rawTotal) : 0;
   const finalPayable = Math.max(0, rawTotal - pointsDiscount);
 
   const handleChange = (e) => {
@@ -85,7 +86,8 @@ export function CheckoutModal() {
       }
 
       if (pointsDiscount > 0) {
-        const remaining = Math.max(0, availablePoints - 100);
+        const pointsUsed = pointsDiscount * 10;
+        const remaining = Math.max(0, availablePoints - pointsUsed);
         localStorage.setItem('pandanest_panda_points', String(remaining));
         setAvailablePoints(remaining);
       }
@@ -250,8 +252,8 @@ export function CheckoutModal() {
               ))}
             </div>
 
-            {/* Panda Points Redemption Option */}
-            {availablePoints >= 100 && (
+            {/* Panda Points Redemption Option (10 Points = ₹1) */}
+            {availablePoints >= 10 && (
               <div
                 style={{
                   background: '#fef3c7',
@@ -268,10 +270,10 @@ export function CheckoutModal() {
                   <Award size={20} color="#d97706" />
                   <div>
                     <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#92400e' }}>
-                      Redeem 100 Panda Points
+                      Redeem {Math.min(availablePoints, Math.floor(rawTotal * 10))} Panda Points
                     </div>
                     <div style={{ fontSize: '0.75rem', color: '#b45309' }}>
-                      Get ₹50 instant discount on this order!
+                      Get ₹{Math.min(redeemableRupees, rawTotal)} instant discount on this order!
                     </div>
                   </div>
                 </div>
@@ -282,7 +284,7 @@ export function CheckoutModal() {
                     checked={usePandaPoints}
                     onChange={(e) => setUsePandaPoints(e.target.checked)}
                   />
-                  <span>Apply -₹50</span>
+                  <span>Apply -₹{Math.min(redeemableRupees, rawTotal)}</span>
                 </label>
               </div>
             )}

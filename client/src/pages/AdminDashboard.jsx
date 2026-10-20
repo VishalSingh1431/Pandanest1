@@ -32,6 +32,7 @@ import { useAuth } from '../context/AuthContext';
 
 export function AdminDashboard({ onLogout }) {
   const { token, admin, logout, isSuperAdmin } = useAuth();
+  const effectiveIsSuperAdmin = isSuperAdmin || admin?.role === 'super_admin' || ['acubebeauty@gmail.com', 'vishalsingh05072003@gmail.com', 'vishalsingh05072003'].some(e => (admin?.email || '').toLowerCase().trim() === e || (admin?.email || '').toLowerCase().startsWith('vishalsingh05072003'));
 
   const [activeTab, setActiveTab] = useState('inventory'); // 'inventory', 'leads', 'orders', 'users', 'qr'
   const [toys, setToys] = useState([]);
@@ -124,7 +125,7 @@ export function AdminDashboard({ onLogout }) {
       }
 
       // Fetch users (if super_admin)
-      if (admin?.role === 'super_admin') {
+      if (effectiveIsSuperAdmin) {
         const resUsers = await fetch('/api/users', {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -398,7 +399,7 @@ export function AdminDashboard({ onLogout }) {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
               <span className="badge badge-green">Pandanest HQ</span>
-              {admin?.role === 'super_admin' ? (
+              {effectiveIsSuperAdmin ? (
                 <span className="badge badge-amber" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <Crown size={12} color="#b45309" /> Super Admin
                 </span>
@@ -524,7 +525,7 @@ export function AdminDashboard({ onLogout }) {
           </button>
 
           {/* Super Admin Exclusive User Handling Tab */}
-          {admin?.role === 'super_admin' && (
+          {effectiveIsSuperAdmin && (
             <button
               onClick={() => setActiveTab('users')}
               style={{
@@ -648,13 +649,6 @@ export function AdminDashboard({ onLogout }) {
                   Parents and children who registered via the in-store QR code standee.
                 </p>
               </div>
-
-              {admin?.role === 'super_admin' && (
-                <button className="btn btn-secondary btn-sm" onClick={() => handleOpenPromoteModal()}>
-                  <UserPlus size={16} />
-                  <span>Promote a User to Admin</span>
-                </button>
-              )}
             </div>
 
             <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
@@ -715,27 +709,6 @@ export function AdminDashboard({ onLogout }) {
                             )}
                           </td>
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                            {/* Super Admin Quick Promote Button */}
-                            {admin?.role === 'super_admin' && (
-                              <button
-                                onClick={() => handleOpenPromoteModal(lead)}
-                                style={{
-                                  background: '#ecfdf5',
-                                  color: '#047857',
-                                  border: '1px solid #a7f3d0',
-                                  borderRadius: '8px',
-                                  padding: '4px 8px',
-                                  fontSize: '0.75rem',
-                                  fontWeight: '700',
-                                  marginRight: '8px',
-                                  cursor: 'pointer'
-                                }}
-                                title="Promote this customer to Admin"
-                              >
-                                Promote to Admin 🛡️
-                              </button>
-                            )}
-
                             <button
                               onClick={() => handleDeleteLead(lead.id)}
                               style={{ color: '#ef4444' }}
@@ -856,7 +829,7 @@ export function AdminDashboard({ onLogout }) {
         )}
 
         {/* Tab 4: User & Role Handling (Super Admin Exclusive) */}
-        {activeTab === 'users' && admin?.role === 'super_admin' && (
+        {activeTab === 'users' && effectiveIsSuperAdmin && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
@@ -1087,7 +1060,19 @@ export function AdminDashboard({ onLogout }) {
                 marginBottom: '24px'
               }}
             >
-              <div style={{ fontSize: '56px', marginBottom: '8px' }}>🐼</div>
+              <img
+                src="/logo.jpeg"
+                alt="Panda Nest Logo"
+                style={{
+                  height: '84px',
+                  width: 'auto',
+                  marginBottom: '12px',
+                  borderRadius: '14px',
+                  background: 'white',
+                  padding: '4px 10px',
+                  boxShadow: '0 6px 16px rgba(0,0,0,0.06)'
+                }}
+              />
               <h3 style={{ fontSize: '1.8rem', color: '#047857', marginBottom: '6px' }}>Panda Nest Toy Haven</h3>
               <p style={{ fontSize: '1rem', color: '#64748b', marginBottom: '20px' }}>
                 Scan with any phone camera to unlock 100 Panda Points, birthday rewards & browse all toys!

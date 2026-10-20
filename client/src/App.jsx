@@ -6,9 +6,11 @@ import { CheckoutModal } from './components/CheckoutModal';
 import { WelcomeQR } from './pages/WelcomeQR';
 import { Catalog } from './pages/Catalog';
 import { TruthOrDare } from './pages/TruthOrDare';
+import { GamesAndActivities } from './pages/GamesAndActivities';
 import { AboutUs } from './pages/AboutUs';
 import { Policies } from './pages/Policies';
-import { AdminLogin } from './pages/AdminLogin';
+import { AuthPage } from './pages/AuthPage';
+import { UserProfile } from './pages/UserProfile';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { useAuth } from './context/AuthContext';
 import { Phone, Mail, MapPin, Heart, Truck, ShieldCheck } from 'lucide-react';
@@ -28,6 +30,9 @@ export function App() {
     if (params.get('page') === 'game' || window.location.hash === '#game') {
       return 'truth-or-dare';
     }
+    if (params.get('page') === 'games' || window.location.hash === '#games') {
+      return 'games';
+    }
     if (params.get('page') === 'admin' || window.location.hash === '#admin') {
       return 'admin-login';
     }
@@ -37,7 +42,7 @@ export function App() {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
 
   const navigate = (route) => {
     setCurrentRoute(route);
@@ -51,6 +56,10 @@ export function App() {
       window.history.pushState({}, '', '?page=policies');
     } else if (route === 'truth-or-dare') {
       window.history.pushState({}, '', '?page=game');
+    } else if (route === 'games') {
+      window.history.pushState({}, '', '?page=games');
+    } else if (route === 'profile') {
+      window.history.pushState({}, '', '?page=profile');
     } else if (route === 'admin-login' || route === 'admin-dashboard') {
       window.history.pushState({}, '', '?page=admin');
     } else {
@@ -66,7 +75,9 @@ export function App() {
       else if (page === 'about') setCurrentRoute('about');
       else if (page === 'policies') setCurrentRoute('policies');
       else if (page === 'game') setCurrentRoute('truth-or-dare');
-      else if (page === 'admin') setCurrentRoute(isAuthenticated ? 'admin-dashboard' : 'admin-login');
+      else if (page === 'games') setCurrentRoute('games');
+      else if (page === 'profile') setCurrentRoute(isAuthenticated ? 'profile' : 'admin-login');
+      else if (page === 'admin') setCurrentRoute(isAuthenticated ? (isAdmin ? 'admin-dashboard' : 'profile') : 'admin-login');
       else setCurrentRoute('catalog');
     };
 
@@ -103,6 +114,10 @@ export function App() {
           <TruthOrDare onGoToCatalog={() => navigate('catalog')} />
         )}
 
+        {currentRoute === 'games' && (
+          <GamesAndActivities onGoToCatalog={() => navigate('catalog')} />
+        )}
+
         {currentRoute === 'about' && (
           <AboutUs onExploreCatalog={() => navigate('catalog')} />
         )}
@@ -111,19 +126,55 @@ export function App() {
           <Policies />
         )}
 
-        {currentRoute === 'admin-login' && (
+        {(currentRoute === 'admin-login' || currentRoute === 'login') && (
           isAuthenticated ? (
-            <AdminDashboard onLogout={() => navigate('admin-login')} />
+            isAdmin ? (
+              <AdminDashboard onLogout={() => navigate('catalog')} />
+            ) : (
+              <UserProfile
+                onGoToCatalog={() => navigate('catalog')}
+                onGoToAdmin={() => navigate('admin-dashboard')}
+              />
+            )
           ) : (
-            <AdminLogin onLoginSuccess={() => navigate('admin-dashboard')} />
+            <AuthPage
+              onLoginSuccess={() => {
+                navigate(isAdmin ? 'admin-dashboard' : 'catalog');
+              }}
+              onExploreCatalog={() => navigate('catalog')}
+            />
+          )
+        )}
+
+        {currentRoute === 'profile' && (
+          isAuthenticated ? (
+            <UserProfile
+              onGoToCatalog={() => navigate('catalog')}
+              onGoToAdmin={() => navigate('admin-dashboard')}
+            />
+          ) : (
+            <AuthPage
+              onLoginSuccess={() => navigate(isAdmin ? 'admin-dashboard' : 'profile')}
+              onExploreCatalog={() => navigate('catalog')}
+            />
           )
         )}
 
         {currentRoute === 'admin-dashboard' && (
           isAuthenticated ? (
-            <AdminDashboard onLogout={() => navigate('admin-login')} />
+            isAdmin ? (
+              <AdminDashboard onLogout={() => navigate('catalog')} />
+            ) : (
+              <UserProfile
+                onGoToCatalog={() => navigate('catalog')}
+                onGoToAdmin={() => navigate('admin-dashboard')}
+              />
+            )
           ) : (
-            <AdminLogin onLoginSuccess={() => navigate('admin-dashboard')} />
+            <AuthPage
+              onLoginSuccess={() => navigate('admin-dashboard')}
+              onExploreCatalog={() => navigate('catalog')}
+            />
           )
         )}
       </div>
@@ -137,74 +188,233 @@ export function App() {
       <CartDrawer />
       <CheckoutModal />
 
-      {/* Rich Footer with Contact Details & Policies */}
-      <footer style={{ background: '#0f172a', color: '#94a3b8', padding: '48px 0 24px', borderTop: '1px solid #1e293b' }}>
-        <div className="container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '30px', marginBottom: '36px' }}>
+      {/* Clean White & Emerald Consistent Footer */}
+      <footer
+        style={{
+          background: '#ffffff',
+          color: '#475569',
+          padding: '48px 0 24px',
+          borderTop: '3px solid #10b981',
+          boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.02)'
+        }}
+      >
+        <div
+          className="container"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+            gap: '36px',
+            marginBottom: '36px'
+          }}
+        >
           {/* Brand Info */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <span style={{ fontSize: '28px' }}>🐼</span>
-              <span style={{ fontSize: '1.4rem', fontWeight: '800', color: '#ffffff' }}>Panda Nest</span>
+            <div style={{ marginBottom: '14px' }}>
+              <img
+                src="/logo.jpeg"
+                alt="Panda Nest"
+                style={{
+                  height: '52px',
+                  width: 'auto',
+                  borderRadius: '10px'
+                }}
+              />
             </div>
-            <p style={{ fontSize: '0.85rem', lineHeight: 1.6, marginBottom: '16px' }}>
+            <p style={{ fontSize: '0.88rem', lineHeight: 1.65, color: '#64748b', marginBottom: '16px' }}>
               Three College Friends. One Dream. A Million Smiles. Spreading joyful, high-quality, and affordable toys across India since 2nd October 2025.
             </p>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <span className="badge badge-amber" style={{ fontSize: '0.7rem' }}>Gold Seller Flipkart</span>
-              <span className="badge badge-green" style={{ fontSize: '0.7rem' }}>Amazon Best Seller</span>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  background: '#fef3c7',
+                  color: '#92400e',
+                  fontWeight: '700',
+                  fontSize: '0.72rem',
+                  padding: '4px 10px',
+                  borderRadius: '9999px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  border: '1px solid #fde68a'
+                }}
+              >
+                ⭐ Gold Seller Flipkart
+              </span>
+              <span
+                style={{
+                  background: '#ecfdf5',
+                  color: '#065f46',
+                  fontWeight: '700',
+                  fontSize: '0.72rem',
+                  padding: '4px 10px',
+                  borderRadius: '9999px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  border: '1px solid #a7f3d0'
+                }}
+              >
+                🏆 Amazon Best Seller
+              </span>
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 style={{ color: 'white', fontSize: '1rem', marginBottom: '14px' }}>Explore</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.875rem' }}>
-              <button onClick={() => navigate('catalog')} style={{ color: '#94a3b8', textAlign: 'left' }}>Toy Catalog</button>
-              <button onClick={() => navigate('truth-or-dare')} style={{ color: '#94a3b8', textAlign: 'left' }}>Panda Club Truth or Dare 🎲</button>
-              <button onClick={() => navigate('welcome')} style={{ color: '#94a3b8', textAlign: 'left' }}>Join Panda Club (100 Points)</button>
-              <button onClick={() => setIsQRModalOpen(true)} style={{ color: '#94a3b8', textAlign: 'left' }}>Print Store QR Standee</button>
-              <button onClick={() => navigate('about')} style={{ color: '#94a3b8', textAlign: 'left' }}>About Panda Nest</button>
+            <h4 style={{ color: '#065f46', fontSize: '1rem', fontWeight: '800', marginBottom: '16px', letterSpacing: '0.2px' }}>
+              Explore
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.88rem' }}>
+              <button
+                onClick={() => navigate('catalog')}
+                style={{ color: '#334155', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}
+              >
+                Toy Catalog
+              </button>
+              <button
+                onClick={() => navigate('activities')}
+                style={{ color: '#334155', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}
+              >
+                🎮 Games & Activities (+10 PP)
+              </button>
+              <button
+                onClick={() => navigate('welcome')}
+                style={{ color: '#334155', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}
+              >
+                Join Panda Club (100 Points)
+              </button>
+              <button
+                onClick={() => setIsQRModalOpen(true)}
+                style={{ color: '#334155', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}
+              >
+                Print Store QR Standee
+              </button>
+              <button
+                onClick={() => navigate('about')}
+                style={{ color: '#334155', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}
+              >
+                About Panda Nest
+              </button>
+              <button
+                onClick={() => navigate('admin-login')}
+                style={{
+                  color: '#047857',
+                  textAlign: 'left',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  marginTop: '4px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: '#f0fdf4',
+                  border: '1px solid #a7f3d0',
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  width: 'fit-content',
+                  cursor: 'pointer'
+                }}
+              >
+                🔒 Staff & Admin Portal
+              </button>
             </div>
           </div>
 
           {/* Legal Policies */}
           <div>
-            <h4 style={{ color: 'white', fontSize: '1rem', marginBottom: '14px' }}>Policies & Terms</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.875rem' }}>
-              <button onClick={() => navigate('policies')} style={{ color: '#94a3b8', textAlign: 'left' }}>Free Delivery & Shipping</button>
-              <button onClick={() => navigate('policies')} style={{ color: '#94a3b8', textAlign: 'left' }}>Return & Refund Policy (48h)</button>
-              <button onClick={() => navigate('policies')} style={{ color: '#94a3b8', textAlign: 'left' }}>Privacy Policy</button>
-              <button onClick={() => navigate('policies')} style={{ color: '#94a3b8', textAlign: 'left' }}>Terms & Conditions</button>
-              <button onClick={() => navigate('policies')} style={{ color: '#94a3b8', textAlign: 'left' }}>Sale & Offers Terms</button>
+            <h4 style={{ color: '#065f46', fontSize: '1rem', fontWeight: '800', marginBottom: '16px', letterSpacing: '0.2px' }}>
+              Policies & Terms
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.88rem' }}>
+              <button
+                onClick={() => navigate('policies')}
+                style={{ color: '#334155', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}
+              >
+                Free Delivery & Shipping
+              </button>
+              <button
+                onClick={() => navigate('policies')}
+                style={{ color: '#334155', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}
+              >
+                Return & Refund Policy (48h)
+              </button>
+              <button
+                onClick={() => navigate('policies')}
+                style={{ color: '#334155', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}
+              >
+                Privacy Policy
+              </button>
+              <button
+                onClick={() => navigate('policies')}
+                style={{ color: '#334155', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}
+              >
+                Terms & Conditions
+              </button>
+              <button
+                onClick={() => navigate('policies')}
+                style={{ color: '#334155', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}
+              >
+                Sale & Offers Terms
+              </button>
             </div>
           </div>
 
           {/* Official Contact Info */}
           <div>
-            <h4 style={{ color: 'white', fontSize: '1rem', marginBottom: '14px' }}>Official Contact</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
+            <h4 style={{ color: '#065f46', fontSize: '1rem', fontWeight: '800', marginBottom: '16px', letterSpacing: '0.2px' }}>
+              Official Contact
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Phone size={15} color="#10b981" />
-                <a href="tel:7380405227" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: '700' }}>
+                <Phone size={16} color="#059669" />
+                <a href="tel:7380405227" style={{ color: '#047857', textDecoration: 'none', fontWeight: '800', letterSpacing: '0.2px' }}>
                   +91 7380405227
                 </a>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Mail size={15} color="#0284c7" />
-                <a href="mailto:acubebeauty@gmail.com" style={{ color: '#94a3b8', textDecoration: 'none' }}>
+                <Mail size={16} color="#0284c7" />
+                <a href="mailto:acubebeauty@gmail.com" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '500' }}>
                   acubebeauty@gmail.com
                 </a>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                <MapPin size={15} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <span>SCO 94, Swastic Vihar, Mansa Devi Complex, Panchkula, Haryana 134114</span>
+                <MapPin size={16} color="#d97706" style={{ flexShrink: 0, marginTop: '3px' }} />
+                <span style={{ color: '#64748b', lineHeight: 1.5 }}>SCO 94, Swastic Vihar, Mansa Devi Complex, Panchkula, Haryana 134114</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="container" style={{ textAlign: 'center', paddingTop: '20px', borderTop: '1px solid #1e293b', fontSize: '0.8rem' }}>
-          © {new Date().getFullYear()} Panda Nest (pandanest.in) • All rights reserved. • Spreading Smiles Across India
+        <div
+          className="container"
+          style={{
+            textAlign: 'center',
+            paddingTop: '20px',
+            borderTop: '1px solid #f1f5f9',
+            fontSize: '0.82rem',
+            color: '#64748b'
+          }}
+        >
+          © {new Date().getFullYear()} Panda Nest (pandanest.in) • All rights reserved. • Spreading Smiles Across India 🐼
         </div>
       </footer>
     </div>

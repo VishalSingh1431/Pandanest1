@@ -4,6 +4,16 @@ import { authenticateAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Normalize phone number for consistent deduplication
+function normalizePhone(raw) {
+  if (!raw) return '';
+  const digits = String(raw).replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return digits.slice(2);
+  }
+  return digits;
+}
+
 // Public: Submit QR customer onboarding form (Parent Name removed as per discussion)
 router.post('/', async (req, res) => {
   try {
@@ -15,41 +25,102 @@ router.post('/', async (req, res) => {
 
     const { isPostgres, pool } = getDB();
     const finalParentName = (parent_name || '').trim();
-    const pandaPoints = 100; // Welcome reward points for Panda Club
+    const cleanPhone = normalizePhone(phone) || phone.trim();
+    const cleanChildName = child_name.trim();
 
     if (isPostgres && pool) {
+      // Check if this mobile number already registered before
+      const existing = await pool.query(
+        `SELECT * FROM leads 
+         WHERE phone = $1 
+            OR phone = $2 
+            OR RIGHT(REGEXP_REPLACE(phone, '\\D', '', 'g'), 10) = RIGHT($1, 10)
+         LIMIT 1`,
+        [cleanPhone, phone.trim()]
+      );
+
+      if (existing.rows.length > 0) {
+        const lead = existing.rows[0];
+        // User already filled the form previously: update details but DO NOT award 100 points again
+        await pool.query(
+          'UPDATE leads SET child_name = $1, parent_name = COALESCE(NULLIF($2, \'\'), parent_name), dob = $3 WHERE id = $4',
+          [cleanChildName, finalParentName, dob, lead.id]
+        );
+
+        return res.status(200).json({
+          success: true,
+          already_registered: true,
+          message: 'Welcome back! Your child details have been updated (100 welcome bonus points are only awarded once).',
+          lead: { ...lead, child_name: cleanChildName, dob },
+          panda_points: lead.panda_points || 100,
+          points_awarded: 0
+        });
+      }
+
+      // New user: grant 100 points on initial registration
+      const pandaPoints = 100;
       const result = await pool.query(
         `INSERT INTO leads (child_name, parent_name, phone, dob, panda_points)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING id, child_name, parent_name, phone, dob, panda_points, created_at`,
-        [child_name.trim(), finalParentName, phone.trim(), dob, pandaPoints]
+        [cleanChildName, finalParentName, cleanPhone, dob, pandaPoints]
       );
+
       return res.status(201).json({
         success: true,
+        already_registered: false,
         message: 'Welcome to Panda Club! 100 Panda Points added.',
         lead: result.rows[0],
-        panda_points: pandaPoints
+        panda_points: pandaPoints,
+        points_awarded: pandaPoints
       });
     } else {
       const store = readLocalStore();
+      store.leads = store.leads || [];
+
+      const existing = store.leads.find(l => {
+        const p1 = normalizePhone(l.phone);
+        const p2 = cleanPhone;
+        return p1 === p2 || (p1.length >= 10 && p2.length >= 10 && p1.slice(-10) === p2.slice(-10));
+      });
+
+      if (existing) {
+        // User already filled the form: update details but DO NOT award 100 points again
+        existing.child_name = cleanChildName;
+        if (finalParentName) existing.parent_name = finalParentName;
+        existing.dob = dob;
+        writeLocalStore(store);
+
+        return res.status(200).json({
+          success: true,
+          already_registered: true,
+          message: 'Welcome back! Your child details have been updated (100 welcome bonus points are only awarded once).',
+          lead: existing,
+          panda_points: existing.panda_points || 100,
+          points_awarded: 0
+        });
+      }
+
+      const pandaPoints = 100;
       const newLead = {
         id: Date.now(),
-        child_name: child_name.trim(),
+        child_name: cleanChildName,
         parent_name: finalParentName,
-        phone: phone.trim(),
+        phone: cleanPhone,
         dob: dob,
         panda_points: pandaPoints,
         created_at: new Date().toISOString()
       };
-      store.leads = store.leads || [];
       store.leads.unshift(newLead);
       writeLocalStore(store);
 
       return res.status(201).json({
         success: true,
+        already_registered: false,
         message: 'Welcome to Panda Club! 100 Panda Points added.',
         lead: newLead,
-        panda_points: pandaPoints
+        panda_points: pandaPoints,
+        points_awarded: pandaPoints
       });
     }
   } catch (err) {

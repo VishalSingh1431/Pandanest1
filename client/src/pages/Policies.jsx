@@ -17,12 +17,12 @@ export function Policies({ initialTab = 'shipping' }) {
   return (
     <div style={{ background: '#f8fafc', paddingBottom: '60px', minHeight: '85vh' }}>
       {/* Header */}
-      <section style={{ background: '#0f172a', color: 'white', padding: '40px 20px', textAlign: 'center' }}>
+      <section style={{ background: 'linear-gradient(135deg, #065f46 0%, #047857 50%, #059669 100%)', color: 'white', padding: '48px 20px', textAlign: 'center', borderBottom: '3px solid #10b981' }}>
         <div className="container" style={{ maxWidth: '720px' }}>
-          <h1 style={{ fontSize: '2.2rem', marginBottom: '8px', color: 'white' }}>
+          <h1 style={{ fontSize: '2.4rem', marginBottom: '8px', color: 'white', fontWeight: '800' }}>
             Panda Nest Policies & Information
           </h1>
-          <p style={{ color: '#94a3b8', fontSize: '0.95rem' }}>
+          <p style={{ color: '#d1fae5', fontSize: '1rem', lineHeight: 1.5 }}>
             Transparent terms, free delivery across India, and dedicated support for every family.
           </p>
         </div>
