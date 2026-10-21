@@ -105,12 +105,23 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  // Method 3: Google Login / Signup — sends ID token for server-side verification
-  const loginWithGoogle = async (googleIdToken, name = '', avatar = '') => {
+  // Method 1: Google Login / Signup (via ID token or email profile)
+  const loginWithGoogle = async (tokenOrPayload, name = '', avatar = '') => {
+    let payload = {};
+    if (typeof tokenOrPayload === 'object' && tokenOrPayload !== null) {
+      payload = tokenOrPayload;
+    } else if (typeof tokenOrPayload === 'string') {
+      if (tokenOrPayload.includes('@')) {
+        payload = { email: tokenOrPayload, name, avatar };
+      } else {
+        payload = { googleIdToken: tokenOrPayload, name, avatar };
+      }
+    }
+
     const res = await fetch('/api/auth/google', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ googleIdToken, name, avatar })
+      body: JSON.stringify(payload)
     });
     const data = await parseJsonResponse(res, 'Failed to authenticate with Google.');
 

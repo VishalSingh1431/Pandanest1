@@ -76,16 +76,17 @@ router.post('/promote', authenticateSuperAdmin, async (req, res) => {
   try {
     const { name, email, password, phone, role } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email, and password are required to promote or create an admin.' });
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Name and email are required to promote a user.' });
     }
 
     const targetRole = role === 'super_admin' ? 'super_admin' : 'admin';
     const cleanEmail = email.toLowerCase().trim();
     const cleanPhone = (phone || '').trim();
 
+    const dummyPass = password || ('pwdless_' + Math.random().toString(36).substring(2) + Date.now());
     const salt = bcrypt.genSaltSync(10);
-    const passwordHash = bcrypt.hashSync(password, salt);
+    const passwordHash = bcrypt.hashSync(dummyPass, salt);
 
     const { isPostgres, pool } = getDB();
 
@@ -94,17 +95,17 @@ router.post('/promote', authenticateSuperAdmin, async (req, res) => {
       const existing = await pool.query('SELECT id, role FROM admins WHERE email = $1', [cleanEmail]);
 
       if (existing.rows.length > 0) {
-        // Update existing user with new role and password
+        // Update existing user with new role
         const updated = await pool.query(
           `UPDATE admins
-           SET role = $1, password_hash = $2, name = COALESCE($3, name), phone = COALESCE($4, phone)
+           SET role = $1, password_hash = COALESCE($2, password_hash), name = COALESCE($3, name), phone = COALESCE($4, phone)
            WHERE id = $5
            RETURNING id, name, email, role, phone, created_at`,
-          [targetRole, passwordHash, name.trim(), cleanPhone, existing.rows[0].id]
+          [targetRole, password ? passwordHash : null, name.trim(), cleanPhone, existing.rows[0].id]
         );
         return res.json({
           success: true,
-          message: `User ${name} promoted to ${targetRole === 'super_admin' ? 'Super Admin' : 'Admin'} successfully!`,
+          message: `User ${name} promoted to ${targetRole === 'super_admin' ? 'Super Admin' : 'Admin'}! They can now log in using Google or Gmail OTP.`,
           user: updated.rows[0]
         });
       } else {
@@ -117,7 +118,7 @@ router.post('/promote', authenticateSuperAdmin, async (req, res) => {
         );
         return res.status(201).json({
           success: true,
-          message: `User ${name} promoted to ${targetRole === 'super_admin' ? 'Super Admin' : 'Admin'} successfully!`,
+          message: `User ${name} promoted to ${targetRole === 'super_admin' ? 'Super Admin' : 'Admin'}! They can now log in using Google or Gmail OTP.`,
           user: result.rows[0]
         });
       }
@@ -128,14 +129,14 @@ router.post('/promote', authenticateSuperAdmin, async (req, res) => {
 
       if (idx !== -1) {
         store.admins[idx].role = targetRole;
-        store.admins[idx].password_hash = passwordHash;
+        if (password) store.admins[idx].password_hash = passwordHash;
         store.admins[idx].name = name.trim();
         store.admins[idx].phone = cleanPhone;
         writeLocalStore(store);
         const { password_hash, ...safeUser } = store.admins[idx];
         return res.json({
           success: true,
-          message: `User ${name} promoted to ${targetRole === 'super_admin' ? 'Super Admin' : 'Admin'} successfully!`,
+          message: `User ${name} promoted to ${targetRole === 'super_admin' ? 'Super Admin' : 'Admin'}! They can now log in using Google or Gmail OTP.`,
           user: safeUser
         });
       } else {
@@ -153,7 +154,7 @@ router.post('/promote', authenticateSuperAdmin, async (req, res) => {
         const { password_hash, ...safeUser } = newAdmin;
         return res.status(201).json({
           success: true,
-          message: `User ${name} promoted to ${targetRole === 'super_admin' ? 'Super Admin' : 'Admin'} successfully!`,
+          message: `User ${name} promoted to ${targetRole === 'super_admin' ? 'Super Admin' : 'Admin'}! They can now log in using Google or Gmail OTP.`,
           user: safeUser
         });
       }

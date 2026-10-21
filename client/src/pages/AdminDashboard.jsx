@@ -72,7 +72,6 @@ export function AdminDashboard({ onLogout }) {
   const [promoteForm, setPromoteForm] = useState({
     name: '',
     email: '',
-    password: '',
     phone: '',
     role: 'admin'
   });
@@ -381,7 +380,6 @@ export function AdminDashboard({ onLogout }) {
       setPromoteForm({
         name: prefill.child_name ? `Parent of ${prefill.child_name}` : (prefill.name || ''),
         email: prefill.email || '',
-        password: '',
         phone: prefill.phone || '',
         role: 'admin'
       });
@@ -389,7 +387,6 @@ export function AdminDashboard({ onLogout }) {
       setPromoteForm({
         name: '',
         email: '',
-        password: '',
         phone: '',
         role: 'admin'
       });
@@ -402,8 +399,8 @@ export function AdminDashboard({ onLogout }) {
     setPromoteError('');
     setPromoteSuccess('');
 
-    if (!promoteForm.name || !promoteForm.email || !promoteForm.password) {
-      setPromoteError('Name, email, and password are required.');
+    if (!promoteForm.name || !promoteForm.email) {
+      setPromoteError('Name and email are required.');
       return;
     }
 
@@ -2273,20 +2270,18 @@ export function AdminDashboard({ onLogout }) {
                   onChange={(e) => setPromoteForm({ ...promoteForm, email: e.target.value })}
                 />
                 <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  This email will be used by the user to log into the Admin Portal.
+                  This Gmail will be used by the user to log in via Google or Gmail OTP.
                 </span>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Set Login Password *</label>
-                <input
-                  type="password"
-                  required
-                  className="form-input"
-                  placeholder="••••••••"
-                  value={promoteForm.password}
-                  onChange={(e) => setPromoteForm({ ...promoteForm, password: e.target.value })}
-                />
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontWeight: '700', fontSize: '0.85rem', marginBottom: '4px' }}>
+                  <ShieldCheck size={16} />
+                  <span>Passwordless Access (Google &amp; Gmail OTP)</span>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: '#15803d', lineHeight: '1.4' }}>
+                  No password needed! The promoted user simply signs in using <strong>Continue with Google</strong> or <strong>Gmail OTP</strong> with this email.
+                </p>
               </div>
 
               <div className="form-group">

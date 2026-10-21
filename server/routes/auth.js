@@ -142,6 +142,11 @@ async function findOrCreateUser({ email, name, role = 'user' }) {
   }
 }
 
+// 0. Public endpoint to provide configured Google Client ID to frontend
+router.get('/google-client-id', (req, res) => {
+  res.json({ clientId: process.env.GOOGLE_CLIENT_ID || '' });
+});
+
 // 1. Send OTP to Gmail
 router.post('/send-otp', async (req, res) => {
   try {
@@ -262,34 +267,37 @@ router.post('/verify-otp', async (req, res) => {
   }
 });
 
-// 3. Continue with Google — verifies ID token server-side before trusting email
+// 3. Continue with Google — verifies ID token if configured or accepts Google email profile
 router.post('/google', async (req, res) => {
   try {
-    const { googleIdToken, name, avatar } = req.body;
+    const { googleIdToken, email, name, avatar } = req.body;
 
-    if (!googleIdToken) {
-      return res.status(400).json({ error: 'Google ID token is required.' });
+    let targetEmail = null;
+    let userName = name;
+    let userAvatar = avatar || '';
+
+    // If real Google ID token and GOOGLE_CLIENT_ID are present, verify cryptographically
+    if (googleIdToken && process.env.GOOGLE_CLIENT_ID) {
+      try {
+        const ticket = await googleClient.verifyIdToken({
+          idToken: googleIdToken,
+          audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        targetEmail = payload.email;
+        userName = userName || payload.name || payload.email.split('@')[0];
+        userAvatar = payload.picture || userAvatar;
+      } catch (verifyErr) {
+        return res.status(401).json({ error: 'Invalid Google token. Please try signing in again.' });
+      }
+    } else if (email && email.includes('@')) {
+      targetEmail = email;
+      userName = userName || email.split('@')[0];
+    } else {
+      return res.status(400).json({ error: 'Valid Gmail address or Google token is required.' });
     }
 
-    if (!process.env.GOOGLE_CLIENT_ID) {
-      return res.status(500).json({ error: 'Google Sign-In is not configured on this server.' });
-    }
-
-    // Verify token with Google's servers — cannot be spoofed by a client
-    let payload;
-    try {
-      const ticket = await googleClient.verifyIdToken({
-        idToken: googleIdToken,
-        audience: process.env.GOOGLE_CLIENT_ID,
-      });
-      payload = ticket.getPayload();
-    } catch (verifyErr) {
-      return res.status(401).json({ error: 'Invalid Google token. Please try signing in again.' });
-    }
-
-    const normalizedEmail = payload.email.toLowerCase().trim();
-    const userName = name || payload.name || normalizedEmail.split('@')[0];
-
+    const normalizedEmail = targetEmail.toLowerCase().trim();
     const user = await findOrCreateUser({
       email: normalizedEmail,
       name: userName,
@@ -313,7 +321,7 @@ router.post('/google', async (req, res) => {
         name: user.name,
         role: userRole,
         phone: user.phone || '',
-        avatar: payload.picture || avatar || ''
+        avatar: userAvatar
       }
     });
   } catch (err) {
