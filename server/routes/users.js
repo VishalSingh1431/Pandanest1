@@ -1,9 +1,35 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import { getDB, readLocalStore, writeLocalStore } from '../db.js';
-import { authenticateSuperAdmin } from '../middleware/auth.js';
+import { authenticateSuperAdmin, authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// GET /api/users/my-points — Authenticated user: Get current Panda Points balance
+router.get('/my-points', authenticateUser, async (req, res) => {
+  try {
+    const userEmail = (req.user?.email || '').toLowerCase().trim();
+    const { isPostgres, pool } = getDB();
+    let points = 0;
+
+    if (isPostgres && pool) {
+      const result = await pool.query(
+        'SELECT panda_points FROM users WHERE email = $1',
+        [userEmail]
+      );
+      points = result.rows[0]?.panda_points ?? 0;
+    } else {
+      const store = readLocalStore();
+      const user = (store.users || []).find(u => u.email === userEmail);
+      points = user?.panda_points ?? 0;
+    }
+
+    res.json({ panda_points: points });
+  } catch (err) {
+    console.error('Fetch panda points error:', err);
+    res.status(500).json({ error: 'Failed to fetch panda points.' });
+  }
+});
 
 // GET /api/users - Super Admin: View all team members, admins, and role stats
 router.get('/', authenticateSuperAdmin, async (req, res) => {

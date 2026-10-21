@@ -83,7 +83,7 @@ export function App() {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isAdmin]);
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -274,7 +274,7 @@ export function App() {
                 Toy Catalog
               </button>
               <button
-                onClick={() => navigate('activities')}
+                onClick={() => navigate('games')}
                 style={{ color: '#334155', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s ease' }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}

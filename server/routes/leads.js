@@ -23,9 +23,15 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Child Name, Mobile Number, and Date of Birth (DOB) are required.' });
     }
 
+    // Validate phone — must be a 10-digit Indian mobile number
+    const PHONE_REGEX = /^[6-9]\d{9}$/;
+    const cleanPhone = normalizePhone(phone);
+    if (!PHONE_REGEX.test(cleanPhone)) {
+      return res.status(400).json({ error: 'Please enter a valid 10-digit Indian mobile number (e.g. 9876543210).' });
+    }
+
     const { isPostgres, pool } = getDB();
     const finalParentName = (parent_name || '').trim();
-    const cleanPhone = normalizePhone(phone) || phone.trim();
     const cleanChildName = child_name.trim();
 
     if (isPostgres && pool) {

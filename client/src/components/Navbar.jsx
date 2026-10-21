@@ -6,14 +6,21 @@ import { useAuth } from '../context/AuthContext';
 export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearchQuery }) {
   const { cartCount, openCart } = useCart();
   const { isAuthenticated, admin, isAdmin } = useAuth();
-  const [points, setPoints] = useState(100);
+  const [points, setPoints] = useState(0);
 
   useEffect(() => {
-    const saved = localStorage.getItem('pandanest_panda_points');
-    if (saved) {
-      setPoints(parseInt(saved, 10));
+    const token = localStorage.getItem('pandanest_admin_token');
+    if (token) {
+      fetch('/api/users/my-points', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => setPoints(d?.panda_points ?? 0))
+        .catch(() => setPoints(parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10)));
+    } else {
+      setPoints(parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10));
     }
-  }, [currentRoute]);
+  }, [currentRoute, isAuthenticated]);
 
   return (
     <header

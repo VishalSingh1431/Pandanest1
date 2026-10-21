@@ -41,8 +41,10 @@ router.get('/', async (req, res) => {
       }
 
       if (search) {
-        params.push(`%${search.toLowerCase()}%`);
-        query += ` AND (LOWER(name) LIKE $${params.length} OR LOWER(description) LIKE $${params.length})`;
+        const searchTerm = `%${search.toLowerCase()}%`;
+        params.push(searchTerm); // e.g. $3
+        params.push(searchTerm); // e.g. $4 (separate push for LOWER(description))
+        query += ` AND (LOWER(name) LIKE $${params.length - 1} OR LOWER(description) LIKE $${params.length})`;
       }
 
       if (sort === 'price-low') {
@@ -192,7 +194,8 @@ router.put('/:id', authenticateAdmin, upload.single('image'), async (req, res) =
     const { isPostgres, pool } = getDB();
     const numPrice = parseFloat(price);
     const numOriginalPrice = original_price ? parseFloat(original_price) : null;
-    const numStock = stock !== undefined ? parseInt(stock, 10) : 10;
+    // Pass null when stock is not provided so COALESCE($8, stock) preserves existing value
+    const numStock = stock !== undefined ? parseInt(stock, 10) : null;
     const isFeatured = featured === 'true' || featured === true;
 
     if (isPostgres && pool) {
@@ -253,10 +256,17 @@ router.delete('/:id', authenticateAdmin, async (req, res) => {
     const { isPostgres, pool } = getDB();
 
     if (isPostgres && pool) {
-      await pool.query('DELETE FROM toys WHERE id = $1', [id]);
+      const result = await pool.query('DELETE FROM toys WHERE id = $1 RETURNING id', [id]);
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Toy not found.' });
+      }
     } else {
       const store = readLocalStore();
+      const before = store.toys.length;
       store.toys = store.toys.filter(t => String(t.id) !== String(id));
+      if (store.toys.length === before) {
+        return res.status(404).json({ error: 'Toy not found.' });
+      }
       writeLocalStore(store);
     }
 

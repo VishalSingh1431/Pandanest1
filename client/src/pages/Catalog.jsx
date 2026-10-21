@@ -14,11 +14,12 @@ import {
   Heart,
   Phone,
   Calendar,
-  Gift
+  Gift,
+  Star
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   'All',
   'RC & Vehicles',
   'Plush & Soft Toys',
@@ -42,10 +43,31 @@ const AGE_GROUPS = [
 export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
   const [toys, setToys] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedAge, setSelectedAge] = useState('All');
   const [sortBy, setSortBy] = useState('recommended');
   const [selectedToyModal, setSelectedToyModal] = useState(null);
+  const [toyReviewsData, setToyReviewsData] = useState({ reviews: [], averageRating: 0, totalReviews: 0 });
+
+  useEffect(() => {
+    if (!selectedToyModal) {
+      setToyReviewsData({ reviews: [], averageRating: 0, totalReviews: 0 });
+      return;
+    }
+    const fetchReviews = async () => {
+      try {
+        const res = await fetch(`/api/reviews/toy/${selectedToyModal.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setToyReviewsData(data);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch reviews:', err);
+      }
+    };
+    fetchReviews();
+  }, [selectedToyModal]);
 
   // Hero embedded onboarding form state
   const [heroForm, setHeroForm] = useState({
@@ -84,6 +106,24 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
   useEffect(() => {
     fetchToys();
   }, [selectedCategory, selectedAge, searchQuery, sortBy]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch('/api/categories');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const names = ['All', ...data.map(c => c.name)];
+            setCategories(names);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch categories, using defaults:', err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleHeroSubmit = async (e) => {
     e.preventDefault();
@@ -397,7 +437,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
               scrollbarWidth: 'none'
             }}
           >
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
@@ -579,9 +619,68 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
                   </span>
                 </div>
 
-                <p style={{ color: '#475569', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        size={16}
+                        color={toyReviewsData.averageRating >= s ? '#f59e0b' : '#cbd5e1'}
+                        fill={toyReviewsData.averageRating >= s ? '#f59e0b' : 'none'}
+                      />
+                    ))}
+                  </div>
+                  <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a' }}>
+                    {toyReviewsData.averageRating > 0 ? toyReviewsData.averageRating : '5.0'} / 5.0
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    ({toyReviewsData.totalReviews} verified {toyReviewsData.totalReviews === 1 ? 'review' : 'reviews'})
+                  </span>
+                </div>
+
+                <p style={{ color: '#475569', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '20px' }}>
                   {selectedToyModal.description}
                 </p>
+
+                {/* Verified Customer Reviews Section */}
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', marginBottom: '20px' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#0f172a', marginBottom: '10px' }}>
+                    Verified Parent Reviews & Ratings:
+                  </h4>
+                  {toyReviewsData.reviews.length === 0 ? (
+                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', fontSize: '0.8rem', color: '#64748b' }}>
+                      🌟 Be the first verified buyer to rate this toy after delivery!
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '160px', overflowY: 'auto' }}>
+                      {toyReviewsData.reviews.map((r) => (
+                        <div key={r.id} style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontWeight: '700', fontSize: '0.8rem', color: '#0f172a' }}>{r.user_name}</span>
+                              <span className="badge badge-green" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>Verified Buyer</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '1px' }}>
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star
+                                  key={s}
+                                  size={12}
+                                  color={r.rating >= s ? '#f59e0b' : '#cbd5e1'}
+                                  fill={r.rating >= s ? '#f59e0b' : 'none'}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          {r.comment && (
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#475569', lineHeight: 1.4 }}>
+                              "{r.comment}"
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <button

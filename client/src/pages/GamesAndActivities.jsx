@@ -96,6 +96,7 @@ export function GamesAndActivities({ onGoToCatalog }) {
   const [promptCompleted, setPromptCompleted] = useState(false);
 
   // Video State
+  const [videoList, setVideoList] = useState(TOY_VIDEOS);
   const [activeVideo, setActiveVideo] = useState(TOY_VIDEOS[0]);
   const [watching, setWatching] = useState(false);
   const [watchTimer, setWatchTimer] = useState(40);
@@ -107,6 +108,37 @@ export function GamesAndActivities({ onGoToCatalog }) {
       return [];
     }
   });
+
+  // Fetch dynamic videos from API
+  useEffect(() => {
+    const fetchVideos = async () => {
+      try {
+        const res = await fetch('/api/videos');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const mapped = data.map(v => ({
+              id: String(v.id),
+              youtubeId: v.youtube_id || v.youtubeId,
+              title: v.title,
+              channel: v.channel || 'Panda Nest Kids Club',
+              durationSec: v.duration_sec || v.durationSec || 40,
+              pointsReward: v.points_reward || 10,
+              description: v.description || ''
+            }));
+            setVideoList(mapped);
+            setActiveVideo(prev => {
+              const stillExists = mapped.find(m => m.id === prev?.id);
+              return stillExists || mapped[0];
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch videos from server, using built-in videos:', err);
+      }
+    };
+    fetchVideos();
+  }, []);
 
   // Award Panda Points Helper
   const awardPoints = (amount = 10, reason = 'Game Completed') => {
@@ -754,7 +786,7 @@ export function GamesAndActivities({ onGoToCatalog }) {
             </h3>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '18px' }}>
-              {TOY_VIDEOS.map((vid) => {
+              {videoList.map((vid) => {
                 const isSelected = activeVideo.id === vid.id;
                 const isClaimed = completedVideos.includes(vid.id);
 

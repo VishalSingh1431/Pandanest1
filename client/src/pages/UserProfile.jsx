@@ -16,7 +16,9 @@ import {
   Clock,
   ArrowRight,
   ChevronRight,
-  Heart
+  Heart,
+  Star,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,9 +26,9 @@ export function UserProfile({ onGoToCatalog, onGoToAdmin }) {
   const { user, admin, logout, isAdmin, isSuperAdmin, token } = useAuth();
   const profile = user || admin || {};
   
-  const SUPER_ADMIN_EMAILS = ['acubebeauty@gmail.com', 'vishalsingh05072003@gmail.com', 'vishalsingh05072003'];
+  const SUPER_ADMIN_EMAILS = ['acubebeauty@gmail.com', 'vishalsingh05072003@gmail.com'];
   const profileEmail = (profile?.email || admin?.email || '').toLowerCase().trim();
-  const isUserSuperAdmin = isSuperAdmin || profile?.role === 'super_admin' || SUPER_ADMIN_EMAILS.some(e => profileEmail === e || profileEmail.startsWith('vishalsingh05072003'));
+  const isUserSuperAdmin = isSuperAdmin || profile?.role === 'super_admin' || SUPER_ADMIN_EMAILS.includes(profileEmail);
   const isUserAdmin = isAdmin || isUserSuperAdmin || ['super_admin', 'admin'].includes(profile?.role);
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'orders' | 'birthday' | 'settings'
@@ -41,7 +43,15 @@ export function UserProfile({ onGoToCatalog, onGoToAdmin }) {
   const [childDob, setChildDob] = useState(() => localStorage.getItem('pandanest_child_dob') || '');
   const [birthdaySaved, setBirthdaySaved] = useState(false);
 
-  // Fetch customer personal orders
+  // Review Modal state for purchased items
+  const [reviewModalToy, setReviewModalToy] = useState(null);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState('');
+  const [reviewError, setReviewError] = useState('');
+  const [reviewedToyIds, setReviewedToyIds] = useState([]);
+
+  // Fetch customer personal orders & points
   useEffect(() => {
     const fetchMyOrders = async () => {
       if (!token) return;
@@ -61,16 +71,71 @@ export function UserProfile({ onGoToCatalog, onGoToAdmin }) {
       }
     };
 
+    const fetchMyPoints = async () => {
+      if (!token) return;
+      try {
+        const res = await fetch('/api/users/my-points', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (typeof data.points === 'number') {
+            setPoints(data.points);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch personal points:', err.message);
+      }
+    };
+
     fetchMyOrders();
+    fetchMyPoints();
   }, [token]);
 
-  const handleSaveBirthday = (e) => {
+  const handleOpenReviewModal = (item) => {
+    setReviewModalToy(item);
+    setReviewForm({ rating: 5, comment: '' });
+    setReviewError('');
+    setReviewSuccess('');
+  };
+
+  const handleSubmitReview = async (e) => {
     e.preventDefault();
-    if (!childName || !childDob) return;
-    localStorage.setItem('pandanest_child_name', childName);
-    localStorage.setItem('pandanest_child_dob', childDob);
-    setBirthdaySaved(true);
-    setTimeout(() => setBirthdaySaved(false), 3000);
+    if (!reviewModalToy) return;
+    setReviewError('');
+    setReviewSuccess('');
+    setReviewLoading(true);
+
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          toy_id: reviewModalToy.id,
+          rating: reviewForm.rating,
+          comment: reviewForm.comment
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to submit review');
+      }
+
+      setReviewSuccess('Thank you! Your verified rating & review has been published.');
+      setReviewedToyIds(prev => [...prev, reviewModalToy.id]);
+      setTimeout(() => {
+        setReviewModalToy(null);
+        setReviewSuccess('');
+      }, 1600);
+    } catch (err) {
+      setReviewError(err.message);
+    } finally {
+      setReviewLoading(false);
+    }
   };
 
   return (
@@ -642,9 +707,37 @@ export function UserProfile({ onGoToCatalog, onGoToAdmin }) {
 
                           <div style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '12px' }}>
                             {parsedItems.map((item, idx) => (
-                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-                                <span>{item.quantity}x {item.name}</span>
-                                <span style={{ fontWeight: '600' }}>₹{item.price * item.quantity}</span>
+                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px dashed #f1f5f9' }}>
+                                <div>
+                                  <span style={{ fontWeight: '600' }}>{item.quantity}x {item.name}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                  <span style={{ fontWeight: '600' }}>₹{item.price * item.quantity}</span>
+                                  {reviewedToyIds.includes(item.id) ? (
+                                    <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: '700' }}>
+                                      ✓ Reviewed
+                                    </span>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleOpenReviewModal(item)}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        background: '#ecfdf5',
+                                        color: '#047857',
+                                        border: '1px solid #a7f3d0',
+                                        borderRadius: '8px',
+                                        padding: '4px 10px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '700',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      <Star size={12} fill="#047857" /> Rate Toy
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -804,6 +897,107 @@ export function UserProfile({ onGoToCatalog, onGoToAdmin }) {
           </div>
         </div>
       </div>
+      {/* Rating & Review Modal for Verified Buyers */}
+      {reviewModalToy && (
+        <div className="modal-overlay" onClick={() => setReviewModalToy(null)}>
+          <div className="modal-card" style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '1.25rem', color: '#0f172a', margin: 0 }}>
+                Rate & Review Toy
+              </h2>
+              <button className="modal-close" onClick={() => setReviewModalToy(null)} style={{ position: 'static' }}>
+                ✕
+              </button>
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ fontSize: '24px' }}>🧸</div>
+              <div>
+                <strong style={{ fontSize: '0.95rem', color: '#0f172a', display: 'block' }}>
+                  {reviewModalToy.name}
+                </strong>
+                <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: '700' }}>
+                  ✓ Verified Purchased Item
+                </span>
+              </div>
+            </div>
+
+            {reviewError && (
+              <div style={{ background: '#fee2e2', color: '#991b1b', padding: '10px 14px', borderRadius: '10px', fontSize: '0.85rem', marginBottom: '14px' }}>
+                {reviewError}
+              </div>
+            )}
+
+            {reviewSuccess && (
+              <div style={{ background: '#ecfdf5', color: '#047857', padding: '10px 14px', borderRadius: '10px', fontSize: '0.85rem', marginBottom: '14px', fontWeight: '700' }}>
+                {reviewSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitReview}>
+              <div className="form-group" style={{ textAlign: 'center', margin: '16px 0' }}>
+                <label className="form-label" style={{ marginBottom: '8px' }}>Your Star Rating</label>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      type="button"
+                      key={star}
+                      onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        transform: reviewForm.rating >= star ? 'scale(1.15)' : 'scale(1)',
+                        transition: 'transform 0.15s ease'
+                      }}
+                    >
+                      <Star
+                        size={32}
+                        color={reviewForm.rating >= star ? '#f59e0b' : '#cbd5e1'}
+                        fill={reviewForm.rating >= star ? '#f59e0b' : 'none'}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <span style={{ fontSize: '0.8rem', color: '#d97706', fontWeight: '700', marginTop: '6px', display: 'block' }}>
+                  {reviewForm.rating === 5 ? '⭐⭐⭐⭐⭐ Excellent!' : reviewForm.rating === 4 ? '⭐⭐⭐⭐ Great Toy' : reviewForm.rating === 3 ? '⭐⭐⭐ Good' : reviewForm.rating === 2 ? '⭐⭐ Fair' : '⭐ Needs Improvement'}
+                </span>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Review / Feedback</label>
+                <textarea
+                  rows={3}
+                  className="form-input"
+                  placeholder="Share how much your child loved this toy, its quality, durability, and play value..."
+                  value={reviewForm.comment}
+                  onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setReviewModalToy(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={reviewLoading}
+                  className="btn btn-primary"
+                  style={{ flex: 2 }}
+                >
+                  {reviewLoading ? 'Submitting...' : 'Submit Rating & Review'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

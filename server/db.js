@@ -109,6 +109,47 @@ const INITIAL_TOYS = [
   }
 ];
 
+export const INITIAL_CATEGORIES = [
+  'RC & Vehicles',
+  'Plush & Soft Toys',
+  'Dolls & Playsets',
+  'Building Blocks & Sets',
+  'Outdoor & Action',
+  'Board Games & Fun',
+  'Musical & Sensory Toys'
+];
+
+export const INITIAL_VIDEOS = [
+  {
+    id: 1,
+    youtube_id: '3vTfq_724jM',
+    title: 'Baby Panda Cute Cartoon Adventures 🐼',
+    channel: 'Panda Nest Kids Club',
+    duration_sec: 40,
+    points_reward: 10,
+    description: 'Join the playful little panda cub as he explores the bamboo forest and builds colorful wooden toy nests with friends.'
+  },
+  {
+    id: 2,
+    youtube_id: 'u7r6q69P0rQ',
+    title: 'High Speed RC Stunt Cars & Monster Truck Showcase 🏎️',
+    channel: 'Toy Arena',
+    duration_sec: 40,
+    points_reward: 10,
+    description: 'Watch incredible 360-degree tumbling spins, off-road ramp jumps, and glow-in-the-dark stunt drifting in action!'
+  },
+  {
+    id: 3,
+    youtube_id: 'Y9j4LhD1w30',
+    title: 'Magical Dollhouse Castle & Princess Fairytale Play 🏰',
+    channel: 'Creative Playroom',
+    duration_sec: 40,
+    points_reward: 10,
+    description: 'Step into the enchanted miniature fairytale castle with light-up balconies, miniature royal tea sets, and magical storytelling.'
+  }
+];
+
+// Helper to ensure data folder and fallback local store file exists
 function ensureLocalStore() {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -117,36 +158,185 @@ function ensureLocalStore() {
     const salt = bcrypt.genSaltSync(10);
     const initialAdmin = {
       id: 1,
-      email: process.env.ADMIN_EMAIL || 'acubebeauty@gmail.com',
+      email: process.env.ADMIN_EMAIL || 'admin@pandanest.in',
       password_hash: bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin123', salt),
-      name: process.env.ADMIN_NAME || 'Ashish (Super Admin)',
+      name: process.env.ADMIN_NAME || 'Pandanest Store Manager',
       role: 'super_admin',
-      phone: '7380405227',
+      phone: '',
       created_at: new Date().toISOString()
     };
     const store = {
       admins: [initialAdmin],
+      users: [],          // Customer accounts (OTP / Google login)
       leads: [],
       toys: INITIAL_TOYS.map((t, idx) => ({
         id: idx + 1,
         ...t,
         created_at: new Date().toISOString()
       })),
-      orders: []
+      categories: INITIAL_CATEGORIES.map((c, idx) => ({
+        id: idx + 1,
+        name: c,
+        description: `${c} toys and activities for kids`,
+        created_at: new Date().toISOString()
+      })),
+      videos: INITIAL_VIDEOS.map(v => ({
+        ...v,
+        created_at: new Date().toISOString()
+      })),
+      coupons: [
+        {
+          id: 1,
+          code: 'PANDA50',
+          discount_type: 'flat',
+          discount_value: 50,
+          min_order_amount: 499,
+          max_discount: 50,
+          expires_at: null,
+          usage_limit: 500,
+          used_count: 0,
+          is_active: true,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 2,
+          code: 'WELCOME10',
+          discount_type: 'percentage',
+          discount_value: 10,
+          min_order_amount: 0,
+          max_discount: 200,
+          expires_at: null,
+          usage_limit: 1000,
+          used_count: 0,
+          is_active: true,
+          created_at: new Date().toISOString()
+        }
+      ],
+      reviews: [],
+      orders: [],
+      otp_store: {}       // Persisted OTPs: email → { otp, expiresAt }
     };
     fs.writeFileSync(LOCAL_STORE_FILE, JSON.stringify(store, null, 2));
   }
 }
 
+let localStoreCache = null; // In-memory cache to avoid blocking sync I/O on every request
+
 export function readLocalStore() {
+  if (localStoreCache) {
+    if (!localStoreCache.categories) {
+      localStoreCache.categories = INITIAL_CATEGORIES.map((c, idx) => ({
+        id: idx + 1,
+        name: c,
+        description: `${c} toys and activities for kids`,
+        created_at: new Date().toISOString()
+      }));
+    }
+    if (!localStoreCache.videos) {
+      localStoreCache.videos = INITIAL_VIDEOS.map(v => ({
+        ...v,
+        created_at: new Date().toISOString()
+      }));
+    }
+    if (!localStoreCache.coupons) {
+      localStoreCache.coupons = [
+        {
+          id: 1,
+          code: 'PANDA50',
+          discount_type: 'flat',
+          discount_value: 50,
+          min_order_amount: 499,
+          max_discount: 50,
+          expires_at: null,
+          usage_limit: 500,
+          used_count: 0,
+          is_active: true,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 2,
+          code: 'WELCOME10',
+          discount_type: 'percentage',
+          discount_value: 10,
+          min_order_amount: 0,
+          max_discount: 200,
+          expires_at: null,
+          usage_limit: 1000,
+          used_count: 0,
+          is_active: true,
+          created_at: new Date().toISOString()
+        }
+      ];
+    }
+    if (!localStoreCache.reviews) {
+      localStoreCache.reviews = [];
+    }
+    return localStoreCache;
+  }
   ensureLocalStore();
   const raw = fs.readFileSync(LOCAL_STORE_FILE, 'utf-8');
-  return JSON.parse(raw);
+  localStoreCache = JSON.parse(raw);
+  if (!localStoreCache.categories) {
+    localStoreCache.categories = INITIAL_CATEGORIES.map((c, idx) => ({
+      id: idx + 1,
+      name: c,
+      description: `${c} toys and activities for kids`,
+      created_at: new Date().toISOString()
+    }));
+    writeLocalStore(localStoreCache);
+  }
+  if (!localStoreCache.videos) {
+    localStoreCache.videos = INITIAL_VIDEOS.map(v => ({
+      ...v,
+      created_at: new Date().toISOString()
+    }));
+    writeLocalStore(localStoreCache);
+  }
+  if (!localStoreCache.coupons) {
+    localStoreCache.coupons = [
+      {
+        id: 1,
+        code: 'PANDA50',
+        discount_type: 'flat',
+        discount_value: 50,
+        min_order_amount: 499,
+        max_discount: 50,
+        expires_at: null,
+        usage_limit: 500,
+        used_count: 0,
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 2,
+        code: 'WELCOME10',
+        discount_type: 'percentage',
+        discount_value: 10,
+        min_order_amount: 0,
+        max_discount: 200,
+        expires_at: null,
+        usage_limit: 1000,
+        used_count: 0,
+        is_active: true,
+        created_at: new Date().toISOString()
+      }
+    ];
+    writeLocalStore(localStoreCache);
+  }
+  if (!localStoreCache.reviews) {
+    localStoreCache.reviews = [];
+    writeLocalStore(localStoreCache);
+  }
+  return localStoreCache;
 }
 
 export function writeLocalStore(data) {
+  localStoreCache = data; // Update cache immediately (synchronous, in-process)
   ensureLocalStore();
-  fs.writeFileSync(LOCAL_STORE_FILE, JSON.stringify(data, null, 2));
+  // Persist to disk asynchronously so it never blocks the event loop
+  fs.writeFile(LOCAL_STORE_FILE, JSON.stringify(data, null, 2), (err) => {
+    if (err) console.error('⚠️  Failed to persist local store to disk:', err);
+  });
 }
 
 export async function initDB() {
@@ -191,6 +381,23 @@ async function initPostgresSchema() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      name VARCHAR(150),
+      phone VARCHAR(50),
+      avatar TEXT,
+      panda_points INT DEFAULT 0,
+      role VARCHAR(20) DEFAULT 'user',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS otp_store (
+      email VARCHAR(255) PRIMARY KEY,
+      otp VARCHAR(10) NOT NULL,
+      expires_at BIGINT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS leads (
       id SERIAL PRIMARY KEY,
       child_name VARCHAR(150) NOT NULL,
@@ -227,20 +434,64 @@ async function initPostgresSchema() {
       total_amount NUMERIC(10, 2) NOT NULL,
       status VARCHAR(50) DEFAULT 'Pending',
       items JSONB NOT NULL,
+      user_email VARCHAR(255),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS categories (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(100) UNIQUE NOT NULL,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS videos (
+      id SERIAL PRIMARY KEY,
+      youtube_id VARCHAR(50) NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      channel VARCHAR(150) DEFAULT 'Pandanest Kids',
+      duration_sec INT DEFAULT 40,
+      description TEXT,
+      points_reward INT DEFAULT 10,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS coupons (
+      id SERIAL PRIMARY KEY,
+      code VARCHAR(50) UNIQUE NOT NULL,
+      discount_type VARCHAR(20) DEFAULT 'percentage', -- 'percentage' | 'flat'
+      discount_value NUMERIC(10, 2) NOT NULL,
+      min_order_amount NUMERIC(10, 2) DEFAULT 0,
+      max_discount NUMERIC(10, 2),
+      expires_at TIMESTAMP,
+      usage_limit INT DEFAULT 100,
+      used_count INT DEFAULT 0,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS reviews (
+      id SERIAL PRIMARY KEY,
+      toy_id INT NOT NULL,
+      user_email VARCHAR(255) NOT NULL,
+      user_name VARCHAR(150) NOT NULL,
+      rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+      comment TEXT,
+      status VARCHAR(20) DEFAULT 'approved', -- 'pending' | 'approved' | 'rejected'
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
 
   await pool.query(schemaSQL);
 
-  // Alter tables to add new columns if they exist from older migrations
+  // Migrate: add columns for existing deployments
   try {
     await pool.query('ALTER TABLE admins ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT \'admin\';');
     await pool.query('ALTER TABLE admins ADD COLUMN IF NOT EXISTS phone VARCHAR(50);');
     await pool.query('ALTER TABLE leads ALTER COLUMN parent_name DROP NOT NULL;');
     await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS panda_points INT DEFAULT 100;');
+    await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_email VARCHAR(255);');
   } catch (e) {
-    // Columns might already exist
+    // Columns might already exist — safe to ignore
   }
 
   // Seed default super admin if not exists
@@ -270,6 +521,44 @@ async function initPostgresSchema() {
       );
     }
     console.log(`🧸 Seeded ${INITIAL_TOYS.length} toys into PostgreSQL!`);
+  }
+
+  // Seed default categories if empty
+  const catCheck = await pool.query('SELECT COUNT(*) as count FROM categories');
+  if (parseInt(catCheck.rows[0].count, 10) === 0) {
+    for (const c of INITIAL_CATEGORIES) {
+      await pool.query(
+        'INSERT INTO categories (name, description) VALUES ($1, $2) ON CONFLICT (name) DO NOTHING',
+        [c, `${c} toys and activities for kids`]
+      );
+    }
+    console.log(`🏷️  Seeded ${INITIAL_CATEGORIES.length} categories into PostgreSQL!`);
+  }
+
+  // Seed default videos if empty
+  const vidCheck = await pool.query('SELECT COUNT(*) as count FROM videos');
+  if (parseInt(vidCheck.rows[0].count, 10) === 0) {
+    for (const v of INITIAL_VIDEOS) {
+      await pool.query(
+        `INSERT INTO videos (youtube_id, title, channel, duration_sec, description, points_reward)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [v.youtube_id, v.title, v.channel, v.duration_sec, v.description, v.points_reward]
+      );
+    }
+    console.log(`🎬 Seeded ${INITIAL_VIDEOS.length} videos into PostgreSQL!`);
+  }
+
+  // Seed default coupons if empty
+  const couponCheck = await pool.query('SELECT COUNT(*) as count FROM coupons');
+  if (parseInt(couponCheck.rows[0].count, 10) === 0) {
+    await pool.query(
+      `INSERT INTO coupons (code, discount_type, discount_value, min_order_amount, max_discount, usage_limit, is_active)
+       VALUES
+       ('PANDA50', 'flat', 50, 499, 50, 500, true),
+       ('WELCOME10', 'percentage', 10, 0, 200, 1000, true)
+       ON CONFLICT (code) DO NOTHING`
+    );
+    console.log('🎟️  Seeded default coupons (PANDA50, WELCOME10) into PostgreSQL!');
   }
 }
 

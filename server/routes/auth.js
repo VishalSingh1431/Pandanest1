@@ -2,36 +2,98 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
+import { OAuth2Client } from 'google-auth-library';
 import { getDB, readLocalStore, writeLocalStore } from '../db.js';
 import { authenticateAdmin, authenticateUser } from '../middleware/auth.js';
 
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 const router = express.Router();
+
+// JWT secret — must be set via environment variable in production
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️  JWT_SECRET is not set. Using an insecure default — set it in server/.env for production!');
+}
 const JWT_SECRET = process.env.JWT_SECRET || 'pandanest_super_secret_jwt_key_2026_xyz';
 
-// Gmail SMTP transporter for real OTP delivery
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER || 'acubebeauty@gmail.com',
-    pass: (process.env.EMAIL_APP_PASS || 'kxzs iolq jrcx qzjh').replace(/\s+/g, '')
-  }
-});
+// Gmail SMTP transporter — only created when credentials are configured
+let transporter = null;
+if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASS) {
+  transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_APP_PASS.replace(/\s+/g, '')
+    }
+  });
+  console.log('✉️  Gmail SMTP configured for OTP delivery.');
+} else {
+  console.warn('⚠️  EMAIL_USER or EMAIL_APP_PASS not set. OTP emails will be logged to console only.');
+}
 
-// In-memory OTP storage: email -> { otp: string, expiresAt: number }
-const otpStore = new Map();
+// DB-backed OTP storage \u2014 survives server restarts and works across multiple instances
+async function storeOtp(email, otp, expiresAt) {
+  const { isPostgres, pool } = getDB();
+  if (isPostgres && pool) {
+    await pool.query(
+      `INSERT INTO otp_store (email, otp, expires_at) VALUES ($1, $2, $3)
+       ON CONFLICT (email) DO UPDATE SET otp = $2, expires_at = $3`,
+      [email, otp, expiresAt]
+    );
+  } else {
+    const store = readLocalStore();
+    store.otp_store = store.otp_store || {};
+    store.otp_store[email] = { otp, expiresAt };
+    writeLocalStore(store);
+  }
+}
+
+async function getOtp(email) {
+  const { isPostgres, pool } = getDB();
+  if (isPostgres && pool) {
+    const result = await pool.query('SELECT * FROM otp_store WHERE email = $1', [email]);
+    const row = result.rows[0];
+    if (!row) return null;
+    if (Date.now() > row.expires_at) {
+      await pool.query('DELETE FROM otp_store WHERE email = $1', [email]);
+      return null; // Expired
+    }
+    return { otp: row.otp, expiresAt: row.expires_at };
+  } else {
+    const store = readLocalStore();
+    const entry = (store.otp_store || {})[email];
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      delete store.otp_store[email];
+      writeLocalStore(store);
+      return null; // Expired
+    }
+    return entry;
+  }
+}
+
+async function deleteOtp(email) {
+  const { isPostgres, pool } = getDB();
+  if (isPostgres && pool) {
+    await pool.query('DELETE FROM otp_store WHERE email = $1', [email]);
+  } else {
+    const store = readLocalStore();
+    if (store.otp_store) delete store.otp_store[email];
+    writeLocalStore(store);
+  }
+}
 
 // Helper to find or create user in Postgres or Local Store
 async function findOrCreateUser({ email, name, role = 'user' }) {
   const normalizedEmail = email.toLowerCase().trim();
   const { isPostgres, pool } = getDB();
 
-  // List of Super Admin emails
+  // Exact-match list only — no startsWith to prevent escalation attacks
   const SUPER_ADMIN_EMAILS = [
     'acubebeauty@gmail.com',
-    'vishalsingh05072003@gmail.com',
-    'vishalsingh05072003'
+    'vishalsingh05072003@gmail.com'
   ];
-  const isSuperAdminEmail = SUPER_ADMIN_EMAILS.some(e => normalizedEmail === e || normalizedEmail.startsWith('vishalsingh05072003'));
+  const isSuperAdminEmail = SUPER_ADMIN_EMAILS.includes(normalizedEmail);
   const assignedRole = isSuperAdminEmail ? 'super_admin' : role;
 
   if (isPostgres && pool) {
@@ -94,48 +156,49 @@ router.post('/send-otp', async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    otpStore.set(normalizedEmail, { otp, expiresAt });
+    await storeOtp(normalizedEmail, otp, expiresAt);
 
-    // Send email via Gmail SMTP
-    try {
-      await transporter.sendMail({
-        from: `"Panda Nest 🐼" <${process.env.EMAIL_USER || 'acubebeauty@gmail.com'}>`,
-        to: normalizedEmail,
-        subject: `Your Panda Nest Verification Code: ${otp} 🐼`,
-        html: `
-          <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 520px; margin: 0 auto; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 20px; padding: 32px 24px; color: #0f172a;">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <h2 style="color: #047857; margin: 0 0 6px; font-size: 26px; font-weight: 800;">🐼 Panda Nest</h2>
-              <p style="color: #64748b; font-size: 13px; margin: 0; font-weight: 600;">Safe Toys For Little Ones • pandanest.in</p>
+    // Send email via Gmail SMTP (if configured)
+    if (transporter) {
+      try {
+        await transporter.sendMail({
+          from: `"Panda Nest 🐼" <${process.env.EMAIL_USER}>`,
+          to: normalizedEmail,
+          subject: `Your Panda Nest Verification Code: ${otp} 🐼`,
+          html: `
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 520px; margin: 0 auto; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 20px; padding: 32px 24px; color: #0f172a;">
+              <div style="text-align: center; margin-bottom: 24px;">
+                <h2 style="color: #047857; margin: 0 0 6px; font-size: 26px; font-weight: 800;">🐼 Panda Nest</h2>
+                <p style="color: #64748b; font-size: 13px; margin: 0; font-weight: 600;">Safe Toys For Little Ones • pandanest.in</p>
+              </div>
+              <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 1.5px dashed #10b981; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px;">
+                <p style="color: #065f46; font-size: 14px; font-weight: 600; margin: 0 0 10px;">Your 6-Digit Login &amp; Verification Code</p>
+                <div style="font-size: 40px; font-weight: 900; letter-spacing: 10px; color: #047857; font-family: monospace;">${otp}</div>
+                <p style="color: #059669; font-size: 12px; margin: 12px 0 0; font-weight: 600;">⏱️ Valid for 10 minutes</p>
+              </div>
+              <p style="font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 16px;">
+                Enter this code to access your Panda Nest account, track your toy orders, and unlock member rewards.
+              </p>
+              <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; font-size: 12px; color: #94a3b8; text-align: center;">
+                If you did not request this verification code, please ignore this email.<br/>
+                © ${new Date().getFullYear()} Panda Nest (pandanest.in) • Spreading Smiles Across India
+              </div>
             </div>
-            
-            <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 1.5px dashed #10b981; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px;">
-              <p style="color: #065f46; font-size: 14px; font-weight: 600; margin: 0 0 10px;">Your 6-Digit Login & Verification Code</p>
-              <div style="font-size: 40px; font-weight: 900; letter-spacing: 10px; color: #047857; font-family: monospace;">${otp}</div>
-              <p style="color: #059669; font-size: 12px; margin: 12px 0 0; font-weight: 600;">⏱️ Valid for 10 minutes</p>
-            </div>
-
-            <p style="font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 16px;">
-              Enter this code to access your Panda Nest account, track your toy orders, and unlock member rewards.
-            </p>
-
-            <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; font-size: 12px; color: #94a3b8; text-align: center;">
-              If you did not request this verification code, please ignore this email.<br/>
-              © ${new Date().getFullYear()} Panda Nest (pandanest.in) • Spreading Smiles Across India
-            </div>
-          </div>
-        `
-      });
-      console.log(`✉️ Real OTP sent successfully to ${normalizedEmail}`);
-    } catch (mailErr) {
-      console.warn(`⚠️ SMTP send issue (${mailErr.message}), falling back to console log: OTP for ${normalizedEmail} is ${otp}`);
+          `
+        });
+        console.log(`✉️ OTP email sent successfully to ${normalizedEmail}`);
+      } catch (mailErr) {
+        console.warn(`⚠️ SMTP error (${mailErr.message}) — OTP for ${normalizedEmail} is ${otp} (server console only)`);
+      }
+    } else {
+      // Email not configured — log OTP to server console for development
+      console.log(`🔑 [DEV] OTP for ${normalizedEmail}: ${otp} (configure EMAIL_USER & EMAIL_APP_PASS to send real emails)`);
     }
 
     res.json({
       success: true,
-      message: `Verification code sent to ${normalizedEmail}`,
-      // In development, providing OTP hint if email transport hits rate limit
-      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+      message: `Verification code sent to ${normalizedEmail}. Check your email (or server console if email is not configured).`
+      // OTP is never returned in the API response for security
     });
   } catch (err) {
     console.error('Send OTP error:', err);
@@ -154,23 +217,18 @@ router.post('/verify-otp', async (req, res) => {
     const normalizedEmail = email.toLowerCase().trim();
     const cleanOtp = otp.toString().trim();
 
-    const stored = otpStore.get(normalizedEmail);
+    const stored = await getOtp(normalizedEmail);
 
     if (!stored) {
       return res.status(400).json({ error: 'No verification code found. Please request a new code.' });
-    }
-
-    if (Date.now() > stored.expiresAt) {
-      otpStore.delete(normalizedEmail);
-      return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
     }
 
     if (stored.otp !== cleanOtp) {
       return res.status(400).json({ error: 'Incorrect verification code. Please check your email and try again.' });
     }
 
-    // OTP is valid - clear it
-    otpStore.delete(normalizedEmail);
+    // OTP is valid — clear it
+    await deleteOtp(normalizedEmail);
 
     // Find or create user
     const user = await findOrCreateUser({
@@ -183,7 +241,7 @@ router.post('/verify-otp', async (req, res) => {
     const token = jwt.sign(
       { id: user.id, email: user.email, name: user.name, role: userRole },
       JWT_SECRET,
-      { expiresIn: '30d' }
+      { expiresIn: '7d' }
     );
 
     res.json({
@@ -204,20 +262,37 @@ router.post('/verify-otp', async (req, res) => {
   }
 });
 
-// 3. Continue with Google / Gmail
+// 3. Continue with Google — verifies ID token server-side before trusting email
 router.post('/google', async (req, res) => {
   try {
-    const { email, name, googleId, avatar } = req.body;
-    if (!email || !email.includes('@')) {
-      return res.status(400).json({ error: 'Valid Google account email is required.' });
+    const { googleIdToken, name, avatar } = req.body;
+
+    if (!googleIdToken) {
+      return res.status(400).json({ error: 'Google ID token is required.' });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return res.status(500).json({ error: 'Google Sign-In is not configured on this server.' });
+    }
 
-    // Find or create user
+    // Verify token with Google's servers — cannot be spoofed by a client
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: googleIdToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (verifyErr) {
+      return res.status(401).json({ error: 'Invalid Google token. Please try signing in again.' });
+    }
+
+    const normalizedEmail = payload.email.toLowerCase().trim();
+    const userName = name || payload.name || normalizedEmail.split('@')[0];
+
     const user = await findOrCreateUser({
       email: normalizedEmail,
-      name: name || normalizedEmail.split('@')[0],
+      name: userName,
       role: 'user'
     });
 
@@ -225,7 +300,7 @@ router.post('/google', async (req, res) => {
     const token = jwt.sign(
       { id: user.id, email: user.email, name: user.name, role: userRole },
       JWT_SECRET,
-      { expiresIn: '30d' }
+      { expiresIn: '7d' }
     );
 
     res.json({
@@ -238,7 +313,7 @@ router.post('/google', async (req, res) => {
         name: user.name,
         role: userRole,
         phone: user.phone || '',
-        avatar: avatar || ''
+        avatar: payload.picture || avatar || ''
       }
     });
   } catch (err) {
@@ -283,7 +358,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(
       { id: admin.id, email: admin.email, name: admin.name, role: role },
       JWT_SECRET,
-      { expiresIn: '30d' }
+      { expiresIn: '7d' }
     );
 
     res.json({
@@ -309,13 +384,12 @@ router.get('/me', authenticateUser, async (req, res) => {
     const { isPostgres, pool } = getDB();
     const userEmail = (req.user?.email || '').toLowerCase().trim();
 
-    // List of Super Admin emails
+    // Exact-match list only — no startsWith to prevent escalation attacks
     const SUPER_ADMIN_EMAILS = [
       'acubebeauty@gmail.com',
-      'vishalsingh05072003@gmail.com',
-      'vishalsingh05072003'
+      'vishalsingh05072003@gmail.com'
     ];
-    const isSuperAdminEmail = SUPER_ADMIN_EMAILS.some(e => userEmail === e || userEmail.startsWith('vishalsingh05072003'));
+    const isSuperAdminEmail = SUPER_ADMIN_EMAILS.includes(userEmail);
 
     let dbUser = null;
     let currentRole = isSuperAdminEmail ? 'super_admin' : (req.user?.role || 'user');
@@ -348,17 +422,19 @@ router.get('/me', authenticateUser, async (req, res) => {
       phone: (dbUser && dbUser.phone) ? dbUser.phone : (req.user.phone || '')
     };
 
-    const freshToken = jwt.sign(
-      { id: userData.id, email: userData.email, name: userData.name, role: userData.role },
-      JWT_SECRET,
-      { expiresIn: '30d' }
-    );
+    // Only issue a fresh token when the role has changed (avoids infinite refresh loop on client)
+    const roleChanged = req.user.role !== currentRole;
+    let responsePayload = { admin: userData, user: userData };
+    if (roleChanged) {
+      const freshToken = jwt.sign(
+        { id: userData.id, email: userData.email, name: userData.name, role: userData.role },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+      responsePayload.token = freshToken;
+    }
 
-    res.json({
-      admin: userData,
-      user: userData,
-      token: freshToken
-    });
+    res.json(responsePayload);
   } catch (err) {
     console.error('Error in /me:', err);
     res.json({ admin: req.user, user: req.user });

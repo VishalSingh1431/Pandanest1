@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { X, CheckCircle, Truck, CreditCard, Award, Package, Sparkles } from 'lucide-react';
+import { X, CheckCircle, Truck, CreditCard, Award, Package, Sparkles, Tag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
 export function CheckoutModal() {
@@ -18,23 +18,51 @@ export function CheckoutModal() {
   const [usePandaPoints, setUsePandaPoints] = useState(false);
   const [availablePoints, setAvailablePoints] = useState(0);
 
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [orderSuccess, setOrderSuccess] = useState(null);
 
   useEffect(() => {
-    const points = parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10);
-    setAvailablePoints(points);
+    const fetchPoints = async () => {
+      const token = localStorage.getItem('pandanest_admin_token');
+      if (token) {
+        try {
+          const res = await fetch('/api/users/my-points', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setAvailablePoints(data.panda_points || 0);
+          } else {
+            // Fallback to localStorage for guests
+            setAvailablePoints(parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10));
+          }
+        } catch {
+          setAvailablePoints(parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10));
+        }
+      } else {
+        // Guest checkout — use localStorage
+        setAvailablePoints(parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10));
+      }
 
-    const savedPhone = localStorage.getItem('pandanest_member_phone') || '';
-    const savedChild = localStorage.getItem('pandanest_member_child') || '';
-    if (savedPhone) {
-      setFormData(prev => ({
-        ...prev,
-        phone: prev.phone || savedPhone,
-        customer_name: prev.customer_name || (savedChild ? `Parent of ${savedChild}` : '')
-      }));
-    }
+      const savedPhone = localStorage.getItem('pandanest_member_phone') || '';
+      const savedChild = localStorage.getItem('pandanest_member_child') || '';
+      if (savedPhone) {
+        setFormData(prev => ({
+          ...prev,
+          phone: prev.phone || savedPhone,
+          customer_name: prev.customer_name || (savedChild ? `Parent of ${savedChild}` : '')
+        }));
+      }
+    };
+
+    if (isCheckoutOpen) fetchPoints();
   }, [isCheckoutOpen]);
 
   if (!isCheckoutOpen) return null;
@@ -50,7 +78,42 @@ export function CheckoutModal() {
   // 10 Panda points = ₹1 discount
   const redeemableRupees = Math.floor(availablePoints / 10);
   const pointsDiscount = (usePandaPoints && availablePoints >= 10) ? Math.min(redeemableRupees, rawTotal) : 0;
-  const finalPayable = Math.max(0, rawTotal - pointsDiscount);
+  const couponDiscount = appliedCoupon ? Number(appliedCoupon.discount_amount) : 0;
+  const finalPayable = Math.max(0, rawTotal - pointsDiscount - couponDiscount);
+
+  const handleApplyCoupon = async (e) => {
+    e.preventDefault();
+    setCouponError('');
+    if (!couponCode.trim()) {
+      setCouponError('Please enter a coupon code.');
+      return;
+    }
+    setCouponLoading(true);
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponCode.trim(), order_amount: rawTotal })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to apply coupon.');
+      }
+      setAppliedCoupon(data);
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+    } catch (err) {
+      setCouponError(err.message);
+      setAppliedCoupon(null);
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setCouponError('');
+  };
 
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -75,7 +138,8 @@ export function CheckoutModal() {
           ...formData,
           items: itemsToCheckout,
           total_amount: finalPayable,
-          points_used: pointsDiscount > 0 ? 100 : 0
+          // Correctly calculated points: 1 rupee discount = 10 panda points
+          points_used: pointsDiscount > 0 ? pointsDiscount * 10 : 0
         })
       });
 
@@ -85,11 +149,14 @@ export function CheckoutModal() {
         throw new Error(data.error || 'Failed to place order.');
       }
 
+      // Points are now deducted server-side in the order route
+      // Update local display optimistically for immediate UI feedback
       if (pointsDiscount > 0) {
         const pointsUsed = pointsDiscount * 10;
         const remaining = Math.max(0, availablePoints - pointsUsed);
-        localStorage.setItem('pandanest_panda_points', String(remaining));
         setAvailablePoints(remaining);
+        // Keep localStorage in sync for guests
+        localStorage.setItem('pandanest_panda_points', String(remaining));
       }
 
       // Celebrate with confetti!
@@ -240,8 +307,8 @@ export function CheckoutModal() {
               <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' }}>
                 Items ({itemsToCheckout.length}):
               </div>
-              {itemsToCheckout.map((item, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '4px' }}>
+              {itemsToCheckout.map((item) => (
+                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '4px' }}>
                   <span style={{ color: '#334155' }}>
                     {item.name} <span style={{ color: '#94a3b8' }}>x {item.quantity}</span>
                   </span>
@@ -289,6 +356,77 @@ export function CheckoutModal() {
               </div>
             )}
 
+            {/* Promo / Coupon Code Section */}
+            <div
+              style={{
+                background: '#ffffff',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                marginBottom: '16px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: '#0f172a' }}>
+                <Tag size={16} color="#10b981" />
+                <span>Have a Promo Code or Gift Coupon?</span>
+              </div>
+
+              {appliedCoupon ? (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ecfdf5', border: '1px solid #10b981', borderRadius: '8px', padding: '8px 12px' }}>
+                  <div>
+                    <span className="badge badge-green" style={{ fontSize: '0.75rem', fontWeight: '800' }}>
+                      {appliedCoupon.code}
+                    </span>
+                    <span style={{ fontSize: '0.8rem', color: '#047857', marginLeft: '8px', fontWeight: '600' }}>
+                      You saved ₹{appliedCoupon.discount_amount}!
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Enter code (e.g. PANDA50, WELCOME10)"
+                    value={couponCode}
+                    onChange={(e) => {
+                      setCouponCode(e.target.value);
+                      setCouponError('');
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '0.85rem',
+                      textTransform: 'uppercase'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={couponLoading || !couponCode.trim()}
+                    className="btn btn-secondary btn-sm"
+                    style={{ padding: '8px 16px', fontWeight: '700' }}
+                  >
+                    {couponLoading ? 'Checking...' : 'Apply'}
+                  </button>
+                </div>
+              )}
+
+              {couponError && (
+                <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '6px', fontWeight: '600' }}>
+                  {couponError}
+                </div>
+              )}
+            </div>
+
             {/* Price Summary */}
             <div style={{ background: '#ecfdf5', borderRadius: '12px', padding: '10px 14px', marginBottom: '18px', fontSize: '0.9rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#047857' }}>
@@ -298,7 +436,13 @@ export function CheckoutModal() {
               {pointsDiscount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#b45309' }}>
                   <span>Panda Club Points Discount:</span>
-                  <span style={{ fontWeight: '700' }}>- ₹50</span>
+                  <span style={{ fontWeight: '700' }}>- ₹{pointsDiscount.toLocaleString('en-IN')}</span>
+                </div>
+              )}
+              {couponDiscount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#059669' }}>
+                  <span>Coupon Discount ({appliedCoupon.code}):</span>
+                  <span style={{ fontWeight: '700' }}>- ₹{couponDiscount.toLocaleString('en-IN')}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #a7f3d0', paddingTop: '6px', marginTop: '6px', fontWeight: '800', fontSize: '1.05rem', color: '#065f46' }}>

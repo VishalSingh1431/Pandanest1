@@ -37,17 +37,7 @@ export function AuthProvider({ children }) {
     try {
       const saved = localStorage.getItem('pandanest_admin_profile');
       if (!saved) return null;
-      const parsed = JSON.parse(saved);
-      const email = (parsed?.email || '').toLowerCase().trim();
-      if (
-        email === 'vishalsingh05072003@gmail.com' ||
-        email === 'acubebeauty@gmail.com' ||
-        email.startsWith('vishalsingh05072003') ||
-        (parsed?.name && parsed.name.toLowerCase().includes('vishalsingh05072003'))
-      ) {
-        parsed.role = 'super_admin';
-      }
-      return parsed;
+      return JSON.parse(saved); // Trust the server-issued role, no client override
     } catch {
       return null;
     }
@@ -55,20 +45,22 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Only verify once on mount — not on every token change to prevent infinite refresh loop
+    const currentToken = localStorage.getItem('pandanest_admin_token');
+    if (!currentToken) {
+      setLoading(false);
+      return;
+    }
     const verifyToken = async () => {
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
       try {
         const res = await fetch('/api/auth/me', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${currentToken}` }
         });
         if (res.ok) {
           const data = await parseJsonResponse(res);
           const userObj = data.admin || data.user;
           setAdmin(userObj);
+          // Only update token in storage if server issued a new one (role changed)
           if (data.token) {
             setToken(data.token);
             localStorage.setItem('pandanest_admin_token', data.token);
@@ -83,9 +75,8 @@ export function AuthProvider({ children }) {
         setLoading(false);
       }
     };
-
     verifyToken();
-  }, [token]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Method 1: Send OTP to Gmail
   const sendOtp = async (email) => {
@@ -114,12 +105,12 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  // Method 3: Google Login / Signup
-  const loginWithGoogle = async (googleData) => {
+  // Method 3: Google Login / Signup — sends ID token for server-side verification
+  const loginWithGoogle = async (googleIdToken, name = '', avatar = '') => {
     const res = await fetch('/api/auth/google', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(googleData)
+      body: JSON.stringify({ googleIdToken, name, avatar })
     });
     const data = await parseJsonResponse(res, 'Failed to authenticate with Google.');
 
@@ -155,11 +146,10 @@ export function AuthProvider({ children }) {
     setAdmin(null);
   };
 
-  const SUPER_ADMIN_EMAILS = ['acubebeauty@gmail.com', 'vishalsingh05072003@gmail.com', 'vishalsingh05072003'];
-  const userEmail = (admin?.email || '').toLowerCase().trim();
-  const isSuperAdmin = admin?.role === 'super_admin' || SUPER_ADMIN_EMAILS.some(e => userEmail === e || userEmail.startsWith('vishalsingh05072003'));
-  const isAdmin = ['super_admin', 'admin'].includes(admin?.role) || isSuperAdmin;
-  const currentRole = isSuperAdmin ? 'super_admin' : (admin?.role || 'user');
+  // Roles derived exclusively from server-issued data — never set client-side
+  const isSuperAdmin = admin?.role === 'super_admin';
+  const isAdmin = ['super_admin', 'admin'].includes(admin?.role);
+  const currentRole = admin?.role || 'user';
 
   return (
     <AuthContext.Provider

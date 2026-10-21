@@ -20,7 +20,6 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [devOtpHint, setDevOtpHint] = useState('');
 
   const { sendOtp, verifyOtp, loginWithGoogle, login } = useAuth();
 
@@ -49,10 +48,7 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
       const data = await sendOtp(email.trim());
       setStep('otp');
       setCountdown(45);
-      setSuccessMsg(`Verification code sent to ${email}`);
-      if (data.devOtp) {
-        setDevOtpHint(data.devOtp);
-      }
+      setSuccessMsg(`Verification code sent to ${email}. Check your inbox or spam folder.`);
     } catch (err) {
       setError(err.message || 'Failed to send verification code. Please check email address.');
     } finally {
@@ -481,11 +477,7 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   />
 
-                  {devOtpHint && (
-                    <div style={{ marginTop: '6px', textAlign: 'center', fontSize: '0.75rem', color: '#059669', background: '#ecfdf5', padding: '4px 8px', borderRadius: '8px' }}>
-                      🔑 Verification Code: <strong>{devOtpHint}</strong>
-                    </div>
-                  )}
+
                 </div>
 
                 <button
