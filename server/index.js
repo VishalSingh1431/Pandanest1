@@ -30,14 +30,25 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
-  .split(',')
-  .map(o => o.trim());
+const DEFAULT_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://pandanest.in',
+  'http://pandanest.in',
+  'https://www.pandanest.in',
+  'http://www.pandanest.in'
+];
+
+const envOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : [];
+
+const ALLOWED_ORIGINS = Array.from(new Set([...DEFAULT_ORIGINS, ...envOrigins]));
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (Postman, mobile apps, curl)
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+    // Allow requests with no origin (Postman, same-origin reverse-proxy, curl)
+    if (!origin || ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.pandanest.in')) {
       callback(null, true);
     } else {
       callback(new Error(`CORS: Origin ${origin} is not allowed.`));
