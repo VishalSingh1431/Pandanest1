@@ -193,7 +193,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
         style={{
           background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
           color: 'white',
-          padding: '46px 20px',
+          padding: '20px 18px',
           position: 'relative',
           overflow: 'hidden'
         }}
@@ -204,31 +204,31 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
             position: 'relative',
             zIndex: 2,
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '36px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '20px',
             alignItems: 'center'
           }}
         >
           {/* Left Column: Brand & Value Pitch */}
           <div>
-            <div className="badge badge-amber" style={{ marginBottom: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-              <Sparkles size={14} /> Official Panda Nest Storefront • pandanest.in
+            <div className="badge badge-amber" style={{ marginBottom: '8px', padding: '3px 10px', fontSize: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+              <Sparkles size={12} /> Official Panda Nest Storefront • pandanest.in
             </div>
 
-            <h1 style={{ fontSize: '2.6rem', lineHeight: 1.15, marginBottom: '14px', color: 'white' }}>
+            <h1 style={{ fontSize: '1.9rem', lineHeight: 1.15, marginBottom: '8px', color: 'white' }}>
               Toys That Spark Wild Imaginations! 🚀
             </h1>
 
-            <p style={{ fontSize: '1.05rem', opacity: 0.95, lineHeight: 1.55, marginBottom: '22px' }}>
+            <p style={{ fontSize: '0.92rem', opacity: 0.95, lineHeight: 1.4, marginBottom: '14px', maxWidth: '480px' }}>
               From turbo stunt racers to giant cuddly pandas and fairytale castles, find toys crafted for boundless playtime fun.
             </p>
 
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', background: 'rgba(255,255,255,0.2)', padding: '7px 15px', borderRadius: '20px', fontWeight: '600' }}>
-                <Truck size={16} />
-                <span>FREE Delivery on All Toys Across India</span>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', background: 'rgba(255,255,255,0.2)', padding: '5px 12px', borderRadius: '16px', fontWeight: '600' }}>
+                <Truck size={14} />
+                <span>FREE Delivery Across India</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', background: 'rgba(255,255,255,0.2)', padding: '7px 15px', borderRadius: '20px', fontWeight: '600' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', background: 'rgba(255,255,255,0.2)', padding: '5px 12px', borderRadius: '16px', fontWeight: '600' }}>
                 <span>✨ 100% Child Safe</span>
               </div>
             </div>
@@ -238,12 +238,12 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
           <div
             style={{
               background: '#ffffff',
-              borderRadius: '24px',
-              padding: '28px 24px',
-              boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.25)',
+              borderRadius: '18px',
+              padding: '18px 20px',
+              boxShadow: '0 12px 30px -8px rgba(0, 0, 0, 0.2)',
               border: '1.5px solid rgba(255, 255, 255, 0.6)',
               color: '#0f172a',
-              maxWidth: '460px',
+              maxWidth: '430px',
               marginLeft: 'auto',
               width: '100%'
             }}
@@ -294,15 +294,15 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
               </div>
             ) : (
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                  <div style={{ background: '#ecfdf5', color: '#047857', padding: '6px', borderRadius: '10px' }}>
-                    <Gift size={20} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                  <div style={{ background: '#ecfdf5', color: '#047857', padding: '5px', borderRadius: '8px' }}>
+                    <Gift size={18} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '1.25rem', color: '#0f172a', lineHeight: 1.2 }}>
+                    <h3 style={{ fontSize: '1.1rem', color: '#0f172a', lineHeight: 1.2, margin: 0 }}>
                       Join Panda Club & Get 100 Pts 🎁
                     </h3>
-                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
                       Register child's birthday for special gifts & perks!
                     </span>
                   </div>
@@ -314,10 +314,10 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
                       background: '#fef2f2',
                       border: '1px solid #fee2e2',
                       color: '#991b1b',
-                      padding: '8px 12px',
-                      borderRadius: '10px',
-                      fontSize: '0.8rem',
-                      marginBottom: '14px'
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.75rem',
+                      marginBottom: '10px'
                     }}
                   >
                     {heroError}
@@ -325,51 +325,52 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
                 )}
 
                 <form onSubmit={handleHeroSubmit}>
-                  {/* Child Name */}
-                  <div className="form-group" style={{ marginBottom: '12px' }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                      <Heart size={13} color="#ec4899" />
-                      Child's Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      className="form-input"
-                      style={{ padding: '9px 12px', fontSize: '0.9rem' }}
-                      placeholder="e.g. Aarav / Ananya"
-                      value={heroForm.child_name}
-                      onChange={(e) => setHeroForm({ ...heroForm, child_name: e.target.value })}
-                    />
-                  </div>
+                  {/* Child Name & Mobile Number in a neat 2-col row */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
+                        <Heart size={11} color="#ec4899" />
+                        Child's Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        className="form-input"
+                        style={{ padding: '7px 10px', fontSize: '0.85rem' }}
+                        placeholder="e.g. Aarav"
+                        value={heroForm.child_name}
+                        onChange={(e) => setHeroForm({ ...heroForm, child_name: e.target.value })}
+                      />
+                    </div>
 
-                  {/* Mobile Number */}
-                  <div className="form-group" style={{ marginBottom: '12px' }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                      <Phone size={13} color="#059669" />
-                      Mobile / WhatsApp Number *
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      className="form-input"
-                      style={{ padding: '9px 12px', fontSize: '0.9rem' }}
-                      placeholder="e.g. 7380405227"
-                      value={heroForm.phone}
-                      onChange={(e) => setHeroForm({ ...heroForm, phone: e.target.value })}
-                    />
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
+                        <Phone size={11} color="#059669" />
+                        Mobile / WhatsApp *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        className="form-input"
+                        style={{ padding: '7px 10px', fontSize: '0.85rem' }}
+                        placeholder="10-digit number"
+                        value={heroForm.phone}
+                        onChange={(e) => setHeroForm({ ...heroForm, phone: e.target.value })}
+                      />
+                    </div>
                   </div>
 
                   {/* Child's Date of Birth */}
-                  <div className="form-group" style={{ marginBottom: '16px' }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                      <Calendar size={13} color="#8b5cf6" />
+                  <div className="form-group" style={{ marginBottom: '10px' }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
+                      <Calendar size={11} color="#8b5cf6" />
                       Child's Date of Birth (DOB) *
                     </label>
                     <input
                       type="date"
                       required
                       className="form-input"
-                      style={{ padding: '9px 12px', fontSize: '0.9rem' }}
+                      style={{ padding: '7px 10px', fontSize: '0.85rem' }}
                       value={heroForm.dob}
                       onChange={(e) => setHeroForm({ ...heroForm, dob: e.target.value })}
                     />
@@ -379,9 +380,9 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
                     type="submit"
                     disabled={heroLoading}
                     className="btn btn-primary"
-                    style={{ width: '100%', padding: '12px', fontSize: '0.95rem' }}
+                    style={{ width: '100%', padding: '9px', fontSize: '0.88rem' }}
                   >
-                    <Award size={18} />
+                    <Award size={16} />
                     <span>{heroLoading ? 'Unlocking Points...' : 'Unlock 100 Points & Rewards'}</span>
                   </button>
                 </form>
