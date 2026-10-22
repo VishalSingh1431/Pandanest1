@@ -95,7 +95,7 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
   const [selectedGame, setSelectedGame] = useState('balloon'); // 'balloon' | 'memory' | 'trivia' | 'truth-dare'
   const [points, setPoints] = useState(() => parseInt(localStorage.getItem('pandanest_panda_points') || '100', 10));
 
-  // --- GAME 1: PANDA BALLOON POPPER (Addictive, Fast, Tapping Game) ---
+  // --- GAME 1: PANDA BALLOON POPPER ---
   const [balloonScore, setBalloonScore] = useState(0);
   const [balloonTimeLeft, setBalloonTimeLeft] = useState(25);
   const [isBalloonPlaying, setIsBalloonPlaying] = useState(false);
@@ -105,20 +105,37 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
     return parseInt(localStorage.getItem('pandanest_high_balloon_score') || '0', 10);
   });
 
-  // --- GAME 2: MEMORY FLIP ---
+  // --- GAME 2: PANDA BAMBOO CATCH (Super Easy & Fun for Kids 5-12) ---
+  const [bambooScore, setBambooScore] = useState(0);
+  const [bambooTimeLeft, setBambooTimeLeft] = useState(25);
+  const [isBambooPlaying, setIsBambooPlaying] = useState(false);
+  const [bambooGameOver, setBambooGameOver] = useState(false);
+  const [basketX, setBasketX] = useState(50); // percentage 10% to 90%
+  const [fallingItems, setFallingItems] = useState([]);
+
+  // --- GAME 3: LUCKY TOY SPIN WHEEL ---
+  const [wheelRotation, setWheelRotation] = useState(0);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [wheelPrize, setWheelPrize] = useState(null);
+  const [hasSpunToday, setHasSpunToday] = useState(() => {
+    const lastSpun = localStorage.getItem('pandanest_last_spin_date');
+    return lastSpun === new Date().toISOString().split('T')[0];
+  });
+
+  // --- GAME 4: MEMORY FLIP ---
   const [cards, setCards] = useState([]);
   const [flipped, setFlipped] = useState([]);
   const [matched, setMatched] = useState([]);
   const [memoryWon, setMemoryWon] = useState(false);
 
-  // --- GAME 3: TRIVIA ---
+  // --- GAME 5: TRIVIA ---
   const [triviaIndex, setTriviaIndex] = useState(0);
   const [triviaScore, setTriviaScore] = useState(0);
   const [triviaAnswered, setTriviaAnswered] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
   const [triviaWon, setTriviaWon] = useState(false);
 
-  // --- GAME 4: TRUTH OR DARE ---
+  // --- GAME 6: TRUTH OR DARE ---
   const [currentPrompt, setCurrentPrompt] = useState(TRUTHS_AND_DARES[0]);
   const [promptCompleted, setPromptCompleted] = useState(false);
 
@@ -277,6 +294,145 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
   const popBalloon = (bId, pts) => {
     setBalloonScore((s) => s + pts);
     setBalloons((prev) => prev.filter((b) => b.id !== bId));
+  };
+
+  // --- Bamboo Catch Game Mechanics ---
+  const BAMBOO_ITEMS = [
+    { emoji: '🎋', points: 1, name: 'Bamboo' },
+    { emoji: '🎍', points: 2, name: 'Golden Bamboo' },
+    { emoji: '🍎', points: 1, name: 'Sweet Apple' },
+    { emoji: '⭐', points: 3, name: 'Lucky Star' }
+  ];
+
+  const startBambooGame = () => {
+    if (!isAuthenticated) {
+      if (onRequireLogin) onRequireLogin();
+      return;
+    }
+    setBambooScore(0);
+    setBambooTimeLeft(25);
+    setIsBambooPlaying(true);
+    setBambooGameOver(false);
+    setFallingItems([]);
+    setBasketX(50);
+  };
+
+  // Spawn falling bamboo items
+  useEffect(() => {
+    let interval = null;
+    if (isBambooPlaying && bambooTimeLeft > 0) {
+      interval = setInterval(() => {
+        setFallingItems((prev) => {
+          if (prev.length >= 6) return prev;
+          const randomItem = BAMBOO_ITEMS[Math.floor(Math.random() * BAMBOO_ITEMS.length)];
+          const newItem = {
+            id: Date.now() + Math.random(),
+            x: Math.floor(Math.random() * 80) + 10,
+            y: -10,
+            speed: Math.random() * 1.5 + 2.5,
+            ...randomItem
+          };
+          return [...prev, newItem];
+        });
+      }, 750);
+    }
+    return () => clearInterval(interval);
+  }, [isBambooPlaying, bambooTimeLeft]);
+
+  // Falling bamboo physics & collision detection with Panda Basket
+  useEffect(() => {
+    let anim = null;
+    if (isBambooPlaying) {
+      anim = setInterval(() => {
+        setFallingItems((prev) => {
+          const next = [];
+          for (let item of prev) {
+            const nextY = item.y + item.speed;
+            // Check collision with basket at y ~ 75% to 88%
+            if (nextY >= 72 && nextY <= 85) {
+              const distance = Math.abs(item.x - basketX);
+              if (distance <= 14) {
+                // Caught!
+                setBambooScore((s) => s + item.points);
+                continue;
+              }
+            }
+            if (nextY <= 100) {
+              next.push({ ...item, y: nextY });
+            }
+          }
+          return next;
+        });
+      }, 50);
+    }
+    return () => clearInterval(anim);
+  }, [isBambooPlaying, basketX]);
+
+  // Bamboo game countdown
+  useEffect(() => {
+    let timer = null;
+    if (isBambooPlaying && bambooTimeLeft > 0) {
+      timer = setInterval(() => {
+        setBambooTimeLeft((t) => {
+          if (t <= 1) {
+            setIsBambooPlaying(false);
+            setBambooGameOver(true);
+            setFallingItems([]);
+            return 0;
+          }
+          return t - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isBambooPlaying, bambooTimeLeft]);
+
+  // Bamboo game reward
+  useEffect(() => {
+    if (bambooGameOver) {
+      if (bambooScore >= 12) {
+        awardPoints(15, 'Bamboo Catch Master');
+      } else if (bambooScore >= 6) {
+        awardPoints(10, 'Bamboo Catch Winner');
+      }
+    }
+  }, [bambooGameOver]);
+
+  // --- Lucky Spin Wheel Mechanics ---
+  const WHEEL_PRIZES = [
+    { label: '+10 Points', points: 10, color: '#f59e0b', emoji: '🪙' },
+    { label: '+25 Points', points: 25, color: '#10b981', emoji: '🎉' },
+    { label: '+5 Points', points: 5, color: '#3b82f6', emoji: '⭐' },
+    { label: '+50 Points', points: 50, color: '#8b5cf6', emoji: '👑' },
+    { label: '+15 Points', points: 15, color: '#ec4899', emoji: '🎁' },
+    { label: '+20 Points', points: 20, color: '#059669', emoji: '🐼' }
+  ];
+
+  const handleSpinWheel = () => {
+    if (!isAuthenticated) {
+      if (onRequireLogin) onRequireLogin();
+      return;
+    }
+    if (isSpinning || hasSpunToday) return;
+
+    setIsSpinning(true);
+    setWheelPrize(null);
+
+    const randomIndex = Math.floor(Math.random() * WHEEL_PRIZES.length);
+    const degreesPerSegment = 360 / WHEEL_PRIZES.length;
+    // 5 full rotations + landing segment
+    const targetDegree = 360 * 5 + (WHEEL_PRIZES.length - 1 - randomIndex) * degreesPerSegment + 30;
+
+    setWheelRotation(targetDegree);
+
+    setTimeout(() => {
+      setIsSpinning(false);
+      const won = WHEEL_PRIZES[randomIndex];
+      setWheelPrize(won);
+      awardPoints(won.points, `Spin Wheel Prize: ${won.label}`);
+      setHasSpunToday(true);
+      localStorage.setItem('pandanest_last_spin_date', new Date().toISOString().split('T')[0]);
+    }, 4000);
   };
 
   // --- Memory Game Logic ---
@@ -592,6 +748,48 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
               </button>
 
               <button
+                onClick={() => setSelectedGame('bamboo')}
+                style={{
+                  padding: '10px 18px',
+                  borderRadius: '12px',
+                  border: '1.5px solid',
+                  borderColor: selectedGame === 'bamboo' ? '#10b981' : '#e2e8f0',
+                  background: selectedGame === 'bamboo' ? '#ecfdf5' : '#ffffff',
+                  color: selectedGame === 'bamboo' ? '#047857' : '#475569',
+                  fontWeight: '800',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                🎋 Panda Bamboo Catch
+              </button>
+
+              <button
+                onClick={() => setSelectedGame('wheel')}
+                style={{
+                  padding: '10px 18px',
+                  borderRadius: '12px',
+                  border: '1.5px solid',
+                  borderColor: selectedGame === 'wheel' ? '#ec4899' : '#e2e8f0',
+                  background: selectedGame === 'wheel' ? '#fdf2f8' : '#ffffff',
+                  color: selectedGame === 'wheel' ? '#db2777' : '#475569',
+                  fontWeight: '800',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                🎡 Lucky Spin Wheel
+              </button>
+
+              <button
                 onClick={() => setSelectedGame('memory')}
                 style={{
                   padding: '10px 18px',
@@ -886,7 +1084,519 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
               </div>
             )}
 
-            {/* --- GAME 2: MEMORY CARD MATCH --- */}
+            {/* --- GAME 2: PANDA BAMBOO CATCH (Age 5-12 Friendly) --- */}
+            {selectedGame === 'bamboo' && (
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '24px',
+                  border: '1.5px solid #e2e8f0',
+                  padding: '24px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
+                {/* Stats Bar */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.35rem', color: '#0f172a', fontWeight: '800', margin: '0 0 4px' }}>
+                      Panda Bamboo Catch 🎋🐼
+                    </h3>
+                    <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
+                      Move the Panda Basket left &amp; right with your mouse, finger, or arrow buttons to catch delicious bamboo shoots and stars!
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                    <div style={{ background: '#ecfdf5', padding: '6px 14px', borderRadius: '12px', fontWeight: '800', color: '#047857', fontSize: '0.85rem' }}>
+                      🎯 Caught: {bambooScore}
+                    </div>
+                    <div style={{ background: '#fee2e2', padding: '6px 14px', borderRadius: '12px', fontWeight: '800', color: '#dc2626', fontSize: '0.85rem' }}>
+                      ⏱️ {bambooTimeLeft}s
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bamboo Catch Stage */}
+                <div
+                  onMouseMove={(e) => {
+                    if (!isBambooPlaying) return;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const percent = ((e.clientX - rect.left) / rect.width) * 100;
+                    setBasketX(Math.max(10, Math.min(90, percent)));
+                  }}
+                  onTouchMove={(e) => {
+                    if (!isBambooPlaying || !e.touches[0]) return;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const percent = ((e.touches[0].clientX - rect.left) / rect.width) * 100;
+                    setBasketX(Math.max(10, Math.min(90, percent)));
+                  }}
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: '420px',
+                    borderRadius: '20px',
+                    background: 'linear-gradient(180deg, #dcfce7 0%, #bbf7d0 60%, #86efac 100%)',
+                    overflow: 'hidden',
+                    cursor: isBambooPlaying ? 'ew-resize' : 'default',
+                    userSelect: 'none',
+                    boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.06)',
+                    border: '2px solid #86efac'
+                  }}
+                >
+                  {/* Decorative background clouds and bamboo stalks */}
+                  <div style={{ position: 'absolute', top: '15px', left: '10%', fontSize: '32px', opacity: 0.35 }}>☁️</div>
+                  <div style={{ position: 'absolute', top: '25px', right: '15%', fontSize: '38px', opacity: 0.35 }}>☁️</div>
+                  <div style={{ position: 'absolute', bottom: '0', left: '4%', fontSize: '42px', opacity: 0.3 }}>🎍</div>
+                  <div style={{ position: 'absolute', bottom: '0', right: '5%', fontSize: '42px', opacity: 0.3 }}>🎍</div>
+
+                  {/* Falling Items */}
+                  {isBambooPlaying &&
+                    fallingItems.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          position: 'absolute',
+                          left: `${item.x}%`,
+                          top: `${item.y}%`,
+                          transform: 'translate(-50%, -50%)',
+                          fontSize: '34px',
+                          filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.18))',
+                          transition: 'top 0.05s linear'
+                        }}
+                      >
+                        {item.emoji}
+                      </div>
+                    ))}
+
+                  {/* Panda Basket Player */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: `${basketX}%`,
+                      bottom: '24px',
+                      transform: 'translateX(-50%)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      pointerEvents: 'none',
+                      transition: 'left 0.08s ease-out'
+                    }}
+                  >
+                    <div style={{ fontSize: '38px', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.2))' }}>🐼</div>
+                    <div
+                      style={{
+                        background: '#92400e',
+                        color: '#fef3c7',
+                        padding: '4px 14px',
+                        borderRadius: '12px',
+                        fontSize: '0.8rem',
+                        fontWeight: '800',
+                        marginTop: '-4px',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.25)',
+                        border: '2px solid #d97706'
+                      }}
+                    >
+                      🧺 Basket
+                    </div>
+                  </div>
+
+                  {/* Overlay: Not logged in */}
+                  {!isAuthenticated ? (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(255, 255, 255, 0.88)',
+                        backdropFilter: 'blur(3px)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        padding: '24px'
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '64px',
+                          height: '64px',
+                          borderRadius: '20px',
+                          background: '#fef3c7',
+                          color: '#d97706',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginBottom: '12px'
+                        }}
+                      >
+                        <Lock size={32} />
+                      </div>
+                      <h4 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0f172a', margin: '0 0 6px' }}>
+                        Panda Bamboo Catch is Locked 🎋
+                      </h4>
+                      <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: '380px', marginBottom: '18px' }}>
+                        Sign in or register your child to catch falling bamboo treats and win Panda Points redeemable on toys!
+                      </p>
+                      <button
+                        onClick={() => onRequireLogin && onRequireLogin()}
+                        style={{
+                          background: '#10b981',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '12px 28px',
+                          borderRadius: '12px',
+                          fontWeight: '800',
+                          fontSize: '0.95rem',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <Unlock size={18} />
+                        <span>Log In to Unlock &amp; Play</span>
+                      </button>
+                    </div>
+                  ) : !isBambooPlaying && !bambooGameOver ? (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(255, 255, 255, 0.86)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        padding: '20px'
+                      }}
+                    >
+                      <div style={{ fontSize: '50px', marginBottom: '8px' }}>🎋🐼🧺</div>
+                      <h4 style={{ fontSize: '1.4rem', fontWeight: '900', color: '#0f172a', margin: '0 0 6px' }}>
+                        Ready to Catch Bamboo?
+                      </h4>
+                      <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: '400px', marginBottom: '18px' }}>
+                        Catch falling bamboo (🎋), golden bamboo (🎍), apples (🍎), and stars (⭐) with the Panda Basket! Score 6+ to win real points!
+                      </p>
+                      <button
+                        onClick={startBambooGame}
+                        style={{
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '12px 32px',
+                          borderRadius: '14px',
+                          fontSize: '1.05rem',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                          boxShadow: '0 6px 18px rgba(16, 185, 129, 0.35)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <Play size={18} fill="white" />
+                        <span>Start Catching Now</span>
+                      </button>
+                    </div>
+                  ) : bambooGameOver ? (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(255, 255, 255, 0.92)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        padding: '20px'
+                      }}
+                    >
+                      <div style={{ fontSize: '48px', marginBottom: '8px' }}>
+                        {bambooScore >= 12 ? '🏆🎉' : '👏🐼'}
+                      </div>
+                      <h4 style={{ fontSize: '1.4rem', fontWeight: '900', color: '#0f172a', margin: '0 0 6px' }}>
+                        Time's Up! You Caught {bambooScore} Treats!
+                      </h4>
+                      <p style={{ color: '#059669', fontWeight: '700', fontSize: '0.95rem', margin: '0 0 16px' }}>
+                        {bambooScore >= 12
+                          ? '🌟 Bamboo Master! +15 Panda Points Added!'
+                          : bambooScore >= 6
+                          ? 'Great job feeding the Panda! +10 Panda Points Added!'
+                          : 'Nice try! Slide faster to catch more treats next round!'}
+                      </p>
+                      <button
+                        onClick={startBambooGame}
+                        style={{
+                          background: '#10b981',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '10px 24px',
+                          borderRadius: '12px',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <RotateCcw size={16} />
+                        <span>Play Again</span>
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Kid-friendly left/right touch buttons for phone screens */}
+                {isBambooPlaying && (
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '16px' }}>
+                    <button
+                      onClick={() => setBasketX((x) => Math.max(10, x - 15))}
+                      style={{
+                        flex: 1,
+                        maxWidth: '180px',
+                        padding: '12px',
+                        background: '#047857',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '14px',
+                        fontWeight: '900',
+                        fontSize: '1.1rem',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(4, 120, 87, 0.3)'
+                      }}
+                    >
+                      ⬅️ Move Left
+                    </button>
+                    <button
+                      onClick={() => setBasketX((x) => Math.min(90, x + 15))}
+                      style={{
+                        flex: 1,
+                        maxWidth: '180px',
+                        padding: '12px',
+                        background: '#047857',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '14px',
+                        fontWeight: '900',
+                        fontSize: '1.1rem',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(4, 120, 87, 0.3)'
+                      }}
+                    >
+                      Move Right ➡️
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* --- GAME 3: LUCKY TOY SPIN WHEEL --- */}
+            {selectedGame === 'wheel' && (
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '24px',
+                  border: '1.5px solid #e2e8f0',
+                  padding: '32px 24px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  textAlign: 'center'
+                }}
+              >
+                <div style={{ maxWidth: '500px', margin: '0 auto 24px' }}>
+                  <h3 style={{ fontSize: '1.5rem', color: '#0f172a', fontWeight: '900', margin: '0 0 6px' }}>
+                    Lucky Toy Spin Wheel 🎡✨
+                  </h3>
+                  <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
+                    Spin the magical prize wheel every day to win instant Panda Points bonus coins!
+                  </p>
+                </div>
+
+                {/* Spin Wheel Visual */}
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '280px',
+                    height: '280px',
+                    margin: '0 auto 28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {/* Pointer Arrow */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '-12px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: '0',
+                      height: '0',
+                      borderLeft: '14px solid transparent',
+                      borderRight: '14px solid transparent',
+                      borderTop: '22px solid #dc2626',
+                      zIndex: 10,
+                      filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.3))'
+                    }}
+                  />
+
+                  {/* Rotating Wheel Circle */}
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '50%',
+                      border: '8px solid #fef3c7',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+                      transform: `rotate(${wheelRotation}deg)`,
+                      transition: isSpinning ? 'transform 3.5s cubic-bezier(0.15, 0.9, 0.2, 1)' : 'none',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      background: 'conic-gradient(#f59e0b 0deg 60deg, #10b981 60deg 120deg, #3b82f6 120deg 180deg, #8b5cf6 180deg 240deg, #ec4899 240deg 300deg, #059669 300deg 360deg)'
+                    }}
+                  >
+                    {/* Wedge Labels */}
+                    {WHEEL_PRIZES.map((prize, idx) => {
+                      const angle = idx * 60 + 30;
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            position: 'absolute',
+                            width: '50%',
+                            height: '2px',
+                            top: '50%',
+                            left: '50%',
+                            transformOrigin: '0% 50%',
+                            transform: `rotate(${angle}deg)`,
+                            pointerEvents: 'none'
+                          }}
+                        >
+                          <div
+                            style={{
+                              marginLeft: '45px',
+                              transform: 'rotate(90deg)',
+                              color: '#ffffff',
+                              fontWeight: '900',
+                              fontSize: '0.85rem',
+                              textShadow: '0 1px 3px rgba(0,0,0,0.6)',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {prize.emoji} {prize.label}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Center Panda Hub */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      width: '68px',
+                      height: '68px',
+                      borderRadius: '50%',
+                      background: '#ffffff',
+                      boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '32px',
+                      zIndex: 5,
+                      border: '4px solid #f59e0b'
+                    }}
+                  >
+                    🐼
+                  </div>
+                </div>
+
+                {/* Prize Banner */}
+                {wheelPrize && (
+                  <div
+                    style={{
+                      background: '#ecfdf5',
+                      border: '1.5px solid #a7f3d0',
+                      borderRadius: '16px',
+                      padding: '14px 20px',
+                      maxWidth: '380px',
+                      margin: '0 auto 20px',
+                      display: 'inline-block'
+                    }}
+                  >
+                    <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#047857' }}>
+                      🎉 Congratulations! You Won {wheelPrize.label}!
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#065f46', marginTop: '4px' }}>
+                      Panda Points credited to your balance!
+                    </div>
+                  </div>
+                )}
+
+                {/* Spin Action Buttons */}
+                <div>
+                  {!isAuthenticated ? (
+                    <button
+                      onClick={() => onRequireLogin && onRequireLogin()}
+                      style={{
+                        background: '#f59e0b',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '14px 32px',
+                        borderRadius: '14px',
+                        fontWeight: '800',
+                        fontSize: '1rem',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)'
+                      }}
+                    >
+                      <Lock size={18} />
+                      <span>Log In to Spin Wheel</span>
+                    </button>
+                  ) : hasSpunToday && !wheelPrize ? (
+                    <div style={{ color: '#64748b', fontSize: '0.95rem', fontWeight: '700' }}>
+                      ⏱️ You already took your free spin today! Come back tomorrow for another lucky spin! 🐼
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleSpinWheel}
+                      disabled={isSpinning || hasSpunToday}
+                      style={{
+                        background: hasSpunToday
+                          ? '#cbd5e1'
+                          : 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '14px 36px',
+                        borderRadius: '14px',
+                        fontWeight: '900',
+                        fontSize: '1.05rem',
+                        cursor: hasSpunToday || isSpinning ? 'not-allowed' : 'pointer',
+                        boxShadow: hasSpunToday ? 'none' : '0 6px 18px rgba(236, 72, 153, 0.4)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <Sparkles size={20} />
+                      <span>{isSpinning ? 'Spinning the Wheel...' : hasSpunToday ? 'Spun for Today' : 'SPIN THE WHEEL! 🎡'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* --- GAME 4: MEMORY CARD MATCH --- */}
             {selectedGame === 'memory' && (
               <div
                 style={{
