@@ -588,7 +588,7 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
                   whiteSpace: 'nowrap'
                 }}
               >
-                🎈 Panda Balloon Popper (Addictive!)
+                🎈 Panda Balloon Popper
               </button>
 
               <button
