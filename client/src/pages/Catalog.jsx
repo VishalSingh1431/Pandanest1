@@ -196,7 +196,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
           style={{
             background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
             color: 'white',
-            padding: '20px 18px',
+            padding: '32px 20px',
             position: 'relative',
             overflow: 'hidden'
           }}
@@ -207,31 +207,31 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
               position: 'relative',
               zIndex: 2,
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: '20px',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))',
+              gap: '28px',
               alignItems: 'center'
             }}
           >
             {/* Left Column: Brand & Value Pitch */}
             <div>
-              <div className="badge badge-amber" style={{ marginBottom: '8px', padding: '3px 10px', fontSize: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                <Sparkles size={12} /> Official Panda Nest Storefront • pandanest.in
+              <div className="badge badge-amber" style={{ marginBottom: '10px', padding: '4px 12px', fontSize: '0.8rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                <Sparkles size={13} /> Official Panda Nest Storefront • pandanest.in
               </div>
 
-              <h1 style={{ fontSize: '1.9rem', lineHeight: 1.15, marginBottom: '8px', color: 'white' }}>
+              <h1 style={{ fontSize: '2.2rem', lineHeight: 1.18, marginBottom: '10px', color: 'white' }}>
                 Toys That Spark Wild Imaginations! 🚀
               </h1>
 
-              <p style={{ fontSize: '0.92rem', opacity: 0.95, lineHeight: 1.4, marginBottom: '14px', maxWidth: '480px' }}>
+              <p style={{ fontSize: '0.98rem', opacity: 0.95, lineHeight: 1.5, marginBottom: '18px', maxWidth: '490px' }}>
                 From turbo stunt racers to giant cuddly pandas and fairytale castles, find toys crafted for boundless playtime fun.
               </p>
 
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', background: 'rgba(255,255,255,0.2)', padding: '5px 12px', borderRadius: '16px', fontWeight: '600' }}>
-                  <Truck size={14} />
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', background: 'rgba(255,255,255,0.2)', padding: '6px 14px', borderRadius: '18px', fontWeight: '600' }}>
+                  <Truck size={15} />
                   <span>FREE Delivery Across India</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', background: 'rgba(255,255,255,0.2)', padding: '5px 12px', borderRadius: '16px', fontWeight: '600' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', background: 'rgba(255,255,255,0.2)', padding: '6px 14px', borderRadius: '18px', fontWeight: '600' }}>
                   <span>✨ 100% Child Safe</span>
                 </div>
               </div>
@@ -241,12 +241,12 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
             <div
               style={{
                 background: '#ffffff',
-                borderRadius: '18px',
-                padding: '18px 20px',
-                boxShadow: '0 12px 30px -8px rgba(0, 0, 0, 0.2)',
+                borderRadius: '20px',
+                padding: '22px 22px',
+                boxShadow: '0 14px 34px -8px rgba(0, 0, 0, 0.22)',
                 border: '1.5px solid rgba(255, 255, 255, 0.6)',
                 color: '#0f172a',
-                maxWidth: '430px',
+                maxWidth: '450px',
                 marginLeft: 'auto',
                 width: '100%'
               }}
