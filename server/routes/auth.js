@@ -84,7 +84,7 @@ async function deleteOtp(email) {
 }
 
 // Helper to find or create user in Postgres or Local Store
-async function findOrCreateUser({ email, name, role = 'user' }) {
+async function findOrCreateUser({ email, name, phone = '', child_name = '', dob = null, role = 'user' }) {
   const normalizedEmail = email.toLowerCase().trim();
   const { isPostgres, pool } = getDB();
 
@@ -108,11 +108,26 @@ async function findOrCreateUser({ email, name, role = 'user' }) {
 
     const dummyHash = await bcrypt.hash('oauth_or_otp_' + Math.random(), 10);
     const insertResult = await pool.query(
-      `INSERT INTO admins (email, password_hash, name, role)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO admins (email, password_hash, name, role, phone)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [normalizedEmail, dummyHash, name || normalizedEmail.split('@')[0], assignedRole]
+      [normalizedEmail, dummyHash, name || normalizedEmail.split('@')[0], assignedRole, phone || '']
     );
+
+    // Also link/insert into leads table for birthday tracking & Panda Points
+    if (child_name && phone && dob) {
+      try {
+        await pool.query(
+          `INSERT INTO leads (child_name, parent_name, phone, dob, panda_points)
+           VALUES ($1, $2, $3, $4, 100)
+           ON CONFLICT DO NOTHING`,
+          [child_name.trim(), name || 'Parent', phone.trim(), dob]
+        );
+      } catch (e) {
+        // ignore duplicate phone lead
+      }
+    }
+
     return insertResult.rows[0];
   } else {
     const store = readLocalStore();
@@ -133,7 +148,9 @@ async function findOrCreateUser({ email, name, role = 'user' }) {
       password_hash: dummyHash,
       name: name || normalizedEmail.split('@')[0],
       role: assignedRole,
-      phone: '',
+      phone: phone || '',
+      child_name: child_name || '',
+      dob: dob || null,
       created_at: new Date().toISOString()
     };
     store.admins.push(newUser);
@@ -214,9 +231,21 @@ router.post('/send-otp', async (req, res) => {
 // 2. Verify OTP & Login/Signup
 router.post('/verify-otp', async (req, res) => {
   try {
-    const { email, otp, name } = req.body;
+    const { email, otp, name, phone, child_name, dob, is_signup } = req.body;
     if (!email || !otp) {
       return res.status(400).json({ error: 'Email and OTP code are required.' });
+    }
+
+    if (is_signup) {
+      if (!child_name || !child_name.trim()) {
+        return res.status(400).json({ error: "Child's name is required for registration." });
+      }
+      if (!phone || !phone.trim() || phone.replace(/\D/g, '').length < 10) {
+        return res.status(400).json({ error: 'A valid 10-digit WhatsApp/mobile number is required.' });
+      }
+      if (!dob || !dob.trim()) {
+        return res.status(400).json({ error: "Child's Date of Birth (DOB) is required for registration." });
+      }
     }
 
     const normalizedEmail = email.toLowerCase().trim();
@@ -239,7 +268,10 @@ router.post('/verify-otp', async (req, res) => {
     const user = await findOrCreateUser({
       email: normalizedEmail,
       name: name || '',
-      role: 'user'
+      role: 'user',
+      phone: phone || '',
+      child_name: child_name || '',
+      dob: dob || null
     });
 
     const userRole = user.role || 'user';

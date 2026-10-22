@@ -89,11 +89,16 @@ export function AuthProvider({ children }) {
   };
 
   // Method 2: Verify OTP & Sign In / Sign Up
-  const verifyOtp = async (email, otp, name = '') => {
+  const verifyOtp = async (email, otp, extraDetails = {}) => {
+    // extraDetails can be a string (name for backwards compatibility) or an object
+    const payload = typeof extraDetails === 'string'
+      ? { email, otp, name: extraDetails }
+      : { email, otp, ...extraDetails };
+
     const res = await fetch('/api/auth/verify-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, otp, name })
+      body: JSON.stringify(payload)
     });
     const data = await parseJsonResponse(res, 'Invalid verification code.');
 

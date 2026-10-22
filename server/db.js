@@ -492,6 +492,8 @@ async function initPostgresSchema() {
     await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_email VARCHAR(255);');
     await pool.query('ALTER TABLE toys ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT \'{}\';');
     await pool.query('ALTER TABLE toys ADD COLUMN IF NOT EXISTS video_url TEXT;');
+    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS child_name VARCHAR(150);');
+    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS dob DATE;');
   } catch (e) {
     // Columns might already exist — safe to ignore
   }

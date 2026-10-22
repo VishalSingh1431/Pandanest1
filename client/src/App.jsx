@@ -115,7 +115,10 @@ export function App() {
         )}
 
         {currentRoute === 'games' && (
-          <GamesAndActivities onGoToCatalog={() => navigate('catalog')} />
+          <GamesAndActivities
+            onGoToCatalog={() => navigate('catalog')}
+            onRequireLogin={() => navigate('login')}
+          />
         )}
 
         {currentRoute === 'about' && (

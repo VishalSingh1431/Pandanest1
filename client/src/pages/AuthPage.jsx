@@ -8,8 +8,12 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
   
   // OTP Flow state
   const [step, setStep] = useState('email'); // 'email' | 'otp'
+  // Form fields
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [childName, setChildName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [dob, setDob] = useState('');
   const [otp, setOtp] = useState('');
   const [countdown, setCountdown] = useState(0);
 
@@ -41,6 +45,22 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
       return;
     }
 
+    if (authMode === 'signup') {
+      if (!childName || !childName.trim()) {
+        setError("Please enter child's name (Compulsory).");
+        return;
+      }
+      const cleanPhone = phone.replace(/\D/g, '');
+      if (!phone || cleanPhone.length < 10) {
+        setError('Please enter a valid 10-digit WhatsApp/mobile number (Compulsory).');
+        return;
+      }
+      if (!dob) {
+        setError("Please select child's Date of Birth (Compulsory).");
+        return;
+      }
+    }
+
     setError('');
     setSuccessMsg('');
     setLoading(true);
@@ -68,11 +88,33 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
       return;
     }
 
+    if (authMode === 'signup') {
+      if (!childName || !childName.trim()) {
+        setError("Child's name is required.");
+        return;
+      }
+      const cleanPhone = phone.replace(/\D/g, '');
+      if (!phone || cleanPhone.length < 10) {
+        setError('Valid 10-digit phone number is required.');
+        return;
+      }
+      if (!dob) {
+        setError("Child's Date of Birth is required.");
+        return;
+      }
+    }
+
     setError('');
     setLoading(true);
 
     try {
-      await verifyOtp(email.trim(), otp.trim(), name.trim());
+      await verifyOtp(email.trim(), otp.trim(), {
+        name: name.trim(),
+        phone: phone.trim(),
+        child_name: childName.trim(),
+        dob: dob,
+        is_signup: authMode === 'signup'
+      });
       setSuccessMsg('Welcome to Panda Nest! Logging you in...');
       setTimeout(() => {
         if (onLoginSuccess) onLoginSuccess();
@@ -433,16 +475,67 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
             {step === 'email' ? (
               <form onSubmit={handleSendOtp}>
                 {authMode === 'signup' && (
-                  <div className="form-group" style={{ marginBottom: '16px' }}>
-                    <label className="form-label" style={{ fontSize: '0.85rem' }}>Your Name (Optional)</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="e.g. Ashish Kumar"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
-                  </div>
+                  <>
+                    <div className="form-group" style={{ marginBottom: '14px' }}>
+                      <label className="form-label" style={{ fontSize: '0.85rem' }}>Parent / Your Name (Optional)</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="e.g. Ashish Kumar"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '14px' }}>
+                      <label className="form-label" style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Child's Full Name <strong style={{ color: '#ef4444' }}>*</strong></span>
+                        <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: '600' }}>Compulsory</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        className="form-input"
+                        placeholder="e.g. Aarav Sharma"
+                        value={childName}
+                        onChange={(e) => setChildName(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '14px' }}>
+                      <label className="form-label" style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>WhatsApp / Mobile Number <strong style={{ color: '#ef4444' }}>*</strong></span>
+                        <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: '600' }}>10 Digits</span>
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        maxLength={10}
+                        className="form-input"
+                        placeholder="e.g. 9876543210"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '14px' }}>
+                      <label className="form-label" style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Child's Date of Birth (DOB) <strong style={{ color: '#ef4444' }}>*</strong></span>
+                        <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: '600' }}>Compulsory</span>
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        max={new Date().toISOString().split('T')[0]}
+                        className="form-input"
+                        value={dob}
+                        onChange={(e) => setDob(e.target.value)}
+                      />
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                        🎂 Used for exciting birthday surprises &amp; age-appropriate toy recommendations!
+                      </span>
+                    </div>
+                  </>
                 )}
 
                 <div className="form-group" style={{ marginBottom: '18px' }}>
