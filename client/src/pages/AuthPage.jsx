@@ -1,30 +1,93 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Mail, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, User, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Mail, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, KeyRound, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
-
-  // Method 2: Gmail + OTP State
+  const [method, setMethod] = useState('otp'); // 'otp' | 'password'
+  
+  // OTP Flow state
   const [step, setStep] = useState('email'); // 'email' | 'otp'
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [otp, setOtp] = useState('');
   const [countdown, setCountdown] = useState(0);
 
-  // Real Google OAuth State
-  const [googleClientId, setGoogleClientId] = useState('');
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const googleBtnRef = useRef(null);
+  // Password fallback state
+  const [password, setPassword] = useState('');
 
   // Status state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [devOtpHint, setDevOtpHint] = useState('');
 
-  const { sendOtp, verifyOtp, loginWithGoogle } = useAuth();
+  const { sendOtp, verifyOtp, loginWithGoogle, login } = useAuth();
 
-  // Fetch configured Google Client ID from backend
+  // Countdown timer for resend OTP
+  useEffect(() => {
+    let timer = null;
+    if (countdown > 0) {
+      timer = setInterval(() => setCountdown((c) => c - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [countdown]);
+
+  // Handle Send OTP
+  const handleSendOtp = async (e) => {
+    if (e) e.preventDefault();
+    if (!email || !email.includes('@')) {
+      setError('Please enter a valid Gmail / email address.');
+      return;
+    }
+
+    setError('');
+    setSuccessMsg('');
+    setLoading(true);
+
+    try {
+      const data = await sendOtp(email.trim());
+      setStep('otp');
+      setCountdown(45);
+      setSuccessMsg(`Verification code sent to ${email}`);
+      if (data.devOtp) {
+        setDevOtpHint(data.devOtp);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to send verification code. Please check email address.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Verify OTP
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (!otp || otp.trim().length < 6) {
+      setError('Please enter the 6-digit verification code sent to your email.');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+      await verifyOtp(email.trim(), otp.trim(), name.trim());
+      setSuccessMsg('Welcome to Panda Nest! Logging you in...');
+      setTimeout(() => {
+        if (onLoginSuccess) onLoginSuccess();
+      }, 600);
+    } catch (err) {
+      setError(err.message || 'Invalid or expired code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch Google Client ID and init Google Identity Services
+  const [googleClientId, setGoogleClientId] = useState('');
+  const googleBtnRef = useRef(null);
+
   useEffect(() => {
     fetch('/api/auth/google-client-id')
       .then((res) => res.json())
@@ -36,7 +99,7 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
       .catch((err) => console.warn('Could not fetch Google Client ID:', err));
   }, []);
 
-  // Initialize Real Google Identity Services (GIS) when SDK and Client ID are ready
+  // Initialize official Google Identity Services (GIS)
   useEffect(() => {
     if (!googleClientId) return;
 
@@ -63,7 +126,6 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
       }
     };
 
-    // If script already loaded, initialize immediately; otherwise poll briefly
     if (window.google?.accounts?.id) {
       initGoogleGSI();
     } else {
@@ -77,7 +139,7 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
     }
   }, [googleClientId]);
 
-  // Handle REAL Google Credential Response from Google's servers
+  // Handle authentic Google Credential Response from accounts.google.com
   const handleGoogleCredentialResponse = async (response) => {
     if (!response || !response.credential) {
       setError('Google sign-in did not return a valid credential. Please try again.');
@@ -85,10 +147,9 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
     }
 
     setError('');
-    setIsGoogleLoading(true);
+    setLoading(true);
 
     try {
-      // Send real cryptographically signed Google ID token to backend for verification
       const data = await loginWithGoogle({ googleIdToken: response.credential });
       setSuccessMsg(`Welcome, ${data.user?.name || 'Explorer'}! Signed in with Google.`);
       setTimeout(() => {
@@ -97,75 +158,42 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
     } catch (err) {
       setError(err.message || 'Google sign-in verification failed.');
     } finally {
-      setIsGoogleLoading(false);
-    }
-  };
-
-  // Countdown timer for resend OTP
-  useEffect(() => {
-    let timer = null;
-    if (countdown > 0) {
-      timer = setInterval(() => setCountdown((c) => c - 1), 1000);
-    }
-    return () => clearInterval(timer);
-  }, [countdown]);
-
-  // Method 2: Send OTP to Gmail
-  const handleSendOtp = async (e) => {
-    if (e) e.preventDefault();
-    if (!email || !email.includes('@')) {
-      setError('Please enter a valid Gmail / email address.');
-      return;
-    }
-
-    setError('');
-    setSuccessMsg('');
-    setLoading(true);
-
-    try {
-      await sendOtp(email.trim());
-      setStep('otp');
-      setCountdown(45);
-      setSuccessMsg(`Verification code sent to ${email.trim()}. Check your inbox or spam folder.`);
-    } catch (err) {
-      setError(err.message || 'Failed to send verification code. Please check your email.');
-    } finally {
       setLoading(false);
     }
   };
 
-  // Method 2: Verify OTP
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    if (!otp || otp.trim().length < 6) {
-      setError('Please enter the 6-digit verification code sent to your email.');
-      return;
-    }
-
-    setError('');
-    setLoading(true);
-
-    try {
-      await verifyOtp(email.trim(), otp.trim(), name.trim());
-      setSuccessMsg('Verification successful! Welcome to Panda Nest.');
-      setTimeout(() => {
-        if (onLoginSuccess) onLoginSuccess();
-      }, 500);
-    } catch (err) {
-      setError(err.message || 'Invalid or expired code. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Trigger Google One Tap or Native Prompt if clicked directly
+  // Fallback trigger if Google button clicked
   const handleNativeGoogleClick = () => {
     if (!googleClientId) {
-      setError('Google Sign-In requires GOOGLE_CLIENT_ID in server/.env. Please use Gmail + OTP below or configure your Google Client ID.');
+      setError('Google Sign-In is not configured yet. Please use Gmail + OTP below.');
       return;
     }
     if (window.google?.accounts?.id) {
       window.google.accounts.id.prompt();
+    }
+  };
+
+  // Handle Legacy Password Login
+  const handlePasswordLogin = async (e) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError('Please enter both email and password.');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+      await login(email.trim(), password);
+      setSuccessMsg('Login successful!');
+      setTimeout(() => {
+        if (onLoginSuccess) onLoginSuccess();
+      }, 500);
+    } catch (err) {
+      setError(err.message || 'Invalid credentials.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -192,30 +220,29 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
         }}
       >
         {/* Brand Header */}
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '26px' }}>
           <img
             src="/logo.jpeg"
             alt="Panda Nest Logo"
             style={{
               height: '62px',
               width: 'auto',
-              borderRadius: '12px',
+              borderRadius: '10px',
               margin: '0 auto 12px',
-              display: 'block',
-              boxShadow: '0 4px 10px rgba(0,0,0,0.06)'
+              display: 'block'
             }}
           />
           <h2 style={{ fontSize: '1.6rem', color: '#0f172a', fontWeight: '800', marginBottom: '4px' }}>
-            {authMode === 'login' ? 'Welcome Back!' : 'Join Panda Club'}
+            {authMode === 'login' ? 'Welcome Back!' : 'Join Panda Nest'}
           </h2>
           <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
             {authMode === 'login'
               ? 'Sign in to access your orders, points & wishlist'
-              : 'Create your account & get 100 Panda Points instantly'}
+              : 'Create an account to earn 100 Panda Points today'}
           </p>
         </div>
 
-        {/* Auth Mode Toggle Tabs (Sign In vs Create Account) */}
+        {/* Auth Mode Toggle Tabs (Login vs Sign Up) */}
         <div
           style={{
             display: 'flex',
@@ -226,7 +253,6 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
           }}
         >
           <button
-            type="button"
             onClick={() => {
               setAuthMode('login');
               setError('');
@@ -249,7 +275,6 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
             Sign In
           </button>
           <button
-            type="button"
             onClick={() => {
               setAuthMode('signup');
               setError('');
@@ -314,12 +339,9 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
           </div>
         )}
 
-        {/* ==================================================== */}
-        {/* METHOD 1: REAL GOOGLE OAUTH                          */}
-        {/* ==================================================== */}
-        <div style={{ marginBottom: '18px' }}>
+        {/* METHOD 1: Continue with Official Google Identity Services */}
+        <div style={{ marginBottom: '20px' }}>
           {googleClientId ? (
-            /* Official Google GSI Rendered Button (Opens authentic Google accounts.google.com window) */
             <div
               style={{
                 display: 'flex',
@@ -331,11 +353,10 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
               <div ref={googleBtnRef} id="googleSignInBtn" style={{ width: '100%', display: 'flex', justifyContent: 'center' }} />
             </div>
           ) : (
-            /* Button shown when GOOGLE_CLIENT_ID is not configured in server/.env */
             <button
               type="button"
               onClick={handleNativeGoogleClick}
-              disabled={isGoogleLoading}
+              disabled={loading}
               style={{
                 width: '100%',
                 display: 'flex',
@@ -346,20 +367,24 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
                 border: '1.5px solid #cbd5e1',
                 borderRadius: '14px',
                 padding: '12px 18px',
-                fontSize: '0.95rem',
+                fontSize: '0.925rem',
                 fontWeight: '600',
                 color: '#1e293b',
-                cursor: 'pointer',
+                cursor: loading ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s ease',
                 boxShadow: '0 2px 5px rgba(0,0,0,0.03)'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#94a3b8';
-                e.currentTarget.style.background = '#f8fafc';
+                if (!loading) {
+                  e.currentTarget.style.borderColor = '#94a3b8';
+                  e.currentTarget.style.background = '#f8fafc';
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#cbd5e1';
-                e.currentTarget.style.background = '#ffffff';
+                if (!loading) {
+                  e.currentTarget.style.borderColor = '#cbd5e1';
+                  e.currentTarget.style.background = '#ffffff';
+                }
               }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24">
@@ -383,12 +408,6 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
               <span>Continue with Google</span>
             </button>
           )}
-
-          {isGoogleLoading && (
-            <div style={{ textAlign: 'center', fontSize: '0.8rem', color: '#047857', marginTop: '6px' }}>
-              Verifying Google account...
-            </div>
-          )}
         </div>
 
         {/* Divider */}
@@ -396,7 +415,7 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
           style={{
             display: 'flex',
             alignItems: 'center',
-            margin: '18px 0 20px',
+            margin: '20px 0 22px',
             color: '#94a3b8',
             fontSize: '0.75rem',
             fontWeight: '700',
@@ -408,214 +427,271 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
           <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
         </div>
 
-        {/* ==================================================== */}
-        {/* METHOD 2: GMAIL + REAL OTP                           */}
-        {/* ==================================================== */}
-        {step === 'email' ? (
-          <form onSubmit={handleSendOtp}>
-            {authMode === 'signup' && (
-              <div className="form-group" style={{ marginBottom: '14px' }}>
-                <label className="form-label" style={{ fontSize: '0.85rem' }}>Your Name (Optional)</label>
-                <div style={{ position: 'relative' }}>
-                  <User
-                    size={17}
-                    style={{
-                      position: 'absolute',
-                      left: '14px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: '#94a3b8'
-                    }}
-                  />
+        {/* METHOD 2: Gmail + OTP on Gmail */}
+        {method === 'otp' && (
+          <div>
+            {step === 'email' ? (
+              <form onSubmit={handleSendOtp}>
+                {authMode === 'signup' && (
+                  <div className="form-group" style={{ marginBottom: '16px' }}>
+                    <label className="form-label" style={{ fontSize: '0.85rem' }}>Your Name (Optional)</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Ashish Kumar"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <div className="form-group" style={{ marginBottom: '18px' }}>
+                  <label className="form-label" style={{ fontSize: '0.85rem' }}>Gmail / Email Address</label>
+                  <div style={{ position: 'relative' }}>
+                    <Mail
+                      size={18}
+                      style={{
+                        position: 'absolute',
+                        left: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#94a3b8'
+                      }}
+                    />
+                    <input
+                      type="email"
+                      required
+                      className="form-input"
+                      style={{ paddingLeft: '42px' }}
+                      placeholder="you@gmail.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                    We'll email you a secure 6-digit login code. No password required!
+                  </span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn btn-primary"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '12px',
+                    fontSize: '0.95rem',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  {loading ? (
+                    <span>Sending Code...</span>
+                  ) : (
+                    <>
+                      <span>Send Verification Code</span>
+                      <ArrowRight size={17} />
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              /* Step 2: Enter 6-digit OTP */
+              <form onSubmit={handleVerifyOtp}>
+                <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                    Enter 6-digit verification code sent to:
+                  </span>
+                  <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.95rem', marginTop: '2px' }}>
+                    {email}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStep('email');
+                        setOtp('');
+                        setError('');
+                      }}
+                      style={{
+                        marginLeft: '8px',
+                        color: '#10b981',
+                        background: 'none',
+                        border: 'none',
+                        fontSize: '0.8rem',
+                        textDecoration: 'underline',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '18px' }}>
                   <input
                     type="text"
+                    required
+                    maxLength={6}
+                    autoFocus
                     className="form-input"
-                    style={{ paddingLeft: '40px' }}
-                    placeholder="e.g. Ashish Kumar"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    style={{
+                      textAlign: 'center',
+                      fontSize: '1.6rem',
+                      fontWeight: '800',
+                      letterSpacing: '10px',
+                      padding: '12px',
+                      borderRadius: '14px',
+                      background: '#f8fafc',
+                      color: '#047857'
+                    }}
+                    placeholder="••••••"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   />
+
+                  {devOtpHint && (
+                    <div style={{ marginTop: '6px', textAlign: 'center', fontSize: '0.75rem', color: '#059669', background: '#ecfdf5', padding: '4px 8px', borderRadius: '8px' }}>
+                      🔑 Verification Code: <strong>{devOtpHint}</strong>
+                    </div>
+                  )}
                 </div>
-              </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || otp.length < 6}
+                  className="btn btn-primary"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '12px',
+                    fontSize: '0.95rem',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginBottom: '14px'
+                  }}
+                >
+                  {loading ? 'Verifying...' : 'Verify & Continue'}
+                </button>
+
+                <div style={{ textAlign: 'center' }}>
+                  {countdown > 0 ? (
+                    <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                      Resend code in <strong>{countdown}s</strong>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#10b981',
+                        fontSize: '0.85rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <RefreshCw size={14} /> Resend verification code
+                    </button>
+                  )}
+                </div>
+              </form>
             )}
+          </div>
+        )}
+
+        {/* Fallback Method: Staff / Admin Password */}
+        {method === 'password' && (
+          <form onSubmit={handlePasswordLogin}>
+            <div className="form-group" style={{ marginBottom: '14px' }}>
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Staff / Admin Email</label>
+              <input
+                type="email"
+                required
+                className="form-input"
+                placeholder="acubebeauty@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
 
             <div className="form-group" style={{ marginBottom: '18px' }}>
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Gmail Address</label>
-              <div style={{ position: 'relative' }}>
-                <Mail
-                  size={17}
-                  style={{
-                    position: 'absolute',
-                    left: '14px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: '#94a3b8'
-                  }}
-                />
-                <input
-                  type="email"
-                  required
-                  className="form-input"
-                  style={{ paddingLeft: '40px' }}
-                  placeholder="you@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                We'll email you a secure 6-digit login code. No password required!
-              </span>
+              <label className="form-label" style={{ fontSize: '0.85rem' }}>Password</label>
+              <input
+                type="password"
+                required
+                className="form-input"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
 
             <button
               type="submit"
               disabled={loading}
               className="btn btn-primary"
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '12px',
-                fontSize: '0.95rem',
-                fontWeight: '700',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
+              style={{ width: '100%', padding: '12px', borderRadius: '12px', fontWeight: '700', marginBottom: '10px' }}
             >
-              {loading ? (
-                <span>Sending Code...</span>
-              ) : (
-                <>
-                  <span>Send Verification Code</span>
-                  <ArrowRight size={17} />
-                </>
-              )}
+              {loading ? 'Signing in...' : 'Sign In with Password'}
             </button>
-          </form>
-        ) : (
-          /* Step 2: 6-Digit OTP Verification */
-          <form onSubmit={handleVerifyOtp}>
-            <div style={{ textAlign: 'center', marginBottom: '18px' }}>
-              <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                Enter the 6-digit verification code sent to:
-              </span>
-              <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.95rem', marginTop: '2px' }}>
-                {email}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep('email');
-                    setOtp('');
-                    setError('');
-                  }}
-                  style={{
-                    marginLeft: '8px',
-                    color: '#10b981',
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '0.8rem',
-                    textDecoration: 'underline',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  Change
-                </button>
-              </div>
-            </div>
-
-            <div className="form-group" style={{ marginBottom: '18px' }}>
-              <input
-                type="text"
-                required
-                maxLength={6}
-                autoFocus
-                className="form-input"
-                style={{
-                  textAlign: 'center',
-                  fontSize: '1.6rem',
-                  fontWeight: '800',
-                  letterSpacing: '10px',
-                  padding: '12px',
-                  borderRadius: '14px',
-                  background: '#f8fafc',
-                  color: '#047857'
-                }}
-                placeholder="••••••"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || otp.length < 6}
-              className="btn btn-primary"
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '12px',
-                fontSize: '0.95rem',
-                fontWeight: '700',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                marginBottom: '14px'
-              }}
-            >
-              {loading ? 'Verifying...' : 'Verify & Continue'}
-            </button>
-
-            <div style={{ textAlign: 'center' }}>
-              {countdown > 0 ? (
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                  Resend code in <strong>{countdown}s</strong>
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#10b981',
-                    fontSize: '0.85rem',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <RefreshCw size={14} /> Resend verification code
-                </button>
-              )}
-            </div>
           </form>
         )}
 
-        {/* Security & Passwordless Notice */}
-        <div
-          style={{
-            marginTop: '24px',
-            borderTop: '1px solid #f1f5f9',
-            paddingTop: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            color: '#64748b',
-            fontSize: '0.78rem'
-          }}
-        >
-          <ShieldCheck size={14} color="#10b981" />
-          <span>100% Passwordless &amp; Secure Authentication</span>
+        {/* Bottom Switcher: Password vs OTP Login */}
+        <div style={{ marginTop: '22px', borderTop: '1px solid #f1f5f9', paddingTop: '16px', textAlign: 'center' }}>
+          {method === 'otp' ? (
+            <button
+              type="button"
+              onClick={() => {
+                setMethod('password');
+                setError('');
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              <KeyRound size={13} />
+              <span>Staff Login with Password</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setMethod('otp');
+                setError('');
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#10b981',
+                fontSize: '0.8rem',
+                fontWeight: '700',
+                cursor: 'pointer'
+              }}
+            >
+              ← Back to Gmail OTP Login
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 }
-
 export default AuthPage;
