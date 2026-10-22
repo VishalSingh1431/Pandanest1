@@ -188,8 +188,211 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
 
   return (
     <div style={{ paddingBottom: '60px' }}>
-      {/* Main Catalog Body directly at top */}
-      <main className="container" style={{ marginTop: '24px' }}>
+      {/* Playful Hero Banner with Form on the Right Side */}
+      <section
+        style={{
+          background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+          color: 'white',
+          padding: '46px 20px',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        <div
+          className="container"
+          style={{
+            position: 'relative',
+            zIndex: 2,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '36px',
+            alignItems: 'center'
+          }}
+        >
+          {/* Left Column: Brand & Value Pitch */}
+          <div>
+            <div className="badge badge-amber" style={{ marginBottom: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+              <Sparkles size={14} /> Official Panda Nest Storefront • pandanest.in
+            </div>
+
+            <h1 style={{ fontSize: '2.6rem', lineHeight: 1.15, marginBottom: '14px', color: 'white' }}>
+              Toys That Spark Wild Imaginations! 🚀
+            </h1>
+
+            <p style={{ fontSize: '1.05rem', opacity: 0.95, lineHeight: 1.55, marginBottom: '22px' }}>
+              From turbo stunt racers to giant cuddly pandas and fairytale castles, find toys crafted for boundless playtime fun.
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', background: 'rgba(255,255,255,0.2)', padding: '7px 15px', borderRadius: '20px', fontWeight: '600' }}>
+                <Truck size={16} />
+                <span>FREE Delivery on All Toys Across India</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', background: 'rgba(255,255,255,0.2)', padding: '7px 15px', borderRadius: '20px', fontWeight: '600' }}>
+                <span>✨ 100% Child Safe</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Embedded Customer Onboarding Form */}
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '24px',
+              padding: '28px 24px',
+              boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.25)',
+              border: '1.5px solid rgba(255, 255, 255, 0.6)',
+              color: '#0f172a',
+              maxWidth: '460px',
+              marginLeft: 'auto',
+              width: '100%'
+            }}
+          >
+            {heroSubmitted ? (
+              <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+                <div
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    background: '#ecfdf5',
+                    color: '#10b981',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 14px',
+                    boxShadow: '0 6px 16px rgba(16, 185, 129, 0.2)'
+                  }}
+                >
+                  <CheckCircle2 size={36} />
+                </div>
+                {heroResult?.already_registered ? (
+                  <>
+                    <div className="badge badge-green" style={{ marginBottom: '8px', fontSize: '0.85rem' }}>
+                      ⭐ Active Member Recognized
+                    </div>
+                    <h3 style={{ fontSize: '1.35rem', color: '#0f172a', marginBottom: '6px' }}>
+                      Welcome Back, {heroForm.child_name}! 🐼
+                    </h3>
+                    <p style={{ color: '#64748b', fontSize: '0.875rem', lineHeight: 1.5 }}>
+                      Your child's details have been updated. (Note: The 100 welcome bonus points are only awarded on your initial registration).
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="badge badge-amber" style={{ marginBottom: '8px', fontSize: '0.85rem' }}>
+                      🪙 100 Panda Points Awarded!
+                    </div>
+                    <h3 style={{ fontSize: '1.35rem', color: '#0f172a', marginBottom: '6px' }}>
+                      Welcome to Panda Club, {heroForm.child_name}! 🎉
+                    </h3>
+                    <p style={{ color: '#64748b', fontSize: '0.875rem', lineHeight: 1.5 }}>
+                      Your points are ready to redeem at checkout. We'll celebrate your child's birthday with special gifts!
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                  <div style={{ background: '#ecfdf5', color: '#047857', padding: '6px', borderRadius: '10px' }}>
+                    <Gift size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.25rem', color: '#0f172a', lineHeight: 1.2 }}>
+                      Join Panda Club & Get 100 Pts 🎁
+                    </h3>
+                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                      Register child's birthday for special gifts & perks!
+                    </span>
+                  </div>
+                </div>
+
+                {heroError && (
+                  <div
+                    style={{
+                      background: '#fef2f2',
+                      border: '1px solid #fee2e2',
+                      color: '#991b1b',
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      fontSize: '0.8rem',
+                      marginBottom: '14px'
+                    }}
+                  >
+                    {heroError}
+                  </div>
+                )}
+
+                <form onSubmit={handleHeroSubmit}>
+                  {/* Child Name */}
+                  <div className="form-group" style={{ marginBottom: '12px' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                      <Heart size={13} color="#ec4899" />
+                      Child's Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="form-input"
+                      style={{ padding: '9px 12px', fontSize: '0.9rem' }}
+                      placeholder="e.g. Aarav / Ananya"
+                      value={heroForm.child_name}
+                      onChange={(e) => setHeroForm({ ...heroForm, child_name: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Mobile Number */}
+                  <div className="form-group" style={{ marginBottom: '12px' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                      <Phone size={13} color="#059669" />
+                      Mobile / WhatsApp Number *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      className="form-input"
+                      style={{ padding: '9px 12px', fontSize: '0.9rem' }}
+                      placeholder="e.g. 7380405227"
+                      value={heroForm.phone}
+                      onChange={(e) => setHeroForm({ ...heroForm, phone: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Child's Date of Birth */}
+                  <div className="form-group" style={{ marginBottom: '16px' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                      <Calendar size={13} color="#8b5cf6" />
+                      Child's Date of Birth (DOB) *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      className="form-input"
+                      style={{ padding: '9px 12px', fontSize: '0.9rem' }}
+                      value={heroForm.dob}
+                      onChange={(e) => setHeroForm({ ...heroForm, dob: e.target.value })}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={heroLoading}
+                    className="btn btn-primary"
+                    style={{ width: '100%', padding: '12px', fontSize: '0.95rem' }}
+                  >
+                    <Award size={18} />
+                    <span>{heroLoading ? 'Unlocking Points...' : 'Unlock 100 Points & Rewards'}</span>
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Main Catalog Body */}
+      <main className="container" style={{ marginTop: '18px' }}>
         {/* Category Filter Pills */}
         <div style={{ marginBottom: '18px' }}>
           <div
