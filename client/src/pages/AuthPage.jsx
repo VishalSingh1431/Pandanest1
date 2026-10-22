@@ -205,30 +205,6 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
     }
   };
 
-  // Method 2: Verify OTP
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    if (!otp || otp.trim().length < 6) {
-      setError('Please enter the 6-digit verification code sent to your email.');
-      return;
-    }
-
-    setError('');
-    setLoading(true);
-
-    try {
-      const data = await verifyOtp(email.trim(), otp.trim(), name.trim());
-      setSuccessMsg('Verification successful! Welcome to Panda Nest.');
-      setTimeout(() => {
-        if (onLoginSuccess) onLoginSuccess(data?.user || data?.admin);
-      }, 500);
-    } catch (err) {
-      setError(err.message || 'Invalid or expired code. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Trigger Google One Tap or Native Prompt if clicked directly
   const handleNativeGoogleClick = () => {
     if (!googleClientId) {
