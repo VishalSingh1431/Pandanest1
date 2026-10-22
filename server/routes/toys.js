@@ -117,26 +117,46 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/toys - Admin: Add new toy with Cloudinary image upload
-router.post('/', authenticateAdmin, upload.single('image'), async (req, res) => {
+// POST /api/toys - Admin: Create new toy (Supports multiple images + video_url)
+router.post('/', authenticateAdmin, upload.array('images', 8), async (req, res) => {
   try {
-    const { name, category, price, original_price, age_group, description, stock, featured, image_url_manual } = req.body;
+    const { name, category, price, original_price, age_group, description, stock, featured, image_url_manual, images_manual, video_url } = req.body;
 
     if (!name || !category || !price || !age_group) {
       return res.status(400).json({ error: 'Name, Category, Price, and Age Group are required.' });
     }
 
-    let finalImageUrl = image_url_manual;
+    const uploadedUrls = [];
 
-    // If an image file was uploaded, upload it to Cloudinary
-    if (req.file) {
-      const uploadResult = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
-      finalImageUrl = uploadResult.url;
+    // If images were uploaded, upload all to Cloudinary
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const uploadResult = await uploadToCloudinary(file.buffer, file.mimetype);
+        if (uploadResult && uploadResult.url) {
+          uploadedUrls.push(uploadResult.url);
+        }
+      }
     }
 
-    if (!finalImageUrl) {
-      // Default placeholder if none provided
-      finalImageUrl = 'https://images.unsplash.com/photo-1559454403-b8fb88521f11?w=800&auto=format&fit=crop&q=80';
+    // Parse manual image URLs if passed (comma-separated or JSON array)
+    let manualList = [];
+    if (images_manual) {
+      try {
+        manualList = Array.isArray(images_manual) ? images_manual : JSON.parse(images_manual);
+      } catch (e) {
+        manualList = images_manual.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    } else if (image_url_manual) {
+      manualList = image_url_manual.split(',').map(s => s.trim()).filter(Boolean);
     }
+
+    const allImages = Array.from(new Set([...uploadedUrls, ...manualList]));
+    const finalImageUrl = allImages[0] || 'https://images.unsplash.com/photo-1559454403-b8fb88521f11?w=800&auto=format&fit=crop&q=80';
+    if (!allImages.includes(finalImageUrl)) {
+      allImages.unshift(finalImageUrl);
+    }
+
+    const cleanVideoUrl = (video_url || '').trim();
 
     const { isPostgres, pool } = getDB();
     const numPrice = parseFloat(price);
@@ -146,10 +166,10 @@ router.post('/', authenticateAdmin, upload.single('image'), async (req, res) => 
 
     if (isPostgres && pool) {
       const result = await pool.query(
-        `INSERT INTO toys (name, category, price, original_price, age_group, description, image_url, stock, featured)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        `INSERT INTO toys (name, category, price, original_price, age_group, description, image_url, images, video_url, stock, featured)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          RETURNING *`,
-        [name.trim(), category.trim(), numPrice, numOriginalPrice, age_group.trim(), description || '', finalImageUrl, numStock, isFeatured]
+        [name.trim(), category.trim(), numPrice, numOriginalPrice, age_group.trim(), description || '', finalImageUrl, allImages, cleanVideoUrl || null, numStock, isFeatured]
       );
       return res.status(201).json(result.rows[0]);
     } else {
@@ -163,6 +183,8 @@ router.post('/', authenticateAdmin, upload.single('image'), async (req, res) => 
         age_group: age_group.trim(),
         description: description || '',
         image_url: finalImageUrl,
+        images: allImages,
+        video_url: cleanVideoUrl || null,
         stock: numStock,
         featured: isFeatured,
         created_at: new Date().toISOString()
@@ -179,24 +201,41 @@ router.post('/', authenticateAdmin, upload.single('image'), async (req, res) => 
 });
 
 // PUT /api/toys/:id - Admin: Edit toy
-router.put('/:id', authenticateAdmin, upload.single('image'), async (req, res) => {
+router.put('/:id', authenticateAdmin, upload.array('images', 8), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, category, price, original_price, age_group, description, stock, featured, image_url } = req.body;
+    const { name, category, price, original_price, age_group, description, stock, featured, image_url, existing_images, video_url } = req.body;
 
-    let finalImageUrl = image_url;
-
-    if (req.file) {
-      const uploadResult = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
-      finalImageUrl = uploadResult.url;
+    const uploadedUrls = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const uploadResult = await uploadToCloudinary(file.buffer, file.mimetype);
+        if (uploadResult && uploadResult.url) {
+          uploadedUrls.push(uploadResult.url);
+        }
+      }
     }
 
+    let currentImages = [];
+    if (existing_images) {
+      try {
+        currentImages = Array.isArray(existing_images) ? existing_images : JSON.parse(existing_images);
+      } catch (e) {
+        currentImages = existing_images.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    } else if (image_url) {
+      currentImages = [image_url];
+    }
+
+    const allImages = Array.from(new Set([...currentImages, ...uploadedUrls]));
+    const finalImageUrl = allImages[0] || image_url;
+    const cleanVideoUrl = video_url !== undefined ? video_url.trim() : null;
+
     const { isPostgres, pool } = getDB();
-    const numPrice = parseFloat(price);
+    const numPrice = price !== undefined ? parseFloat(price) : undefined;
     const numOriginalPrice = original_price ? parseFloat(original_price) : null;
-    // Pass null when stock is not provided so COALESCE($8, stock) preserves existing value
     const numStock = stock !== undefined ? parseInt(stock, 10) : null;
-    const isFeatured = featured === 'true' || featured === true;
+    const isFeatured = featured !== undefined ? (featured === 'true' || featured === true) : undefined;
 
     if (isPostgres && pool) {
       const result = await pool.query(
@@ -208,11 +247,13 @@ router.put('/:id', authenticateAdmin, upload.single('image'), async (req, res) =
              age_group = COALESCE($5, age_group),
              description = COALESCE($6, description),
              image_url = COALESCE($7, image_url),
-             stock = COALESCE($8, stock),
-             featured = COALESCE($9, featured)
-         WHERE id = $10
+             images = COALESCE($8, images),
+             video_url = COALESCE($9, video_url),
+             stock = COALESCE($10, stock),
+             featured = COALESCE($11, featured)
+         WHERE id = $12
          RETURNING *`,
-        [name, category, numPrice, numOriginalPrice, age_group, description, finalImageUrl, numStock, isFeatured, id]
+        [name, category, numPrice, numOriginalPrice, age_group, description, finalImageUrl, allImages.length > 0 ? allImages : null, cleanVideoUrl, numStock, isFeatured, id]
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Toy not found.' });
@@ -235,6 +276,8 @@ router.put('/:id', authenticateAdmin, upload.single('image'), async (req, res) =
         age_group: age_group !== undefined ? age_group : existing.age_group,
         description: description !== undefined ? description : existing.description,
         image_url: finalImageUrl || existing.image_url,
+        images: allImages.length > 0 ? allImages : (existing.images || [existing.image_url]),
+        video_url: cleanVideoUrl !== null ? cleanVideoUrl : existing.video_url,
         stock: stock !== undefined ? numStock : existing.stock,
         featured: featured !== undefined ? isFeatured : existing.featured
       };

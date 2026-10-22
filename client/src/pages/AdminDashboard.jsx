@@ -60,10 +60,12 @@ export function AdminDashboard({ onLogout }) {
     description: '',
     stock: 15,
     featured: false,
-    image_url_manual: ''
+    image_url_manual: '',
+    video_url: '',
+    existing_images: []
   });
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -238,6 +240,10 @@ export function AdminDashboard({ onLogout }) {
     setFormError('');
     if (toy) {
       setEditingToy(toy);
+      const existingImgs = Array.isArray(toy.images) && toy.images.length > 0
+        ? toy.images
+        : (toy.image_url ? [toy.image_url] : []);
+
       setToyForm({
         name: toy.name,
         category: toy.category,
@@ -247,9 +253,11 @@ export function AdminDashboard({ onLogout }) {
         description: toy.description || '',
         stock: toy.stock !== undefined ? toy.stock : 15,
         featured: toy.featured || false,
-        image_url_manual: toy.image_url || ''
+        image_url_manual: '',
+        video_url: toy.video_url || '',
+        existing_images: existingImgs
       });
-      setImagePreview(toy.image_url || '');
+      setImagePreviews(existingImgs);
     } else {
       setEditingToy(null);
       setToyForm({
@@ -261,20 +269,32 @@ export function AdminDashboard({ onLogout }) {
         description: '',
         stock: 15,
         featured: false,
-        image_url_manual: ''
+        image_url_manual: '',
+        video_url: '',
+        existing_images: []
       });
-      setImagePreview('');
+      setImagePreviews([]);
     }
-    setSelectedFile(null);
+    setSelectedFiles([]);
     setIsToyModalOpen(true);
   };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      setImagePreview(URL.createObjectURL(file));
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setSelectedFiles((prev) => [...prev, ...files]);
+      const newUrls = files.map((f) => URL.createObjectURL(f));
+      setImagePreviews((prev) => [...prev, ...newUrls]);
     }
+  };
+
+  const handleRemovePreview = (index) => {
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    setToyForm((prev) => ({
+      ...prev,
+      existing_images: prev.existing_images ? prev.existing_images.filter((_, i) => i !== index) : []
+    }));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleToySubmit = async (e) => {
@@ -298,11 +318,23 @@ export function AdminDashboard({ onLogout }) {
       formData.append('description', toyForm.description);
       formData.append('stock', toyForm.stock);
       formData.append('featured', toyForm.featured);
+      formData.append('video_url', toyForm.video_url || '');
 
-      if (selectedFile) {
-        formData.append('image', selectedFile);
-      } else if (toyForm.image_url_manual) {
-        formData.append('image_url_manual', toyForm.image_url_manual);
+      // Append existing preserved images
+      if (toyForm.existing_images && toyForm.existing_images.length > 0) {
+        formData.append('existing_images', JSON.stringify(toyForm.existing_images));
+      }
+
+      // Append multiple new file uploads
+      if (selectedFiles && selectedFiles.length > 0) {
+        selectedFiles.forEach((file) => {
+          formData.append('images', file);
+        });
+      }
+
+      // Append manual comma-separated URLs
+      if (toyForm.image_url_manual) {
+        formData.append('images_manual', toyForm.image_url_manual);
       }
 
       const url = editingToy ? `/api/toys/${editingToy.id}` : '/api/toys';
@@ -2101,9 +2133,11 @@ export function AdminDashboard({ onLogout }) {
                 </div>
               </div>
 
-              {/* Image Upload with Cloudinary & Live Preview */}
+              {/* Multiple Image Upload with Cloudinary & Live Previews */}
               <div className="form-group">
-                <label className="form-label">Toy Photo (Cloudinary Upload)</label>
+                <label className="form-label">
+                  Toy Photos ({imagePreviews.length} selected - First photo is primary)
+                </label>
                 <div
                   style={{
                     border: '2px dashed #cbd5e1',
@@ -2119,47 +2153,126 @@ export function AdminDashboard({ onLogout }) {
                     id="toyFileInput"
                     type="file"
                     accept="image/*"
+                    multiple
                     style={{ display: 'none' }}
                     onChange={handleFileChange}
                   />
-                  {imagePreview ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        style={{ width: '120px', height: '120px', objectFit: 'cover', borderRadius: '12px' }}
-                      />
-                      <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: '600' }}>
-                        Click to change photo
-                      </span>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                      <Upload size={28} color="#94a3b8" />
-                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
-                        Choose toy photo to upload
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                        Auto-uploaded to Cloudinary storage
-                      </span>
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                    <Upload size={26} color="#047857" />
+                    <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#0f172a' }}>
+                      Click to choose toy photos (Select multiple)
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      Auto-optimized and uploaded to Cloudinary CDN
+                    </span>
+                  </div>
                 </div>
 
-                <div style={{ marginTop: '8px' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Or paste image URL directly:</span>
+                {imagePreviews.length > 0 && (
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '12px' }}>
+                    {imagePreviews.map((url, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          position: 'relative',
+                          width: '84px',
+                          height: '84px',
+                          borderRadius: '10px',
+                          overflow: 'hidden',
+                          border: idx === 0 ? '2px solid #10b981' : '1px solid #e2e8f0',
+                          background: '#fff'
+                        }}
+                      >
+                        <img
+                          src={url}
+                          alt={`Preview ${idx + 1}`}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        {idx === 0 && (
+                          <span
+                            style={{
+                              position: 'absolute',
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              background: '#10b981',
+                              color: '#fff',
+                              fontSize: '0.65rem',
+                              fontWeight: '700',
+                              textAlign: 'center',
+                              padding: '1px 0'
+                            }}
+                          >
+                            Main
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemovePreview(idx);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: '3px',
+                            right: '3px',
+                            background: 'rgba(239, 68, 68, 0.9)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '18px',
+                            height: '18px',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            lineHeight: 1
+                          }}
+                          title="Remove image"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ marginTop: '10px' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Or paste image URLs (comma-separated):</span>
                   <input
-                    type="url"
+                    type="text"
                     className="form-input"
                     style={{ marginTop: '4px', fontSize: '0.85rem' }}
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="https://images.unsplash.com/..., https://..."
                     value={toyForm.image_url_manual}
                     onChange={(e) => {
                       setToyForm({ ...toyForm, image_url_manual: e.target.value });
-                      if (!selectedFile) setImagePreview(e.target.value);
+                      const urls = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                      if (urls.length > 0 && selectedFiles.length === 0) {
+                        setImagePreviews(urls);
+                      }
                     }}
                   />
                 </div>
+              </div>
+
+              {/* YouTube Video URL Field */}
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>YouTube Video Link (Demo / Unboxing / How-To-Play)</span>
+                  <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: '600' }}>Optional</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ or youtu.be/..."
+                  value={toyForm.video_url}
+                  onChange={(e) => setToyForm({ ...toyForm, video_url: e.target.value })}
+                />
+                <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginTop: '4px' }}>
+                  Will show an interactive YouTube video player directly inside the catalog toy details view!
+                </span>
               </div>
 
               <div className="form-group">

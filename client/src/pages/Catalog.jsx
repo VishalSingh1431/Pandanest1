@@ -48,13 +48,23 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
   const [selectedAge, setSelectedAge] = useState('All');
   const [sortBy, setSortBy] = useState('recommended');
   const [selectedToyModal, setSelectedToyModal] = useState(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [toyReviewsData, setToyReviewsData] = useState({ reviews: [], averageRating: 0, totalReviews: 0 });
+
+  // Extract YouTube embed URL if provided
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return null;
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+    return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=0&rel=0` : null;
+  };
 
   useEffect(() => {
     if (!selectedToyModal) {
       setToyReviewsData({ reviews: [], averageRating: 0, totalReviews: 0 });
+      setActiveImageIndex(0);
       return;
     }
+    setActiveImageIndex(0);
     const fetchReviews = async () => {
       try {
         const res = await fetch(`/api/reviews/toy/${selectedToyModal.id}`);
@@ -588,17 +598,72 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
             </button>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0' }}>
-              <div style={{ height: '320px', background: '#f8fafc', position: 'relative' }}>
-                <img
-                  src={selectedToyModal.image_url}
-                  alt={selectedToyModal.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-                <div style={{ position: 'absolute', bottom: '12px', left: '16px', display: 'flex', gap: '8px' }}>
-                  <span className="badge badge-green">{selectedToyModal.category}</span>
-                  <span className="badge badge-blue">Age: {selectedToyModal.age_group}</span>
-                </div>
-              </div>
+              {/* Product Gallery (Multiple Images Support) */}
+              {(() => {
+                const imgList = Array.isArray(selectedToyModal.images) && selectedToyModal.images.length > 0
+                  ? selectedToyModal.images
+                  : [selectedToyModal.image_url];
+                const activeImg = imgList[activeImageIndex] || imgList[0];
+
+                return (
+                  <div>
+                    <div style={{ height: '340px', background: '#f8fafc', position: 'relative', overflow: 'hidden' }}>
+                      <img
+                        src={activeImg}
+                        alt={selectedToyModal.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#f8fafc' }}
+                      />
+                      <div style={{ position: 'absolute', bottom: '12px', left: '16px', display: 'flex', gap: '8px' }}>
+                        <span className="badge badge-green">{selectedToyModal.category}</span>
+                        <span className="badge badge-blue">Age: {selectedToyModal.age_group}</span>
+                      </div>
+                      {imgList.length > 1 && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            bottom: '12px',
+                            right: '16px',
+                            background: 'rgba(15, 23, 42, 0.75)',
+                            color: '#fff',
+                            fontSize: '0.75rem',
+                            fontWeight: '700',
+                            padding: '3px 8px',
+                            borderRadius: '6px'
+                          }}
+                        >
+                          {activeImageIndex + 1} / {imgList.length}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Image Thumbnails bar */}
+                    {imgList.length > 1 && (
+                      <div style={{ display: 'flex', gap: '8px', padding: '10px 16px', background: '#ffffff', borderBottom: '1px solid #f1f5f9', overflowX: 'auto' }}>
+                        {imgList.map((thumb, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setActiveImageIndex(idx)}
+                            style={{
+                              width: '54px',
+                              height: '54px',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              padding: 0,
+                              border: activeImageIndex === idx ? '2.5px solid #10b981' : '1px solid #cbd5e1',
+                              cursor: 'pointer',
+                              background: '#f8fafc',
+                              flexShrink: 0
+                            }}
+                          >
+                            <img src={thumb} alt={`Thumb ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div style={{ padding: '24px' }}>
                 <h2 style={{ fontSize: '1.5rem', color: '#0f172a', marginBottom: '8px' }}>
@@ -641,6 +706,24 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
                 <p style={{ color: '#475569', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '20px' }}>
                   {selectedToyModal.description}
                 </p>
+
+                {/* Embedded YouTube Video (if linked) */}
+                {selectedToyModal.video_url && getYouTubeEmbedUrl(selectedToyModal.video_url) && (
+                  <div style={{ marginBottom: '22px' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#0f172a', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#ef4444' }}>▶</span> Watch Toy in Action / Demo Video:
+                    </h4>
+                    <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', height: 0, borderRadius: '12px', overflow: 'hidden', background: '#000' }}>
+                      <iframe
+                        src={getYouTubeEmbedUrl(selectedToyModal.video_url)}
+                        title={`${selectedToyModal.name} Video Demo`}
+                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Verified Customer Reviews Section */}
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', marginBottom: '20px' }}>
