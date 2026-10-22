@@ -75,8 +75,10 @@ export function CheckoutModal() {
     ? Number(checkoutItem.price)
     : cartTotal;
 
-  // 10 Panda points = ₹1 discount
-  const redeemableRupees = Math.floor(availablePoints / 10);
+  // 10 Panda points = ₹1 discount (Max 300 points = ₹30 discount allowed per order)
+  const MAX_REDEEM_POINTS = 300;
+  const maxUsablePoints = Math.min(availablePoints, MAX_REDEEM_POINTS);
+  const redeemableRupees = Math.floor(maxUsablePoints / 10);
   const pointsDiscount = (usePandaPoints && availablePoints >= 10) ? Math.min(redeemableRupees, rawTotal) : 0;
   const couponDiscount = appliedCoupon ? Number(appliedCoupon.discount_amount) : 0;
   const finalPayable = Math.max(0, rawTotal - pointsDiscount - couponDiscount);
@@ -131,15 +133,19 @@ export function CheckoutModal() {
     setLoading(true);
 
     try {
+      const token = localStorage.getItem('pandanest_admin_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           ...formData,
           items: itemsToCheckout,
           total_amount: finalPayable,
-          // Correctly calculated points: 1 rupee discount = 10 panda points
-          points_used: pointsDiscount > 0 ? pointsDiscount * 10 : 0
+          // Correctly calculated points: 1 rupee discount = 10 panda points (capped at 300 points)
+          points_used: pointsDiscount > 0 ? Math.min(pointsDiscount * 10, MAX_REDEEM_POINTS) : 0
         })
       });
 
@@ -319,7 +325,7 @@ export function CheckoutModal() {
               ))}
             </div>
 
-            {/* Panda Points Redemption Option (10 Points = ₹1) */}
+            {/* Panda Points Redemption Option (10 Points = ₹1, Max 300 points per order) */}
             {availablePoints >= 10 && (
               <div
                 style={{
@@ -337,7 +343,12 @@ export function CheckoutModal() {
                   <Award size={20} color="#d97706" />
                   <div>
                     <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#92400e' }}>
-                      Redeem {Math.min(availablePoints, Math.floor(rawTotal * 10))} Panda Points
+                      Redeem {Math.min(availablePoints, MAX_REDEEM_POINTS, Math.floor(rawTotal * 10))} Panda Points
+                      {availablePoints > MAX_REDEEM_POINTS && (
+                        <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#b45309', marginLeft: '6px' }}>
+                          (Max 300 pts / order)
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: '#b45309' }}>
                       Get ₹{Math.min(redeemableRupees, rawTotal)} instant discount on this order!

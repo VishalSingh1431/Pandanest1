@@ -29,6 +29,24 @@ export function authenticateUser(req, res, next) {
   }
 }
 
+// Optional authentication — populates req.user if valid token provided, but does not block guests
+export function optionalUser(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) return next();
+
+  const parts = authHeader.split(' ');
+  if (parts.length === 2 && parts[0] === 'Bearer') {
+    try {
+      const decoded = jwt.verify(parts[1], JWT_SECRET);
+      req.user = decoded;
+      req.admin = decoded;
+    } catch (err) {
+      // Ignore token verification errors for guests
+    }
+  }
+  next();
+}
+
 // Authenticates only admin or super_admin
 export function authenticateAdmin(req, res, next) {
   authenticateUser(req, res, () => {

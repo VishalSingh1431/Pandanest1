@@ -1,6 +1,6 @@
 import express from 'express';
 import { getDB, readLocalStore, writeLocalStore } from '../db.js';
-import { authenticateAdmin, authenticateUser } from '../middleware/auth.js';
+import { authenticateAdmin, authenticateUser, optionalUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -106,7 +106,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
 });
 
 // POST /api/orders — Create new customer order (Checkout)
-router.post('/', async (req, res) => {
+router.post('/', optionalUser, async (req, res) => {
   try {
     const { customer_name, phone, address, city, pincode, payment_method, items, total_amount, points_used } = req.body;
 
@@ -123,7 +123,11 @@ router.post('/', async (req, res) => {
     const orderNumber = generateOrderNumber();
     const finalPaymentMethod = payment_method || 'COD';
     const numTotal = parseFloat(total_amount);
-    const numPointsUsed = parseInt(points_used || 0, 10);
+    
+    // STRICT RULE: User can redeem up to 300 Panda Points at max per order (300 points = ₹30 discount)
+    const MAX_REDEEM_POINTS = 300;
+    const requestedPoints = parseInt(points_used || 0, 10);
+    const numPointsUsed = Math.min(requestedPoints, MAX_REDEEM_POINTS);
 
     // Capture the logged-in user's email for order ownership (optional — guest checkout allowed)
     const userEmail = req.user?.email ? req.user.email.toLowerCase().trim() : null;
