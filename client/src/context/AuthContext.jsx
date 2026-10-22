@@ -66,11 +66,15 @@ export function AuthProvider({ children }) {
             localStorage.setItem('pandanest_admin_token', data.token);
           }
           localStorage.setItem('pandanest_admin_profile', JSON.stringify(userObj));
-        } else {
+        } else if (res.status === 401) {
+          // Token is genuinely invalid or expired on server
           logout();
+        } else {
+          // Temporary server restart or network glitch — preserve existing credentials
+          console.warn(`Auth verification received status ${res.status}; keeping current session.`);
         }
       } catch (err) {
-        console.warn('Token verification notice:', err.message);
+        console.warn('Token verification network notice:', err.message);
       } finally {
         setLoading(false);
       }
