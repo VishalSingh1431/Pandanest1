@@ -138,6 +138,31 @@ export function UserProfile({ onGoToCatalog, onGoToAdmin }) {
     }
   };
 
+  const handleSaveBirthday = async (e) => {
+    e.preventDefault();
+    try {
+      localStorage.setItem('pandanest_child_name', childName.trim());
+      localStorage.setItem('pandanest_child_dob', childDob);
+      
+      // Also save to backend lead API
+      await fetch('/api/leads/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          child_name: childName.trim(),
+          phone: profile.phone || '',
+          dob: childDob,
+          parent_name: profile.name || 'Parent'
+        })
+      });
+      setBirthdaySaved(true);
+      setTimeout(() => setBirthdaySaved(false), 3000);
+    } catch (err) {
+      console.warn('Birthday save note:', err.message);
+      setBirthdaySaved(true);
+    }
+  };
+
   return (
     <div style={{ background: '#f8fafc', minHeight: '85vh', padding: '36px 0 60px' }}>
       <div className="container" style={{ maxWidth: '1080px' }}>
