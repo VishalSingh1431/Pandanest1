@@ -236,68 +236,72 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
             </div>
           </div>
 
-          {/* Right Column: Member Rewards Card (if logged in) OR Customer Onboarding Form (if guest) */}
+          {/* Right Column: Embedded Toy Video Player Showcase (if logged in) OR Customer Onboarding Form (if guest) */}
           {isAuthenticated ? (
             <div
               style={{
                 background: '#ffffff',
                 borderRadius: '20px',
-                padding: '24px',
+                padding: '14px',
                 boxShadow: '0 14px 34px -8px rgba(0, 0, 0, 0.22)',
                 color: '#0f172a',
-                maxWidth: '430px',
+                maxWidth: '450px',
                 marginLeft: 'auto',
                 width: '100%'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#ecfdf5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Award size={26} color="#10b981" />
-                </div>
-                <div>
-                  <span className="badge badge-green" style={{ fontSize: '0.72rem', padding: '2px 8px', marginBottom: '3px' }}>
-                    VIP Member
-                  </span>
-                  <h3 style={{ fontSize: '1.2rem', color: '#0f172a', margin: 0, fontWeight: '800' }}>
-                    Panda Rewards Active 🐼
-                  </h3>
-                </div>
+              {/* Responsive 16:9 Video Container */}
+              <div
+                style={{
+                  position: 'relative',
+                  paddingBottom: '56.25%',
+                  height: 0,
+                  overflow: 'hidden',
+                  borderRadius: '14px',
+                  background: '#000000',
+                  marginBottom: '10px'
+                }}
+              >
+                <iframe
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                    borderRadius: '14px'
+                  }}
+                  src="https://www.youtube-nocookie.com/embed/3vTfq_724jM?autoplay=0&rel=0"
+                  title="Panda Toy Fun Adventures"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
               </div>
-              <p style={{ color: '#64748b', fontSize: '0.86rem', lineHeight: 1.45, marginBottom: '14px' }}>
-                Your child's profile is registered. Enjoy free delivery, member pricing, and redeem up to <strong>300 Panda Points</strong> at checkout!
-              </p>
-              <div style={{ display: 'flex', gap: '8px' }}>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: '800', textTransform: 'uppercase' }}>
+                    🎬 Panda Kids Club
+                  </span>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', margin: '2px 0 0' }}>
+                    Baby Panda &amp; Wooden Toy Adventures 🐼
+                  </h4>
+                </div>
                 <a
                   href="?page=games"
                   style={{
-                    flex: 1,
-                    textAlign: 'center',
-                    background: '#fef3c7',
-                    color: '#b45309',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
+                    fontSize: '0.78rem',
                     fontWeight: '700',
-                    fontSize: '0.82rem',
-                    textDecoration: 'none'
-                  }}
-                >
-                  🎮 Play Games
-                </a>
-                <a
-                  href="?page=profile"
-                  style={{
-                    flex: 1,
-                    textAlign: 'center',
-                    background: '#ecfdf5',
                     color: '#047857',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    fontWeight: '700',
-                    fontSize: '0.82rem',
-                    textDecoration: 'none'
+                    background: '#ecfdf5',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  👤 My Profile
+                  More Videos →
                 </a>
               </div>
             </div>
