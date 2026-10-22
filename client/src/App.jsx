@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { QRModal } from './components/QRModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
@@ -414,12 +415,16 @@ export function App() {
             paddingTop: '20px',
             borderTop: '1px solid #f1f5f9',
             fontSize: '0.82rem',
-            color: '#64748b'
+            color: '#64748b',
+            paddingBottom: '40px'
           }}
         >
           © {new Date().getFullYear()} Panda Nest (pandanest.in) • All rights reserved. • Spreading Smiles Across India 🐼
         </div>
       </footer>
+
+      {/* Floating Bottom App Navigation for Phone screens (< 768px) */}
+      <MobileBottomNav currentRoute={currentRoute} navigate={navigate} />
     </div>
   );
 }

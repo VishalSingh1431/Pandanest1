@@ -73,8 +73,8 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
           />
         </button>
 
-        {/* 2. Search Product */}
-        <div style={{ flex: '1', maxWidth: '480px', position: 'relative' }}>
+        {/* 2. Search Product (Desktop / Tablet view) */}
+        <div className="hide-on-mobile" style={{ flex: '1', maxWidth: '480px', position: 'relative' }}>
           <Search
             size={18}
             style={{
@@ -140,9 +140,10 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
         </div>
 
         {/* Right Section: Games & Activities | Cart | Panda Points | Login / Profile */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-          {/* Games & Activities */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          {/* Games & Activities (Desktop Only) */}
           <button
+            className="hide-on-mobile"
             onClick={() => navigate('games')}
             style={{
               display: 'flex',
@@ -162,10 +163,10 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
             title="Play Games & Watch Videos to Earn 10 PP"
           >
             <Gamepad2 size={17} />
-            <span>Games & Activities</span>
+            <span>Games &amp; Activities</span>
           </button>
 
-          {/* 3. Cart */}
+          {/* Cart Trigger */}
           <button
             onClick={openCart}
             style={{
@@ -175,7 +176,7 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
               gap: '8px',
               background: '#f8fafc',
               border: '1.5px solid #e2e8f0',
-              padding: '8px 16px',
+              padding: '8px 14px',
               borderRadius: '9999px',
               fontSize: '0.875rem',
               fontWeight: '600',
@@ -183,18 +184,10 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
               cursor: 'pointer',
               transition: 'all 0.2s ease'
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#10b981';
-              e.currentTarget.style.color = '#10b981';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#e2e8f0';
-              e.currentTarget.style.color = '#0f172a';
-            }}
             title="Shopping Cart"
           >
             <ShoppingBag size={18} />
-            <span>Cart</span>
+            <span className="hide-on-mobile">Cart</span>
             {cartCount > 0 && (
               <span
                 style={{
@@ -212,7 +205,7 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
             )}
           </button>
 
-          {/* 4. Panda Points (Static Display Only - does not open anything) */}
+          {/* Panda Points Badge */}
           <div
             title="Panda Points Balance"
             style={{
@@ -222,7 +215,7 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
               background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
               color: '#92400e',
               border: '1.5px solid #fcd34d',
-              padding: '8px 15px',
+              padding: '8px 12px',
               borderRadius: '9999px',
               fontSize: '0.85rem',
               fontWeight: '700',
@@ -235,8 +228,9 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
             <span>{points} pts</span>
           </div>
 
-          {/* 5. Login / Profile */}
+          {/* Login / Profile (Desktop Only) */}
           <button
+            className="hide-on-mobile"
             onClick={() => navigate(isAuthenticated ? (isAdmin ? 'admin-dashboard' : 'profile') : 'admin-login')}
             style={{
               display: 'flex',
@@ -253,14 +247,6 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
               transition: 'all 0.2s ease',
               boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#10b981';
-              if (!isAuthenticated) e.currentTarget.style.color = '#10b981';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = isAuthenticated ? '#a7f3d0' : '#e2e8f0';
-              if (!isAuthenticated) e.currentTarget.style.color = '#0f172a';
-            }}
             title={isAuthenticated ? `Profile (${admin?.email || 'Admin'})` : 'Login / Profile'}
           >
             <User size={18} color={isAuthenticated ? '#059669' : '#64748b'} />
@@ -269,6 +255,60 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
             </span>
           </button>
         </div>
+      </div>
+
+      {/* Mobile Search Row */}
+      <div className="show-on-mobile container" style={{ marginTop: '8px', position: 'relative' }}>
+        <Search
+          size={16}
+          style={{
+            position: 'absolute',
+            left: '26px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: '#94a3b8',
+            pointerEvents: 'none'
+          }}
+        />
+        <input
+          type="text"
+          placeholder="Search toys, brands, or categories..."
+          value={searchQuery || ''}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            if (currentRoute !== 'catalog') navigate('catalog');
+          }}
+          style={{
+            width: '100%',
+            padding: '9px 36px 9px 38px',
+            borderRadius: '9999px',
+            border: '1.5px solid #e2e8f0',
+            background: '#f8fafc',
+            fontSize: '0.85rem',
+            outline: 'none',
+            boxSizing: 'border-box'
+          }}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            style={{
+              position: 'absolute',
+              right: '26px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#94a3b8',
+              display: 'flex',
+              alignItems: 'center',
+              padding: 0
+            }}
+          >
+            <X size={15} />
+          </button>
+        )}
       </div>
     </header>
   );

@@ -85,19 +85,23 @@ export function ToyCard({ toy, onSelectToy }) {
       </div>
 
       {/* Toy Info */}
-      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <div style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#10b981', letterSpacing: '0.05em', marginBottom: '4px' }}>
+      <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', color: '#10b981', letterSpacing: '0.05em', marginBottom: '3px' }}>
           {toy.category}
         </div>
 
         <h3
           style={{
-            fontSize: '1.1rem',
-            fontWeight: '700',
+            fontSize: '0.98rem',
+            fontWeight: '800',
             color: '#0f172a',
-            lineHeight: 1.3,
-            marginBottom: '6px',
-            cursor: 'pointer'
+            lineHeight: 1.25,
+            marginBottom: '4px',
+            cursor: 'pointer',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden'
           }}
           onClick={() => onSelectToy && onSelectToy(toy)}
           title={toy.name}
@@ -106,11 +110,12 @@ export function ToyCard({ toy, onSelectToy }) {
         </h3>
 
         <p
+          className="hide-on-mobile"
           style={{
-            fontSize: '0.85rem',
+            fontSize: '0.82rem',
             color: '#64748b',
             lineHeight: 1.4,
-            marginBottom: '14px',
+            marginBottom: '10px',
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
@@ -121,38 +126,35 @@ export function ToyCard({ toy, onSelectToy }) {
         </p>
 
         {/* Pricing and Stock */}
-        <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '12px' }}>
-            <span style={{ fontSize: '1.35rem', fontWeight: '800', color: '#0f172a', fontFamily: 'var(--font-display)' }}>
+        <div style={{ marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#0f172a', fontFamily: 'var(--font-display)' }}>
               ₹{Number(toy.price).toLocaleString('en-IN')}
             </span>
             {toy.original_price && (
-              <span style={{ fontSize: '0.9rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'line-through' }}>
                 ₹{Number(toy.original_price).toLocaleString('en-IN')}
               </span>
             )}
-            <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: toy.stock > 0 ? '#10b981' : '#ef4444', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <CheckCircle2 size={12} /> {toy.stock > 0 ? 'In Stock' : 'Out of Stock'}
-            </span>
           </div>
 
           {/* Action Buttons */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
             <button
               className="btn btn-secondary btn-sm"
               onClick={() => addToCart(toy)}
-              style={{ padding: '9px 12px', fontSize: '0.825rem' }}
+              style={{ padding: '7px 8px', fontSize: '0.78rem', justifyContent: 'center' }}
             >
-              <ShoppingBag size={15} />
+              <ShoppingBag size={13} />
               <span>Add</span>
             </button>
             <button
               className="btn btn-primary btn-sm"
               onClick={() => buyNow(toy)}
-              style={{ padding: '9px 12px', fontSize: '0.825rem' }}
+              style={{ padding: '7px 8px', fontSize: '0.78rem', justifyContent: 'center' }}
             >
-              <Zap size={15} />
-              <span>Buy Now</span>
+              <Zap size={13} />
+              <span>Buy</span>
             </button>
           </div>
         </div>

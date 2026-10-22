@@ -218,9 +218,51 @@ input, select, textarea {
 
 /* Responsive Container */
 .container {
-  max-width: 1240px;
+  width: 100%;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 20px;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 14px;
+  }
+}
+
+/* Responsive visibility utilities */
+.hide-on-mobile {
+  display: flex !important;
+}
+
+.show-on-mobile {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+  .show-on-mobile {
+    display: flex !important;
+  }
+}
+
+/* Touch friendly minimum target */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Smooth horizontal scroll without scrollbar */
+.horizontal-scroll {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+.horizontal-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 /* Navbar */
@@ -360,6 +402,13 @@ input, select, textarea {
   padding: 20px;
 }
 
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 10px;
+    align-items: flex-end;
+  }
+}
+
 .modal-card {
   background: white;
   border-radius: var(--radius-lg);
@@ -371,6 +420,15 @@ input, select, textarea {
   padding: 30px;
   position: relative;
   animation: modalEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 640px) {
+  .modal-card {
+    padding: 20px 16px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    max-height: 94vh;
+  }
 }
 
 @keyframes modalEnter {
@@ -454,6 +512,27 @@ input, select, textarea {
 @keyframes toastIn {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Product Grid Responsive Layout */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 22px;
+}
+
+@media (max-width: 640px) {
+  .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .product-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
 }
 
 /* Mobile adjustments */

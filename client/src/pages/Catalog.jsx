@@ -597,13 +597,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
             </button>
           </div>
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-              gap: '24px'
-            }}
-          >
+          <div className="product-grid">
             {toys.map((toy) => (
               <ToyCard key={toy.id} toy={toy} onSelectToy={(t) => setSelectedToyModal(t)} />
             ))}
