@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, KeyRound, Sparkles } from 'lucide-react';
+import { Mail, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
-  const [method, setMethod] = useState('otp'); // 'otp' | 'password'
   
   // OTP Flow state
   const [step, setStep] = useState('email'); // 'email' | 'otp'
@@ -16,9 +15,6 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
   const [dob, setDob] = useState('');
   const [otp, setOtp] = useState('');
   const [countdown, setCountdown] = useState(0);
-
-  // Password fallback state
-  const [password, setPassword] = useState('');
 
   // Status state
   const [loading, setLoading] = useState(false);
@@ -47,16 +43,16 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
 
     if (authMode === 'signup') {
       if (!childName || !childName.trim()) {
-        setError("Please enter child's name (Compulsory).");
+        setError("Please enter child's name.");
         return;
       }
       const cleanPhone = phone.replace(/\D/g, '');
       if (!phone || cleanPhone.length < 10) {
-        setError('Please enter a valid 10-digit WhatsApp/mobile number (Compulsory).');
+        setError('Please enter a valid 10-digit WhatsApp/mobile number.');
         return;
       }
       if (!dob) {
-        setError("Please select child's Date of Birth (Compulsory).");
+        setError("Please select child's Date of Birth.");
         return;
       }
     }
@@ -215,29 +211,7 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
     }
   };
 
-  // Handle Legacy Password Login
-  const handlePasswordLogin = async (e) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError('Please enter both email and password.');
-      return;
-    }
 
-    setError('');
-    setLoading(true);
-
-    try {
-      await login(email.trim(), password);
-      setSuccessMsg('Login successful!');
-      setTimeout(() => {
-        if (onLoginSuccess) onLoginSuccess();
-      }, 500);
-    } catch (err) {
-      setError(err.message || 'Invalid credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div
@@ -470,9 +444,8 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
         </div>
 
         {/* METHOD 2: Gmail + OTP on Gmail */}
-        {method === 'otp' && (
-          <div>
-            {step === 'email' ? (
+        <div>
+          {step === 'email' ? (
               <form onSubmit={handleSendOtp}>
                 {authMode === 'signup' && (
                   <>
@@ -488,9 +461,8 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
                     </div>
 
                     <div className="form-group" style={{ marginBottom: '14px' }}>
-                      <label className="form-label" style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Child's Full Name <strong style={{ color: '#ef4444' }}>*</strong></span>
-                        <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: '600' }}>Compulsory</span>
+                      <label className="form-label" style={{ fontSize: '0.85rem' }}>
+                        Child's Full Name <strong style={{ color: '#ef4444' }}>*</strong>
                       </label>
                       <input
                         type="text"
@@ -503,25 +475,23 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
                     </div>
 
                     <div className="form-group" style={{ marginBottom: '14px' }}>
-                      <label className="form-label" style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}>
-                        <span>WhatsApp / Mobile Number <strong style={{ color: '#ef4444' }}>*</strong></span>
-                        <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: '600' }}>10 Digits</span>
+                      <label className="form-label" style={{ fontSize: '0.85rem' }}>
+                        WhatsApp / Mobile Number <strong style={{ color: '#ef4444' }}>*</strong>
                       </label>
                       <input
                         type="tel"
                         required
                         maxLength={10}
                         className="form-input"
-                        placeholder="e.g. 9876543210"
+                        placeholder="10-digit mobile number"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                       />
                     </div>
 
                     <div className="form-group" style={{ marginBottom: '14px' }}>
-                      <label className="form-label" style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Child's Date of Birth (DOB) <strong style={{ color: '#ef4444' }}>*</strong></span>
-                        <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: '600' }}>Compulsory</span>
+                      <label className="form-label" style={{ fontSize: '0.85rem' }}>
+                        Child's Date of Birth (DOB) <strong style={{ color: '#ef4444' }}>*</strong>
                       </label>
                       <input
                         type="date"
@@ -700,91 +670,8 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
               </form>
             )}
           </div>
-        )}
-
-        {/* Fallback Method: Staff / Admin Password */}
-        {method === 'password' && (
-          <form onSubmit={handlePasswordLogin}>
-            <div className="form-group" style={{ marginBottom: '14px' }}>
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Staff / Admin Email</label>
-              <input
-                type="email"
-                required
-                className="form-input"
-                placeholder="acubebeauty@gmail.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            <div className="form-group" style={{ marginBottom: '18px' }}>
-              <label className="form-label" style={{ fontSize: '0.85rem' }}>Password</label>
-              <input
-                type="password"
-                required
-                className="form-input"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-primary"
-              style={{ width: '100%', padding: '12px', borderRadius: '12px', fontWeight: '700', marginBottom: '10px' }}
-            >
-              {loading ? 'Signing in...' : 'Sign In with Password'}
-            </button>
-          </form>
-        )}
-
-        {/* Bottom Switcher: Password vs OTP Login */}
-        <div style={{ marginTop: '22px', borderTop: '1px solid #f1f5f9', paddingTop: '16px', textAlign: 'center' }}>
-          {method === 'otp' ? (
-            <button
-              type="button"
-              onClick={() => {
-                setMethod('password');
-                setError('');
-              }}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#64748b',
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-            >
-              <KeyRound size={13} />
-              <span>Staff Login with Password</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setMethod('otp');
-                setError('');
-              }}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#10b981',
-                fontSize: '0.8rem',
-                fontWeight: '700',
-                cursor: 'pointer'
-              }}
-            >
-              ← Back to Gmail OTP Login
-            </button>
-          )}
         </div>
       </div>
-    </div>
-  );
+    );
 }
 export default AuthPage;
