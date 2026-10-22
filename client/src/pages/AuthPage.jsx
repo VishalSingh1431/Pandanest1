@@ -126,7 +126,12 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
   const [googleClientId, setGoogleClientId] = useState('');
   const googleBtnRef = useRef(null);
 
+  // Fetch configured Google Client ID from Vite env or backend
   useEffect(() => {
+    const viteClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (viteClientId) {
+      setGoogleClientId(viteClientId);
+    }
     fetch('/api/auth/google-client-id')
       .then((res) => res.json())
       .then((data) => {
@@ -191,7 +196,7 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
       const data = await loginWithGoogle({ googleIdToken: response.credential });
       setSuccessMsg(`Welcome, ${data.user?.name || 'Explorer'}! Signed in with Google.`);
       setTimeout(() => {
-        if (onLoginSuccess) onLoginSuccess();
+        if (onLoginSuccess) onLoginSuccess(data?.user || data?.admin);
       }, 500);
     } catch (err) {
       setError(err.message || 'Google sign-in verification failed.');
@@ -200,7 +205,35 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
     }
   };
 
+<<<<<<< HEAD
   // Fallback trigger if Google button clicked
+=======
+  // Method 2: Verify OTP
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (!otp || otp.trim().length < 6) {
+      setError('Please enter the 6-digit verification code sent to your email.');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+      const data = await verifyOtp(email.trim(), otp.trim(), name.trim());
+      setSuccessMsg('Verification successful! Welcome to Panda Nest.');
+      setTimeout(() => {
+        if (onLoginSuccess) onLoginSuccess(data?.user || data?.admin);
+      }, 500);
+    } catch (err) {
+      setError(err.message || 'Invalid or expired code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Trigger Google One Tap or Native Prompt if clicked directly
+>>>>>>> 4839138 (fix: persist auth session on page reload and configure real Google OAuth client ID)
   const handleNativeGoogleClick = () => {
     if (!googleClientId) {
       setError('Google Sign-In is not configured yet. Please use Gmail + OTP below.');

@@ -35,7 +35,20 @@ export function App() {
       return 'games';
     }
     if (params.get('page') === 'admin' || window.location.hash === '#admin') {
+      const savedToken = localStorage.getItem('pandanest_admin_token');
+      try {
+        const savedProfile = JSON.parse(localStorage.getItem('pandanest_admin_profile') || '{}');
+        const role = savedProfile?.role;
+        if (savedToken && ['super_admin', 'admin'].includes(role)) {
+          return 'admin-dashboard';
+        } else if (savedToken) {
+          return 'profile';
+        }
+      } catch {}
       return 'admin-login';
+    }
+    if (params.get('page') === 'profile' || window.location.hash === '#profile') {
+      return localStorage.getItem('pandanest_admin_token') ? 'profile' : 'admin-login';
     }
     return 'catalog';
   });
@@ -142,8 +155,10 @@ export function App() {
             )
           ) : (
             <AuthPage
-              onLoginSuccess={() => {
-                navigate(isAdmin ? 'admin-dashboard' : 'catalog');
+              onLoginSuccess={(userData) => {
+                const userRole = userData?.role || admin?.role;
+                const isUserAdmin = ['super_admin', 'admin'].includes(userRole);
+                navigate(isUserAdmin ? 'admin-dashboard' : 'catalog');
               }}
               onExploreCatalog={() => navigate('catalog')}
             />
@@ -310,7 +325,7 @@ export function App() {
                 About Panda Nest
               </button>
               <button
-                onClick={() => navigate('admin-login')}
+                onClick={() => navigate(isAuthenticated ? (isAdmin ? 'admin-dashboard' : 'profile') : 'admin-login')}
                 style={{
                   color: '#047857',
                   textAlign: 'left',
