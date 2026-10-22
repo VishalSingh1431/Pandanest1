@@ -124,6 +124,7 @@ export const INITIAL_VIDEOS = [
     id: 1,
     youtube_id: '3vTfq_724jM',
     title: 'Baby Panda Cute Cartoon Adventures 🐼',
+    category: 'Cartoons',
     channel: 'Panda Nest Kids Club',
     duration_sec: 40,
     points_reward: 10,
@@ -133,6 +134,7 @@ export const INITIAL_VIDEOS = [
     id: 2,
     youtube_id: 'u7r6q69P0rQ',
     title: 'High Speed RC Stunt Cars & Monster Truck Showcase 🏎️',
+    category: 'RC & Action',
     channel: 'Toy Arena',
     duration_sec: 40,
     points_reward: 10,
@@ -142,10 +144,41 @@ export const INITIAL_VIDEOS = [
     id: 3,
     youtube_id: 'Y9j4LhD1w30',
     title: 'Magical Dollhouse Castle & Princess Fairytale Play 🏰',
+    category: 'Pretend Play',
     channel: 'Creative Playroom',
     duration_sec: 40,
     points_reward: 10,
     description: 'Step into the enchanted miniature fairytale castle with light-up balconies, miniature royal tea sets, and magical storytelling.'
+  },
+  {
+    id: 4,
+    youtube_id: '4x3_h9R8a9M',
+    title: 'Gatling Bubble Gun Mega Foam Party 🫧',
+    category: 'Outdoor & Summer',
+    channel: 'Panda Nest Kids Club',
+    duration_sec: 35,
+    points_reward: 10,
+    description: 'Watch over 5,000 rainbow bubbles blast across the sunny garden lawn with the electric Gatling Bubble Storm Cannon!'
+  },
+  {
+    id: 5,
+    youtube_id: '8v_44jV4n1Y',
+    title: 'Magnetic Building Blocks Castle & Tower Challenge 🧱',
+    category: 'STEM & Learning',
+    channel: 'Smart Kids Lab',
+    duration_sec: 40,
+    points_reward: 10,
+    description: 'Learn how to construct colorful 3D geometric domes, giant suspension bridges, and skyscraper towers with magnetic tiles.'
+  },
+  {
+    id: 6,
+    youtube_id: '6z1p3W7v9u8',
+    title: 'Dancing Musical Panda with Rainbow Disco Lights 🎶',
+    category: 'Musical & Plush',
+    channel: 'Panda Nest Kids Club',
+    duration_sec: 30,
+    points_reward: 10,
+    description: 'Sing and dance along with the joyful robotic walking panda as it spins and shines glowing LED party lights!'
   }
 ];
 
@@ -449,6 +482,7 @@ async function initPostgresSchema() {
       id SERIAL PRIMARY KEY,
       youtube_id VARCHAR(50) NOT NULL,
       title VARCHAR(255) NOT NULL,
+      category VARCHAR(100) DEFAULT 'Cartoons',
       channel VARCHAR(150) DEFAULT 'Pandanest Kids',
       duration_sec INT DEFAULT 40,
       description TEXT,
@@ -494,6 +528,7 @@ async function initPostgresSchema() {
     await pool.query('ALTER TABLE toys ADD COLUMN IF NOT EXISTS video_url TEXT;');
     await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS child_name VARCHAR(150);');
     await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS dob DATE;');
+    await pool.query('ALTER TABLE videos ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT \'Cartoons\';');
   } catch (e) {
     // Columns might already exist — safe to ignore
   }
@@ -544,9 +579,9 @@ async function initPostgresSchema() {
   if (parseInt(vidCheck.rows[0].count, 10) === 0) {
     for (const v of INITIAL_VIDEOS) {
       await pool.query(
-        `INSERT INTO videos (youtube_id, title, channel, duration_sec, description, points_reward)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [v.youtube_id, v.title, v.channel, v.duration_sec, v.description, v.points_reward]
+        `INSERT INTO videos (youtube_id, title, category, channel, duration_sec, description, points_reward)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [v.youtube_id, v.title, v.category || 'Cartoons', v.channel, v.duration_sec, v.description, v.points_reward]
       );
     }
     console.log(`🎬 Seeded ${INITIAL_VIDEOS.length} videos into PostgreSQL!`);

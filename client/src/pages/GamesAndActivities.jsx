@@ -30,6 +30,7 @@ const TOY_VIDEOS = [
     id: 'V1',
     youtubeId: '3vTfq_724jM',
     title: 'Baby Panda Cute Cartoon Adventures 🐼',
+    category: 'Cartoons',
     channel: 'Panda Nest Kids Club',
     durationSec: 30,
     description: 'Join the playful little panda cub as he explores the bamboo forest and builds colorful wooden toy nests with friends.'
@@ -38,6 +39,7 @@ const TOY_VIDEOS = [
     id: 'V2',
     youtubeId: 'u7r6q69P0rQ',
     title: 'High Speed RC Stunt Cars & Monster Truck Showcase 🏎️',
+    category: 'RC & Action',
     channel: 'Toy Arena',
     durationSec: 30,
     description: 'Watch incredible 360-degree tumbling spins, off-road ramp jumps, and glow-in-the-dark stunt drifting in action!'
@@ -46,9 +48,37 @@ const TOY_VIDEOS = [
     id: 'V3',
     youtubeId: 'Y9j4LhD1w30',
     title: 'Magical Dollhouse Castle & Princess Fairytale Play 🏰',
+    category: 'Pretend Play',
     channel: 'Creative Playroom',
     durationSec: 30,
     description: 'Step into the enchanted miniature fairytale castle with light-up balconies, miniature royal tea sets, and magical storytelling.'
+  },
+  {
+    id: 'V4',
+    youtubeId: '4x3_h9R8a9M',
+    title: 'Gatling Bubble Gun Mega Foam Party 🫧',
+    category: 'Outdoor & Summer',
+    channel: 'Panda Nest Kids Club',
+    durationSec: 30,
+    description: 'Watch over 5,000 rainbow bubbles blast across the sunny garden lawn with the electric Gatling Bubble Storm Cannon!'
+  },
+  {
+    id: 'V5',
+    youtubeId: '8v_44jV4n1Y',
+    title: 'Magnetic Building Blocks Castle & Tower Challenge 🧱',
+    category: 'STEM & Learning',
+    channel: 'Smart Kids Lab',
+    durationSec: 30,
+    description: 'Learn how to construct colorful 3D geometric domes, giant suspension bridges, and skyscraper towers with magnetic tiles.'
+  },
+  {
+    id: 'V6',
+    youtubeId: '6z1p3W7v9u8',
+    title: 'Dancing Musical Panda with Rainbow Disco Lights 🎶',
+    category: 'Musical & Plush',
+    channel: 'Panda Nest Kids Club',
+    durationSec: 30,
+    description: 'Sing and dance along with the joyful robotic walking panda as it spins and shines glowing LED party lights!'
   }
 ];
 
@@ -141,6 +171,7 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
 
   // --- VIDEOS ZONE ---
   const [videoList, setVideoList] = useState(TOY_VIDEOS);
+  const [selectedVideoCategory, setSelectedVideoCategory] = useState('All');
   const [activeVideo, setActiveVideo] = useState(TOY_VIDEOS[0]);
   const [watching, setWatching] = useState(false);
   const [watchTimer, setWatchTimer] = useState(30);
@@ -165,6 +196,7 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
               id: String(v.id),
               youtubeId: v.youtube_id || v.youtubeId,
               title: v.title,
+              category: v.category || 'Cartoons',
               channel: v.channel || 'Panda Nest Kids Club',
               durationSec: v.duration_sec || v.durationSec || 30,
               pointsReward: v.points_reward || 10,
@@ -2104,65 +2136,135 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
                   </div>
                 </div>
 
-                {/* Video Selection Grid */}
-                <h3 style={{ fontSize: '1.2rem', color: '#0f172a', fontWeight: '800', marginBottom: '14px' }}>
-                  Select More Toy Videos to Watch:
-                </h3>
+                {/* Video Categories Filter Bar */}
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                    <h3 style={{ fontSize: '1.2rem', color: '#0f172a', fontWeight: '800', margin: 0 }}>
+                      Browse Videos by Category 🎬
+                    </h3>
+                    <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                      Watch 30s of any video to earn <strong>+10 Panda Points</strong>!
+                    </span>
+                  </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '18px' }}>
-                  {videoList.map((vid) => {
-                    const isSelected = activeVideo.id === vid.id;
-                    const isClaimed = completedVideos.includes(vid.id);
-
-                    return (
-                      <div
-                        key={vid.id}
-                        onClick={() => {
-                          setActiveVideo(vid);
-                          setVideoCompleted(isClaimed);
-                          setWatching(false);
-                        }}
-                        style={{
-                          background: '#ffffff',
-                          borderRadius: '18px',
-                          border: `2px solid ${isSelected ? '#f59e0b' : '#e2e8f0'}`,
-                          padding: '18px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
+                    {['All', 'Cartoons', 'RC & Action', 'Pretend Play', 'Outdoor & Summer', 'STEM & Learning', 'Musical & Plush'].map((cat) => {
+                      const isCatSelected = selectedVideoCategory === cat;
+                      const count = cat === 'All' ? videoList.length : videoList.filter(v => (v.category || 'Cartoons') === cat).length;
+                      return (
+                        <button
+                          key={cat}
+                          onClick={() => setSelectedVideoCategory(cat)}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '12px',
+                            border: '1.5px solid',
+                            borderColor: isCatSelected ? '#10b981' : '#e2e8f0',
+                            background: isCatSelected ? '#ecfdf5' : '#ffffff',
+                            color: isCatSelected ? '#047857' : '#475569',
+                            fontWeight: '800',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            whiteSpace: 'nowrap',
+                            boxShadow: isCatSelected ? '0 2px 8px rgba(16, 185, 129, 0.2)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <span>{cat}</span>
                           <span
                             style={{
-                              background: isClaimed ? '#ecfdf5' : '#fef3c7',
-                              color: isClaimed ? '#047857' : '#b45309',
-                              padding: '3px 10px',
+                              background: isCatSelected ? '#10b981' : '#f1f5f9',
+                              color: isCatSelected ? '#ffffff' : '#64748b',
+                              padding: '2px 7px',
                               borderRadius: '9999px',
-                              fontSize: '0.75rem',
+                              fontSize: '0.72rem',
                               fontWeight: '700'
                             }}
                           >
-                            {isClaimed ? '✓ 10 PP Claimed' : '🎁 Watch to Earn 10 PP'}
+                            {count}
                           </span>
-                        </div>
-
-                        <h4 style={{ fontSize: '1rem', color: '#0f172a', margin: '0 0 6px', fontWeight: '700', lineHeight: 1.3 }}>
-                          {vid.title}
-                        </h4>
-                        <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 12px', lineHeight: 1.4 }}>
-                          {vid.description}
-                        </p>
-
-                        <button
-                          className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
-                          style={{ width: '100%', justifyContent: 'center' }}
-                        >
-                          {isSelected ? 'Currently Selected' : 'Play Video'}
                         </button>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Video Selection Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '18px' }}>
+                  {videoList
+                    .filter((vid) => selectedVideoCategory === 'All' || (vid.category || 'Cartoons') === selectedVideoCategory)
+                    .map((vid) => {
+                      const isSelected = activeVideo.id === vid.id;
+                      const isClaimed = completedVideos.includes(vid.id);
+
+                      return (
+                        <div
+                          key={vid.id}
+                          onClick={() => {
+                            setActiveVideo(vid);
+                            setVideoCompleted(isClaimed);
+                            setWatching(false);
+                          }}
+                          style={{
+                            background: '#ffffff',
+                            borderRadius: '18px',
+                            border: `2px solid ${isSelected ? '#10b981' : '#e2e8f0'}`,
+                            padding: '18px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            boxShadow: isSelected ? '0 8px 20px rgba(16, 185, 129, 0.15)' : '0 2px 8px rgba(0,0,0,0.03)',
+                            position: 'relative'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', gap: '8px', flexWrap: 'wrap' }}>
+                            <span
+                              style={{
+                                background: '#f1f5f9',
+                                color: '#334155',
+                                padding: '3px 10px',
+                                borderRadius: '8px',
+                                fontSize: '0.72rem',
+                                fontWeight: '800',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.3px'
+                              }}
+                            >
+                              🏷️ {vid.category || 'Cartoons'}
+                            </span>
+
+                            <span
+                              style={{
+                                background: isClaimed ? '#ecfdf5' : '#fef3c7',
+                                color: isClaimed ? '#047857' : '#b45309',
+                                padding: '3px 10px',
+                                borderRadius: '9999px',
+                                fontSize: '0.75rem',
+                                fontWeight: '700'
+                              }}
+                            >
+                              {isClaimed ? '✓ 10 PP Claimed' : '🎁 +10 PP Reward'}
+                            </span>
+                          </div>
+
+                          <h4 style={{ fontSize: '1rem', color: '#0f172a', margin: '0 0 6px', fontWeight: '800', lineHeight: 1.3 }}>
+                            {vid.title}
+                          </h4>
+                          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 14px', lineHeight: 1.4 }}>
+                            {vid.description}
+                          </p>
+
+                          <button
+                            className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ width: '100%', justifyContent: 'center', fontWeight: '800' }}
+                          >
+                            {isSelected ? '▶️ Currently Playing' : 'Watch Video'}
+                          </button>
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             )}

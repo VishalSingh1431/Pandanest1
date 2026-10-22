@@ -38,7 +38,7 @@ router.get('/', async (req, res) => {
 // POST /api/videos - Admin: Add video via YouTube link or ID
 router.post('/', authenticateAdmin, async (req, res) => {
   try {
-    const { youtube_url, youtube_id, title, channel, duration_sec, description, points_reward } = req.body;
+    const { youtube_url, youtube_id, title, category, channel, duration_sec, description, points_reward } = req.body;
 
     const ytId = extractYouTubeId(youtube_url || youtube_id);
     if (!ytId) {
@@ -49,6 +49,7 @@ router.post('/', authenticateAdmin, async (req, res) => {
     }
 
     const cleanTitle = title.trim();
+    const cleanCategory = (category || 'Cartoons').trim();
     const cleanChannel = (channel || 'Panda Nest Kids Club').trim();
     const cleanDesc = (description || '').trim();
     const duration = parseInt(duration_sec, 10) || 40;
@@ -58,9 +59,9 @@ router.post('/', authenticateAdmin, async (req, res) => {
 
     if (isPostgres && pool) {
       const result = await pool.query(
-        `INSERT INTO videos (youtube_id, title, channel, duration_sec, description, points_reward)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [ytId, cleanTitle, cleanChannel, duration, cleanDesc, points]
+        `INSERT INTO videos (youtube_id, title, category, channel, duration_sec, description, points_reward)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [ytId, cleanTitle, cleanCategory, cleanChannel, duration, cleanDesc, points]
       );
       return res.status(201).json(result.rows[0]);
     } else {
@@ -70,6 +71,7 @@ router.post('/', authenticateAdmin, async (req, res) => {
         id: Date.now(),
         youtube_id: ytId,
         title: cleanTitle,
+        category: cleanCategory,
         channel: cleanChannel,
         duration_sec: duration,
         description: cleanDesc,
@@ -90,10 +92,11 @@ router.post('/', authenticateAdmin, async (req, res) => {
 router.put('/:id', authenticateAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { youtube_url, youtube_id, title, channel, duration_sec, description, points_reward } = req.body;
+    const { youtube_url, youtube_id, title, category, channel, duration_sec, description, points_reward } = req.body;
 
     const ytId = extractYouTubeId(youtube_url || youtube_id);
     const cleanTitle = title !== undefined ? title.trim() : undefined;
+    const cleanCategory = category !== undefined ? category.trim() : undefined;
     const cleanChannel = channel !== undefined ? channel.trim() : undefined;
     const cleanDesc = description !== undefined ? description.trim() : undefined;
     const duration = duration_sec !== undefined ? parseInt(duration_sec, 10) : undefined;
@@ -112,12 +115,13 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
         `UPDATE videos
          SET youtube_id = COALESCE($1, youtube_id),
              title = COALESCE($2, title),
-             channel = COALESCE($3, channel),
-             duration_sec = COALESCE($4, duration_sec),
-             description = COALESCE($5, description),
-             points_reward = COALESCE($6, points_reward)
-         WHERE id = $7 RETURNING *`,
-        [ytId || prev.youtube_id, cleanTitle || prev.title, cleanChannel || prev.channel, duration || prev.duration_sec, cleanDesc !== undefined ? cleanDesc : prev.description, points || prev.points_reward, id]
+             category = COALESCE($3, category),
+             channel = COALESCE($4, channel),
+             duration_sec = COALESCE($5, duration_sec),
+             description = COALESCE($6, description),
+             points_reward = COALESCE($7, points_reward)
+         WHERE id = $8 RETURNING *`,
+        [ytId || prev.youtube_id, cleanTitle || prev.title, cleanCategory || prev.category, cleanChannel || prev.channel, duration || prev.duration_sec, cleanDesc !== undefined ? cleanDesc : prev.description, points || prev.points_reward, id]
       );
       return res.json(result.rows[0]);
     } else {
@@ -132,6 +136,7 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
         ...prev,
         youtube_id: ytId || prev.youtube_id,
         title: cleanTitle !== undefined ? cleanTitle : prev.title,
+        category: cleanCategory !== undefined ? cleanCategory : prev.category,
         channel: cleanChannel !== undefined ? cleanChannel : prev.channel,
         duration_sec: duration !== undefined ? duration : prev.duration_sec,
         description: cleanDesc !== undefined ? cleanDesc : prev.description,
