@@ -190,59 +190,123 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
 
   return (
     <div style={{ paddingBottom: '60px' }}>
-      {/* Playful Hero Banner with Form on the Right Side (Shown only to guest/unregistered users) */}
-      {!isAuthenticated && (
-        <section
+      {/* Playful Hero Banner with Form (or Member Rewards Card for logged-in users) */}
+      <section
+        style={{
+          background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+          color: 'white',
+          padding: '28px 20px',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        <div
+          className="container"
           style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
-            color: 'white',
-            padding: '32px 20px',
             position: 'relative',
-            overflow: 'hidden'
+            zIndex: 2,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))',
+            gap: '24px',
+            alignItems: 'center'
           }}
         >
-          <div
-            className="container"
-            style={{
-              position: 'relative',
-              zIndex: 2,
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))',
-              gap: '28px',
-              alignItems: 'center'
-            }}
-          >
-            {/* Left Column: Brand & Value Pitch */}
-            <div>
-              <div className="badge badge-amber" style={{ marginBottom: '10px', padding: '4px 12px', fontSize: '0.8rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                <Sparkles size={13} /> Official Panda Nest Storefront • pandanest.in
-              </div>
-
-              <h1 style={{ fontSize: '2.2rem', lineHeight: 1.18, marginBottom: '10px', color: 'white' }}>
-                Toys That Spark Wild Imaginations! 🚀
-              </h1>
-
-              <p style={{ fontSize: '0.98rem', opacity: 0.95, lineHeight: 1.5, marginBottom: '18px', maxWidth: '490px' }}>
-                From turbo stunt racers to giant cuddly pandas and fairytale castles, find toys crafted for boundless playtime fun.
-              </p>
-
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', background: 'rgba(255,255,255,0.2)', padding: '6px 14px', borderRadius: '18px', fontWeight: '600' }}>
-                  <Truck size={15} />
-                  <span>FREE Delivery Across India</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', background: 'rgba(255,255,255,0.2)', padding: '6px 14px', borderRadius: '18px', fontWeight: '600' }}>
-                  <span>✨ 100% Child Safe</span>
-                </div>
-              </div>
+          {/* Left Column: Brand & Value Pitch */}
+          <div>
+            <div className="badge badge-amber" style={{ marginBottom: '10px', padding: '4px 12px', fontSize: '0.8rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+              <Sparkles size={13} /> Official Panda Nest Storefront • pandanest.in
             </div>
 
-            {/* Right Column: Embedded Customer Onboarding Form */}
+            <h1 style={{ fontSize: '2.1rem', lineHeight: 1.18, marginBottom: '10px', color: 'white' }}>
+              Toys That Spark Wild Imaginations! 🚀
+            </h1>
+
+            <p style={{ fontSize: '0.96rem', opacity: 0.95, lineHeight: 1.5, marginBottom: '16px', maxWidth: '490px' }}>
+              From turbo stunt racers to giant cuddly pandas and fairytale castles, find toys crafted for boundless playtime fun.
+            </p>
+
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', background: 'rgba(255,255,255,0.2)', padding: '6px 14px', borderRadius: '18px', fontWeight: '600' }}>
+                <Truck size={15} />
+                <span>FREE Delivery Across India</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', background: 'rgba(255,255,255,0.2)', padding: '6px 14px', borderRadius: '18px', fontWeight: '600' }}>
+                <span>✨ 100% Child Safe</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Member Rewards Card (if logged in) OR Customer Onboarding Form (if guest) */}
+          {isAuthenticated ? (
             <div
               style={{
                 background: '#ffffff',
                 borderRadius: '20px',
-                padding: '22px 22px',
+                padding: '24px',
+                boxShadow: '0 14px 34px -8px rgba(0, 0, 0, 0.22)',
+                color: '#0f172a',
+                maxWidth: '430px',
+                marginLeft: 'auto',
+                width: '100%'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#ecfdf5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Award size={26} color="#10b981" />
+                </div>
+                <div>
+                  <span className="badge badge-green" style={{ fontSize: '0.72rem', padding: '2px 8px', marginBottom: '3px' }}>
+                    VIP Member
+                  </span>
+                  <h3 style={{ fontSize: '1.2rem', color: '#0f172a', margin: 0, fontWeight: '800' }}>
+                    Panda Rewards Active 🐼
+                  </h3>
+                </div>
+              </div>
+              <p style={{ color: '#64748b', fontSize: '0.86rem', lineHeight: 1.45, marginBottom: '14px' }}>
+                Your child's profile is registered. Enjoy free delivery, member pricing, and redeem up to <strong>300 Panda Points</strong> at checkout!
+              </p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <a
+                  href="?page=games"
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    background: '#fef3c7',
+                    color: '#b45309',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    fontWeight: '700',
+                    fontSize: '0.82rem',
+                    textDecoration: 'none'
+                  }}
+                >
+                  🎮 Play Games
+                </a>
+                <a
+                  href="?page=profile"
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    background: '#ecfdf5',
+                    color: '#047857',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    fontWeight: '700',
+                    fontSize: '0.82rem',
+                    textDecoration: 'none'
+                  }}
+                >
+                  👤 My Profile
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: '20px',
+                padding: '20px 22px',
                 boxShadow: '0 14px 34px -8px rgba(0, 0, 0, 0.22)',
                 border: '1.5px solid rgba(255, 255, 255, 0.6)',
                 color: '#0f172a',
@@ -392,9 +456,9 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
                 </div>
               )}
             </div>
-          </div>
-        </section>
-      )}
+          )}
+        </div>
+      </section>
 
       {/* Main Catalog Body */}
       <main className="container" style={{ marginTop: '18px' }}>
