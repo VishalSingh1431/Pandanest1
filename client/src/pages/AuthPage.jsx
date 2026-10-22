@@ -205,9 +205,6 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
     }
   };
 
-<<<<<<< HEAD
-  // Fallback trigger if Google button clicked
-=======
   // Method 2: Verify OTP
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
@@ -233,7 +230,6 @@ export function AuthPage({ onLoginSuccess, onExploreCatalog }) {
   };
 
   // Trigger Google One Tap or Native Prompt if clicked directly
->>>>>>> 4839138 (fix: persist auth session on page reload and configure real Google OAuth client ID)
   const handleNativeGoogleClick = () => {
     if (!googleClientId) {
       setError('Google Sign-In is not configured yet. Please use Gmail + OTP below.');
