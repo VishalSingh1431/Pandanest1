@@ -387,21 +387,21 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
                   ) : (
                     <>
                       <div className="badge badge-amber" style={{ marginBottom: '8px', fontSize: '0.82rem' }}>
-                        🪙 100 Panda Points Credited (₹10 Value)
+                        🪙 You Got 100 Free Panda Points (₹10 Off)!
                       </div>
                       <h3 style={{ fontSize: '1.25rem', color: '#0f172a', marginBottom: '6px' }}>
-                        Yay, {heroForm.child_name}! Points Unlocked! 🎉
+                        Welcome, {heroForm.child_name}! 🎉
                       </h3>
-                      <p style={{ color: '#475569', fontSize: '0.84rem', lineHeight: 1.45, marginBottom: '14px' }}>
-                        <strong>Action Needed:</strong> Your 100 points are currently active in this session. <strong>Log in or create your account now</strong> to permanently bind these points to your wallet so you can redeem them at checkout and across all future toy orders!
+                      <p style={{ color: '#475569', fontSize: '0.88rem', lineHeight: 1.5, marginBottom: '14px' }}>
+                        <strong>Please Note:</strong> Please <strong>log in or sign up</strong> now so your 100 points stay safe in your account. You can use them to get a discount right now or on any toy you buy later!
                       </p>
                     </>
                   )}
 
                   {!isAuthenticated ? (
                     <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', marginTop: '6px' }}>
-                      <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.4 }}>
-                        🔒 <em>Leaving without logging in may cause temporary points to expire.</em>
+                      <p style={{ fontSize: '0.78rem', color: '#ea580c', fontWeight: '600', margin: '0 0 10px', lineHeight: 1.4 }}>
+                        ⚠️ If you leave this page without logging in, your 100 points will be lost!
                       </p>
                       <button
                         type="button"
@@ -410,7 +410,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
                         style={{
                           width: '100%',
                           padding: '10px 14px',
-                          fontSize: '0.88rem',
+                          fontSize: '0.9rem',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -419,13 +419,13 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
                         }}
                       >
                         <Lock size={15} />
-                        <span>Log In / Sign Up to Save &amp; Redeem Points</span>
+                        <span>Log In to Save &amp; Use My 100 Points</span>
                       </button>
                     </div>
                   ) : (
                     <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', padding: '10px', marginTop: '8px' }}>
                       <span style={{ fontSize: '0.82rem', color: '#047857', fontWeight: '600' }}>
-                        ✓ Logged in! Your points are automatically synchronized with your wallet.
+                        ✓ All set! Your points are saved in your account and ready to use at checkout.
                       </span>
                     </div>
                   )}
@@ -972,8 +972,8 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
               Wait! Don't Lose Your 100 Panda Points! 🪙
             </h3>
 
-            <p style={{ color: '#475569', fontSize: '0.9rem', lineHeight: 1.55, marginBottom: '20px' }}>
-              You have <strong>100 Panda Points (₹10 instant discount)</strong> ready to use. If you leave without logging in, your earned points cannot be linked to your account and <strong>will be lost</strong> for future toy purchases.
+            <p style={{ color: '#475569', fontSize: '0.92rem', lineHeight: 1.55, marginBottom: '20px' }}>
+              You have <strong>100 Panda Points (₹10 discount)</strong> waiting for you! If you leave without logging in, these points <strong>will be deleted</strong> and you won't be able to use them on your order.
             </p>
 
             <div
@@ -994,10 +994,10 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
               </div>
               <div>
                 <strong style={{ fontSize: '0.85rem', color: '#0f172a', display: 'block' }}>
-                  Takes 10 Seconds via Google / Mobile OTP
+                  Takes just 10 seconds!
                 </strong>
-                <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                  Lock your 100 points permanently and redeem up to 300 points on every checkout!
+                <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                  Log in with 1-click Google or your mobile number to keep your ₹10 discount safe.
                 </span>
               </div>
             </div>
