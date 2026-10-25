@@ -387,7 +387,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
                   ) : (
                     <>
                       <div className="badge badge-amber" style={{ marginBottom: '8px', fontSize: '0.82rem' }}>
-                        🪙 You Got 100 Free Panda Points (₹10 Off)!
+                        🪙 You Got 100 Free Panda Points!
                       </div>
                       <h3 style={{ fontSize: '1.25rem', color: '#0f172a', marginBottom: '6px' }}>
                         Welcome, {heroForm.child_name}! 🎉
@@ -973,7 +973,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             </h3>
 
             <p style={{ color: '#475569', fontSize: '0.92rem', lineHeight: 1.55, marginBottom: '20px' }}>
-              You have <strong>100 Panda Points (₹10 discount)</strong> waiting for you! If you leave without logging in, these points <strong>will be deleted</strong> and you won't be able to use them on your order.
+              You have <strong>100 Panda Points</strong> waiting for you! If you leave without logging in, these points <strong>will be deleted</strong> and you won't be able to use them on your order.
             </p>
 
             <div
@@ -997,7 +997,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
                   Takes just 10 seconds!
                 </strong>
                 <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                  Log in with 1-click Google or your mobile number to keep your ₹10 discount safe.
+                  Log in with 1-click Google or your mobile number to keep your 100 points safe.
                 </span>
               </div>
             </div>
