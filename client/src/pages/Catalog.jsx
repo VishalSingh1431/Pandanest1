@@ -53,8 +53,20 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
   const [sortBy, setSortBy] = useState('recommended');
   const [selectedToyModal, setSelectedToyModal] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [toyReviewsData, setToyReviewsData] = useState({ reviews: [], averageRating: 0, totalReviews: 0 });
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [hasInteractedExitWarning, setHasInteractedExitWarning] = useState(false);
+
+  // Hero embedded onboarding form state
+  const [heroForm, setHeroForm] = useState({
+    child_name: '',
+    phone: '',
+    dob: ''
+  });
+  const [heroLoading, setHeroLoading] = useState(false);
+  const [heroSubmitted, setHeroSubmitted] = useState(false);
+  const [heroError, setHeroError] = useState('');
+  const [heroResult, setHeroResult] = useState(null);
 
   // Exit-intent & page unload listener when points are claimed but user has not logged in
   useEffect(() => {
@@ -115,17 +127,6 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
     };
     fetchReviews();
   }, [selectedToyModal]);
-
-  // Hero embedded onboarding form state
-  const [heroForm, setHeroForm] = useState({
-    child_name: '',
-    phone: '',
-    dob: ''
-  });
-  const [heroLoading, setHeroLoading] = useState(false);
-  const [heroSubmitted, setHeroSubmitted] = useState(false);
-  const [heroError, setHeroError] = useState('');
-  const [heroResult, setHeroResult] = useState(null);
 
   const { addToCart, buyNow } = useCart();
 
