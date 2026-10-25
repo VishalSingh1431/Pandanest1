@@ -121,6 +121,7 @@ export function App() {
             searchQuery={searchQuery}
             onOpenTruthOrDare={() => navigate('truth-or-dare')}
             onOpenWelcome={() => navigate('welcome')}
+            onNavigate={navigate}
           />
         )}
 

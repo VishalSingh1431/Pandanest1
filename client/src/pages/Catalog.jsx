@@ -15,7 +15,9 @@ import {
   Phone,
   Calendar,
   Gift,
-  Star
+  Star,
+  Lock,
+  AlertTriangle
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -41,7 +43,7 @@ const AGE_GROUPS = [
   '12+ yrs'
 ];
 
-export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
+export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavigate }) {
   const { isAuthenticated } = useAuth();
   const [toys, setToys] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +53,40 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
   const [sortBy, setSortBy] = useState('recommended');
   const [selectedToyModal, setSelectedToyModal] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [toyReviewsData, setToyReviewsData] = useState({ reviews: [], averageRating: 0, totalReviews: 0 });
+  const [showExitWarning, setShowExitWarning] = useState(false);
+  const [hasInteractedExitWarning, setHasInteractedExitWarning] = useState(false);
+
+  // Exit-intent & page unload listener when points are claimed but user has not logged in
+  useEffect(() => {
+    // Only warn if user has un-synced points and is not logged in
+    const checkUnsavedPoints = () => {
+      const storedPoints = parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10);
+      return !isAuthenticated && (heroSubmitted || storedPoints > 0);
+    };
+
+    const handleBeforeUnload = (e) => {
+      if (checkUnsavedPoints()) {
+        e.preventDefault();
+        e.returnValue = 'You have 100 unsaved Panda Points! Log in now to keep them.';
+        return e.returnValue;
+      }
+    };
+
+    const handleMouseLeave = (e) => {
+      // Trigger when mouse moves towards top of browser window (intent to close/change tab)
+      if (e.clientY <= 10 && checkUnsavedPoints() && !hasInteractedExitWarning) {
+        setShowExitWarning(true);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [isAuthenticated, heroSubmitted, hasInteractedExitWarning]);
 
   // Extract YouTube embed URL if provided
   const getYouTubeEmbedUrl = (url) => {
@@ -320,47 +355,79 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
               }}
             >
               {heroSubmitted ? (
-                <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+                <div style={{ textAlign: 'center', padding: '16px 8px' }}>
                   <div
                     style={{
-                      width: '64px',
-                      height: '64px',
+                      width: '56px',
+                      height: '56px',
                       background: '#ecfdf5',
                       color: '#10b981',
                       borderRadius: '50%',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      margin: '0 auto 14px',
+                      margin: '0 auto 12px',
                       boxShadow: '0 6px 16px rgba(16, 185, 129, 0.2)'
                     }}
                   >
-                    <CheckCircle2 size={36} />
+                    <CheckCircle2 size={32} />
                   </div>
                   {heroResult?.already_registered ? (
                     <>
-                      <div className="badge badge-green" style={{ marginBottom: '8px', fontSize: '0.85rem' }}>
+                      <div className="badge badge-green" style={{ marginBottom: '8px', fontSize: '0.82rem' }}>
                         ⭐ Active Member Recognized
                       </div>
-                      <h3 style={{ fontSize: '1.35rem', color: '#0f172a', marginBottom: '6px' }}>
+                      <h3 style={{ fontSize: '1.25rem', color: '#0f172a', marginBottom: '6px' }}>
                         Welcome Back, {heroForm.child_name}! 🐼
                       </h3>
-                      <p style={{ color: '#64748b', fontSize: '0.875rem', lineHeight: 1.5 }}>
-                        Your child's details have been updated. (Note: The 100 welcome bonus points are only awarded on your initial registration).
+                      <p style={{ color: '#64748b', fontSize: '0.84rem', lineHeight: 1.5, marginBottom: '14px' }}>
+                        Your details are updated. Please log in to view your points balance and redeem them on checkout!
                       </p>
                     </>
                   ) : (
                     <>
-                      <div className="badge badge-amber" style={{ marginBottom: '8px', fontSize: '0.85rem' }}>
-                        🪙 100 Panda Points Awarded!
+                      <div className="badge badge-amber" style={{ marginBottom: '8px', fontSize: '0.82rem' }}>
+                        🪙 100 Panda Points Credited (₹10 Value)
                       </div>
-                      <h3 style={{ fontSize: '1.35rem', color: '#0f172a', marginBottom: '6px' }}>
-                        Welcome to Panda Club, {heroForm.child_name}! 🎉
+                      <h3 style={{ fontSize: '1.25rem', color: '#0f172a', marginBottom: '6px' }}>
+                        Yay, {heroForm.child_name}! Points Unlocked! 🎉
                       </h3>
-                      <p style={{ color: '#64748b', fontSize: '0.875rem', lineHeight: 1.5 }}>
-                        Your points are ready to redeem at checkout. We'll celebrate your child's birthday with special gifts!
+                      <p style={{ color: '#475569', fontSize: '0.84rem', lineHeight: 1.45, marginBottom: '14px' }}>
+                        <strong>Action Needed:</strong> Your 100 points are currently active in this session. <strong>Log in or create your account now</strong> to permanently bind these points to your wallet so you can redeem them at checkout and across all future toy orders!
                       </p>
                     </>
+                  )}
+
+                  {!isAuthenticated ? (
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', marginTop: '6px' }}>
+                      <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.4 }}>
+                        🔒 <em>Leaving without logging in may cause temporary points to expire.</em>
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => onNavigate && onNavigate('admin-login')}
+                        className="btn btn-primary"
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          fontSize: '0.88rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          fontWeight: '700'
+                        }}
+                      >
+                        <Lock size={15} />
+                        <span>Log In / Sign Up to Save &amp; Redeem Points</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', padding: '10px', marginTop: '8px' }}>
+                      <span style={{ fontSize: '0.82rem', color: '#047857', fontWeight: '600' }}>
+                        ✓ Logged in! Your points are automatically synchronized with your wallet.
+                      </span>
+                    </div>
                   )}
                 </div>
               ) : (
@@ -814,6 +881,170 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome }) {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exit Warning Modal: Warns users about losing 100 points if they leave without logging in */}
+      {showExitWarning && !isAuthenticated && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '16px'
+          }}
+          onClick={() => {
+            setShowExitWarning(false);
+            setHasInteractedExitWarning(true);
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '24px',
+              maxWidth: '460px',
+              width: '100%',
+              padding: '28px 24px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+              border: '2px solid #fed7aa',
+              textAlign: 'center',
+              position: 'relative',
+              animation: 'modalFadeIn 0.25s ease-out'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setShowExitWarning(false);
+                setHasInteractedExitWarning(true);
+              }}
+              style={{
+                position: 'absolute',
+                top: '14px',
+                right: '14px',
+                background: '#f1f5f9',
+                border: 'none',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#64748b'
+              }}
+            >
+              <X size={18} />
+            </button>
+
+            {/* Warning Badge Icon */}
+            <div
+              style={{
+                width: '68px',
+                height: '68px',
+                background: '#fff7ed',
+                border: '2px solid #ffedd5',
+                color: '#ea580c',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+                boxShadow: '0 8px 20px rgba(234, 88, 12, 0.15)'
+              }}
+            >
+              <AlertTriangle size={36} />
+            </div>
+
+            <div className="badge badge-amber" style={{ marginBottom: '10px', fontSize: '0.8rem', padding: '4px 12px' }}>
+              ⚠️ Unsaved Reward Points
+            </div>
+
+            <h3 style={{ fontSize: '1.4rem', color: '#0f172a', fontWeight: '800', marginBottom: '8px', lineHeight: 1.25 }}>
+              Wait! Don't Lose Your 100 Panda Points! 🪙
+            </h3>
+
+            <p style={{ color: '#475569', fontSize: '0.9rem', lineHeight: 1.55, marginBottom: '20px' }}>
+              You have <strong>100 Panda Points (₹10 instant discount)</strong> ready to use. If you leave without logging in, your earned points cannot be linked to your account and <strong>will be lost</strong> for future toy purchases.
+            </p>
+
+            <div
+              style={{
+                background: '#f8fafc',
+                borderRadius: '14px',
+                padding: '12px 14px',
+                marginBottom: '20px',
+                border: '1px dashed #cbd5e1',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                textAlign: 'left'
+              }}
+            >
+              <div style={{ background: '#ecfdf5', color: '#10b981', padding: '8px', borderRadius: '10px' }}>
+                <Gift size={20} />
+              </div>
+              <div>
+                <strong style={{ fontSize: '0.85rem', color: '#0f172a', display: 'block' }}>
+                  Takes 10 Seconds via Google / Mobile OTP
+                </strong>
+                <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                  Lock your 100 points permanently and redeem up to 300 points on every checkout!
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button
+                className="btn btn-primary"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '0.95rem',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+                onClick={() => {
+                  setShowExitWarning(false);
+                  setHasInteractedExitWarning(true);
+                  if (onNavigate) {
+                    onNavigate('admin-login');
+                  }
+                }}
+              >
+                <Lock size={18} />
+                <span>Log In Now to Save 100 Points</span>
+              </button>
+
+              <button
+                type="button"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  fontSize: '0.82rem',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  textDecoration: 'underline'
+                }}
+                onClick={() => {
+                  setShowExitWarning(false);
+                  setHasInteractedExitWarning(true);
+                }}
+              >
+                I understand, continue browsing without saving points
+              </button>
             </div>
           </div>
         </div>
