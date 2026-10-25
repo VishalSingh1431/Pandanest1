@@ -236,18 +236,6 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'Email and OTP code are required.' });
     }
 
-    if (is_signup) {
-      if (!child_name || !child_name.trim()) {
-        return res.status(400).json({ error: "Child's name is required for registration." });
-      }
-      if (!phone || !phone.trim() || phone.replace(/\D/g, '').length < 10) {
-        return res.status(400).json({ error: 'A valid 10-digit WhatsApp/mobile number is required.' });
-      }
-      if (!dob || !dob.trim()) {
-        return res.status(400).json({ error: "Child's Date of Birth (DOB) is required for registration." });
-      }
-    }
-
     const normalizedEmail = email.toLowerCase().trim();
     const cleanOtp = otp.toString().trim();
 
