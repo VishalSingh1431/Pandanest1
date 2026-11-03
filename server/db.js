@@ -366,9 +366,21 @@ export function readLocalStore() {
 export function writeLocalStore(data) {
   localStoreCache = data; // Update cache immediately (synchronous, in-process)
   ensureLocalStore();
-  // Persist to disk asynchronously so it never blocks the event loop
-  fs.writeFile(LOCAL_STORE_FILE, JSON.stringify(data, null, 2), (err) => {
-    if (err) console.error('⚠️  Failed to persist local store to disk:', err);
+  const tempFile = `${LOCAL_STORE_FILE}.tmp.${Date.now()}`;
+  fs.writeFile(tempFile, JSON.stringify(data, null, 2), (err) => {
+    if (err) {
+      console.error('⚠️  Failed to write temporary store file:', err);
+      return;
+    }
+    fs.rename(tempFile, LOCAL_STORE_FILE, (renameErr) => {
+      if (renameErr) {
+        // Fallback for Windows cross-file locks: try copy & unlink
+        fs.copyFile(tempFile, LOCAL_STORE_FILE, (copyErr) => {
+          if (copyErr) console.error('⚠️  Failed to persist local store to disk:', copyErr);
+          fs.unlink(tempFile, () => {});
+        });
+      }
+    });
   });
 }
 
