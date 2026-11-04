@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { parseResponse } from '../utils/api';
 import {
   User,
   Award,
@@ -120,10 +121,7 @@ export function UserProfile({ onGoToCatalog, onGoToAdmin }) {
         })
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit review');
-      }
+      const data = await parseResponse(res, 'Failed to submit review');
 
       setReviewSuccess('Thank you! Your verified rating & review has been published.');
       setReviewedToyIds(prev => [...prev, reviewModalToy.id]);

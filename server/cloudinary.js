@@ -23,29 +23,38 @@ if (isCloudinaryConfigured) {
 
 export async function uploadToCloudinary(fileBuffer, mimeType = 'image/jpeg') {
   if (isCloudinaryConfigured) {
-    return new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'pandanest_toys',
-          resource_type: 'auto',
-          transformation: [
-            { width: 800, height: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' }
-          ]
-        },
-        (error, result) => {
-          if (error) {
-            console.error('Cloudinary upload error:', error);
-            reject(error);
-          } else {
-            resolve({
-              url: result.secure_url,
-              public_id: result.public_id,
-            });
+    try {
+      return await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'pandanest_toys',
+            resource_type: 'auto',
+            transformation: [
+              { width: 800, height: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' }
+            ]
+          },
+          (error, result) => {
+            if (error) {
+              console.error('Cloudinary upload error:', error);
+              reject(error);
+            } else {
+              resolve({
+                url: result.secure_url,
+                public_id: result.public_id,
+              });
+            }
           }
-        }
-      );
-      uploadStream.end(fileBuffer);
-    });
+        );
+        uploadStream.end(fileBuffer);
+      });
+    } catch (uploadErr) {
+      console.warn('Cloudinary upload failed, falling back to data URI:', uploadErr.message);
+      const base64 = fileBuffer.toString('base64');
+      return {
+        url: `data:${mimeType};base64,${base64}`,
+        public_id: `fallback_${Date.now()}`
+      };
+    }
   }
 
   // Graceful fallback for local development: encode as clean Data URI

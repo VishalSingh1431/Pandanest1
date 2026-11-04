@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
+import { parseResponse } from '../utils/api';
 import { ToyCard } from '../components/ToyCard';
 import {
   Sparkles,
@@ -191,10 +192,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
         body: JSON.stringify(heroForm)
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit details');
-      }
+      const data = await parseResponse(res, 'Failed to submit details');
 
       setHeroResult(data);
 

@@ -33,6 +33,7 @@ import {
   Star
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { parseResponse } from '../utils/api';
 
 // Client-side image compressor for faster uploads and saving server bandwidth
 const compressImage = (file, maxWidth = 1200, maxHeight = 1200, quality = 0.82) => {
@@ -405,24 +406,7 @@ export function AdminDashboard({ onLogout }) {
         body: formData
       });
 
-      let data = {};
-      const contentType = res.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        data = await res.json();
-      }
-
-      if (!res.ok) {
-        if (res.status === 413) {
-          throw new Error('Upload size exceeded server limit (413). Please configure client_max_body_size in Nginx or reduce photo sizes.');
-        }
-        if (res.status === 504) {
-          throw new Error('Upload timed out (504). Photos took too long to upload to Cloudinary. Try fewer photos.');
-        }
-        if (res.status === 502) {
-          throw new Error('Bad Gateway (502). The server backend is restarting or temporarily unavailable.');
-        }
-        throw new Error(data.error || `Server error (${res.status}): Failed to save toy.`);
-      }
+      await parseResponse(res, 'Failed to save toy.');
 
       setIsToyModalOpen(false);
       fetchData();
@@ -440,8 +424,10 @@ export function AdminDashboard({ onLogout }) {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.ok) fetchData();
+      await parseResponse(res, 'Failed to delete toy');
+      fetchData();
     } catch (err) {
+      alert(err.message);
       console.error('Delete toy error:', err);
     }
   };
@@ -453,8 +439,10 @@ export function AdminDashboard({ onLogout }) {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.ok) fetchData();
+      await parseResponse(res, 'Failed to delete lead');
+      fetchData();
     } catch (err) {
+      alert(err.message);
       console.error('Delete lead error:', err);
     }
   };
@@ -469,8 +457,10 @@ export function AdminDashboard({ onLogout }) {
         },
         body: JSON.stringify({ status })
       });
-      if (res.ok) fetchData();
+      await parseResponse(res, 'Failed to update order status');
+      fetchData();
     } catch (err) {
+      alert(err.message);
       console.error('Order status update error:', err);
     }
   };
@@ -519,10 +509,7 @@ export function AdminDashboard({ onLogout }) {
         body: JSON.stringify(promoteForm)
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to promote user.');
-      }
+      const data = await parseResponse(res, 'Failed to promote user.');
 
       setPromoteSuccess(data.message);
       fetchData();
@@ -550,13 +537,10 @@ export function AdminDashboard({ onLogout }) {
         body: JSON.stringify({ role: targetRole })
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || 'Failed to update role');
-        return;
-      }
+      await parseResponse(res, 'Failed to update role');
       fetchData();
     } catch (err) {
+      alert(err.message);
       console.error('Role update error:', err);
     }
   };
@@ -568,13 +552,10 @@ export function AdminDashboard({ onLogout }) {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || 'Failed to delete user');
-        return;
-      }
+      await parseResponse(res, 'Failed to delete user');
       fetchData();
     } catch (err) {
+      alert(err.message);
       console.error('Delete user error:', err);
     }
   };
@@ -611,8 +592,7 @@ export function AdminDashboard({ onLogout }) {
         },
         body: JSON.stringify(categoryForm)
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to save category');
+      await parseResponse(res, 'Failed to save category');
       setIsCategoryModalOpen(false);
       fetchData();
     } catch (err) {
@@ -629,13 +609,10 @@ export function AdminDashboard({ onLogout }) {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || 'Failed to delete category');
-        return;
-      }
+      await parseResponse(res, 'Failed to delete category');
       fetchData();
     } catch (err) {
+      alert(err.message);
       console.error('Delete category error:', err);
     }
   };
@@ -690,8 +667,7 @@ export function AdminDashboard({ onLogout }) {
         },
         body: JSON.stringify(videoForm)
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to save video');
+      await parseResponse(res, 'Failed to save video');
       setIsVideoModalOpen(false);
       fetchData();
     } catch (err) {
@@ -708,13 +684,10 @@ export function AdminDashboard({ onLogout }) {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || 'Failed to delete video');
-        return;
-      }
+      await parseResponse(res, 'Failed to delete video');
       fetchData();
     } catch (err) {
+      alert(err.message);
       console.error('Delete video error:', err);
     }
   };
@@ -754,8 +727,7 @@ export function AdminDashboard({ onLogout }) {
         },
         body: JSON.stringify(couponForm)
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create coupon.');
+      await parseResponse(res, 'Failed to create coupon.');
       setIsCouponModalOpen(false);
       fetchData();
     } catch (err) {
@@ -784,8 +756,10 @@ export function AdminDashboard({ onLogout }) {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.ok) fetchData();
+      await parseResponse(res, 'Failed to delete coupon');
+      fetchData();
     } catch (err) {
+      alert(err.message);
       console.error('Delete coupon error:', err);
     }
   };
@@ -801,8 +775,10 @@ export function AdminDashboard({ onLogout }) {
         },
         body: JSON.stringify({ status: newStatus })
       });
-      if (res.ok) fetchData();
+      await parseResponse(res, 'Failed to update review status');
+      fetchData();
     } catch (err) {
+      alert(err.message);
       console.error('Moderate review error:', err);
     }
   };
@@ -814,8 +790,10 @@ export function AdminDashboard({ onLogout }) {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.ok) fetchData();
+      await parseResponse(res, 'Failed to delete review');
+      fetchData();
     } catch (err) {
+      alert(err.message);
       console.error('Delete review error:', err);
     }
   };
@@ -850,8 +828,7 @@ export function AdminDashboard({ onLogout }) {
         },
         body: JSON.stringify(newReviewForm)
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create review.');
+      await parseResponse(res, 'Failed to create review.');
       setIsAddReviewModalOpen(false);
       fetchData();
     } catch (err) {

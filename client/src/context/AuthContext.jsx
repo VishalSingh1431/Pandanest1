@@ -1,35 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { parseResponse as parseJsonResponse } from '../utils/api.js';
 
 const AuthContext = createContext();
-
-// Safe response parser that prevents "Unexpected end of JSON input" errors
-async function parseJsonResponse(res, fallbackErrMsg) {
-  let text = '';
-  try {
-    text = await res.text();
-  } catch {
-    throw new Error('Network connection error. Please verify your internet connection.');
-  }
-
-  let data = null;
-  if (text && text.trim().length > 0) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      if (!res.ok) {
-        throw new Error(`Server response error (${res.status}). Please try again.`);
-      }
-      throw new Error('Unexpected server response format.');
-    }
-  }
-
-  if (!res.ok) {
-    const msg = (data && data.error) ? data.error : (fallbackErrMsg || `Request failed (${res.status})`);
-    throw new Error(msg);
-  }
-
-  return data || {};
-}
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('pandanest_admin_token') || null);

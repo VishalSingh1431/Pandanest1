@@ -169,7 +169,7 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/toys - Admin: Add new toy with Cloudinary image upload
 // POST /api/toys - Admin: Create new toy (Supports multiple images + video_url)
-router.post('/', authenticateAdmin, upload.array('images', 8), async (req, res) => {
+router.post('/', authenticateAdmin, upload.array('images', 15), async (req, res) => {
   try {
     const { name, category, price, original_price, age_group, description, stock, featured, image_url_manual, images_manual, video_url } = req.body;
 
@@ -253,7 +253,7 @@ router.post('/', authenticateAdmin, upload.array('images', 8), async (req, res) 
 });
 
 // PUT /api/toys/:id - Admin: Edit toy
-router.put('/:id', authenticateAdmin, upload.array('images', 8), async (req, res) => {
+router.put('/:id', authenticateAdmin, upload.array('images', 15), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, category, price, original_price, age_group, description, stock, featured, image_url, existing_images, video_url } = req.body;

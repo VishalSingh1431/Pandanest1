@@ -97,6 +97,23 @@ app.use((req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled Server Error:', err);
+
+  // Handle Multer upload errors
+  if (err.name === 'MulterError') {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File size too large. Each image must be under 10MB.' });
+    }
+    if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({ error: 'Too many images selected. Please upload up to 15 images at a time.' });
+    }
+    return res.status(400).json({ error: `Upload error: ${err.message}` });
+  }
+
+  // Handle Express body-parser entity too large
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request body is too large. Please reduce payload or image size.' });
+  }
+
   res.status(err.status || 500).json({
     error: err.message || 'Internal Server Error'
   });

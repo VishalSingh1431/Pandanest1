@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { X, CheckCircle, Truck, CreditCard, Award, Package, Sparkles, Tag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { parseResponse } from '../utils/api';
 
 export function CheckoutModal() {
   const { isCheckoutOpen, closeCheckout, cart, cartTotal, clearCart, checkoutItem } = useCart();
@@ -97,10 +98,7 @@ export function CheckoutModal() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: couponCode.trim(), order_amount: rawTotal })
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to apply coupon.');
-      }
+      const data = await parseResponse(res, 'Failed to apply coupon.');
       setAppliedCoupon(data);
       confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
     } catch (err) {
@@ -149,11 +147,7 @@ export function CheckoutModal() {
         })
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to place order.');
-      }
+      const data = await parseResponse(res, 'Failed to place order.');
 
       // Points are now deducted server-side in the order route
       // Update local display optimistically for immediate UI feedback

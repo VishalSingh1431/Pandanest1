@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
+import { parseResponse } from '../utils/api';
 import { Gift, Sparkles, ArrowRight, Heart, Phone, Calendar, CheckCircle2, Award } from 'lucide-react';
 
 export function WelcomeQR({ onContinueToCatalog }) {
@@ -37,11 +38,7 @@ export function WelcomeQR({ onContinueToCatalog }) {
         body: JSON.stringify(formData)
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit details');
-      }
+      const data = await parseResponse(res, 'Failed to submit details');
 
       setSubmissionResult(data);
 
