@@ -34,6 +34,55 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+// Client-side image compressor for faster uploads and saving server bandwidth
+const compressImage = (file, maxWidth = 1200, maxHeight = 1200, quality = 0.82) => {
+  return new Promise((resolve) => {
+    if (!file || !file.type || !file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') {
+      return resolve(file);
+    }
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.src = e.target.result;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width <= maxWidth && height <= maxHeight && file.size <= 400 * 1024) {
+          return resolve(file);
+        }
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return resolve(file);
+            const fileName = (file.name || 'image').replace(/\.[^.]+$/, '') + '.jpg';
+            const compressedFile = new File([blob], fileName, {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            });
+            resolve(compressedFile);
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+};
+
 export function AdminDashboard({ onLogout }) {
   const { token, admin, logout, isSuperAdmin } = useAuth();
   const effectiveIsSuperAdmin = isSuperAdmin || admin?.role === 'super_admin' || ['acubebeauty@gmail.com', 'vishalsingh05072003@gmail.com'].includes((admin?.email || '').toLowerCase().trim());
@@ -279,12 +328,20 @@ export function AdminDashboard({ onLogout }) {
     setIsToyModalOpen(true);
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      setSelectedFiles((prev) => [...prev, ...files]);
-      const newUrls = files.map((f) => URL.createObjectURL(f));
-      setImagePreviews((prev) => [...prev, ...newUrls]);
+      try {
+        const compressed = await Promise.all(files.map((f) => compressImage(f)));
+        setSelectedFiles((prev) => [...prev, ...compressed]);
+        const newUrls = compressed.map((f) => URL.createObjectURL(f));
+        setImagePreviews((prev) => [...prev, ...newUrls]);
+      } catch (err) {
+        console.error('Image compression error:', err);
+        setSelectedFiles((prev) => [...prev, ...files]);
+        const newUrls = files.map((f) => URL.createObjectURL(f));
+        setImagePreviews((prev) => [...prev, ...newUrls]);
+      }
     }
   };
 
@@ -348,9 +405,23 @@ export function AdminDashboard({ onLogout }) {
         body: formData
       });
 
-      const data = await res.json();
+      let data = {};
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      }
+
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to save toy.');
+        if (res.status === 413) {
+          throw new Error('Upload size exceeded server limit (413). Please configure client_max_body_size in Nginx or reduce photo sizes.');
+        }
+        if (res.status === 504) {
+          throw new Error('Upload timed out (504). Photos took too long to upload to Cloudinary. Try fewer photos.');
+        }
+        if (res.status === 502) {
+          throw new Error('Bad Gateway (502). The server backend is restarting or temporarily unavailable.');
+        }
+        throw new Error(data.error || `Server error (${res.status}): Failed to save toy.`);
       }
 
       setIsToyModalOpen(false);

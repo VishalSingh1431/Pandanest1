@@ -179,10 +179,11 @@ router.post('/', authenticateAdmin, upload.array('images', 8), async (req, res) 
 
     const uploadedUrls = [];
 
-    // If images were uploaded, upload all to Cloudinary
+    // If images were uploaded, upload all to Cloudinary concurrently
     if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const uploadResult = await uploadToCloudinary(file.buffer, file.mimetype);
+      const uploadPromises = req.files.map((file) => uploadToCloudinary(file.buffer, file.mimetype));
+      const results = await Promise.all(uploadPromises);
+      for (const uploadResult of results) {
         if (uploadResult && uploadResult.url) {
           uploadedUrls.push(uploadResult.url);
         }
@@ -259,8 +260,9 @@ router.put('/:id', authenticateAdmin, upload.array('images', 8), async (req, res
 
     const uploadedUrls = [];
     if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const uploadResult = await uploadToCloudinary(file.buffer, file.mimetype);
+      const uploadPromises = req.files.map((file) => uploadToCloudinary(file.buffer, file.mimetype));
+      const results = await Promise.all(uploadPromises);
+      for (const uploadResult of results) {
         if (uploadResult && uploadResult.url) {
           uploadedUrls.push(uploadResult.url);
         }
