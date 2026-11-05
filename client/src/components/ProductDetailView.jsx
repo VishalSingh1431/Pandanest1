@@ -1453,3 +1453,4 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
     </div>
   );
 }
+

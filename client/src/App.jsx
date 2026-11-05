@@ -1,20 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Navbar } from './components/Navbar';
 import { MobileBottomNav } from './components/MobileBottomNav';
-import { QRModal } from './components/QRModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
-import { WelcomeQR } from './pages/WelcomeQR';
 import { Catalog } from './pages/Catalog';
-import { TruthOrDare } from './pages/TruthOrDare';
-import { GamesAndActivities } from './pages/GamesAndActivities';
-import { AboutUs } from './pages/AboutUs';
-import { Policies } from './pages/Policies';
-import { AuthPage } from './pages/AuthPage';
-import { UserProfile } from './pages/UserProfile';
-import { AdminDashboard } from './pages/AdminDashboard';
 import { useAuth } from './context/AuthContext';
 import { Phone, Mail, MapPin, Heart, Truck, ShieldCheck } from 'lucide-react';
+
+// Code-split secondary routes & heavy admin/game features to reduce initial bundle
+const QRModal = lazy(() => import('./components/QRModal').then(m => ({ default: m.QRModal || m.default })));
+const WelcomeQR = lazy(() => import('./pages/WelcomeQR').then(m => ({ default: m.WelcomeQR || m.default })));
+const TruthOrDare = lazy(() => import('./pages/TruthOrDare').then(m => ({ default: m.TruthOrDare || m.default })));
+const GamesAndActivities = lazy(() => import('./pages/GamesAndActivities').then(m => ({ default: m.GamesAndActivities || m.default })));
+const AboutUs = lazy(() => import('./pages/AboutUs').then(m => ({ default: m.AboutUs || m.default })));
+const Policies = lazy(() => import('./pages/Policies').then(m => ({ default: m.Policies || m.default })));
+const AuthPage = lazy(() => import('./pages/AuthPage').then(m => ({ default: m.AuthPage || m.default })));
+const UserProfile = lazy(() => import('./pages/UserProfile').then(m => ({ default: m.UserProfile || m.default })));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(m => ({ default: m.AdminDashboard || m.default })));
+
+function PageLoader() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '55vh', gap: '14px', color: '#64748b' }}>
+      <div style={{
+        width: '40px',
+        height: '40px',
+        border: '3px solid #e2e8f0',
+        borderTopColor: '#10b981',
+        borderRadius: '50%',
+        animation: 'pandanest-spin 0.8s linear infinite'
+      }} />
+      <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#475569' }}>Loading...</span>
+      <style>{`@keyframes pandanest-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
 
 export function App() {
   const [currentRoute, setCurrentRoute] = useState(() => {
@@ -56,7 +75,7 @@ export function App() {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, admin } = useAuth();
 
   const navigate = (route) => {
     setCurrentRoute(route);
@@ -128,99 +147,105 @@ export function App() {
 
       {/* Page Routing */}
       <div style={{ flex: 1 }}>
-        {currentRoute === 'welcome' && (
-          <WelcomeQR onContinueToCatalog={() => navigate('catalog')} />
-        )}
+        <Suspense fallback={<PageLoader />}>
+          {currentRoute === 'welcome' && (
+            <WelcomeQR onContinueToCatalog={() => navigate('catalog')} />
+          )}
 
-        {currentRoute === 'catalog' && (
-          <Catalog
-            searchQuery={searchQuery}
-            onOpenTruthOrDare={() => navigate('truth-or-dare')}
-            onOpenWelcome={() => navigate('welcome')}
-            onNavigate={navigate}
-          />
-        )}
-
-        {currentRoute === 'truth-or-dare' && (
-          <TruthOrDare onGoToCatalog={() => navigate('catalog')} />
-        )}
-
-        {currentRoute === 'games' && (
-          <GamesAndActivities
-            onGoToCatalog={() => navigate('catalog')}
-            onRequireLogin={() => navigate('login')}
-          />
-        )}
-
-        {currentRoute === 'about' && (
-          <AboutUs onExploreCatalog={() => navigate('catalog')} />
-        )}
-
-        {currentRoute === 'policies' && (
-          <Policies />
-        )}
-
-        {(currentRoute === 'admin-login' || currentRoute === 'login') && (
-          isAuthenticated ? (
-            isAdmin ? (
-              <AdminDashboard onLogout={() => navigate('catalog')} />
-            ) : (
-              <UserProfile
-                onGoToCatalog={() => navigate('catalog')}
-                onGoToAdmin={() => navigate('admin-dashboard')}
-              />
-            )
-          ) : (
-            <AuthPage
-              onLoginSuccess={(userData) => {
-                const userRole = userData?.role || admin?.role;
-                const isUserAdmin = ['super_admin', 'admin'].includes(userRole);
-                navigate(isUserAdmin ? 'admin-dashboard' : 'catalog');
-              }}
-              onExploreCatalog={() => navigate('catalog')}
+          {currentRoute === 'catalog' && (
+            <Catalog
+              searchQuery={searchQuery}
+              onOpenTruthOrDare={() => navigate('truth-or-dare')}
+              onOpenWelcome={() => navigate('welcome')}
+              onNavigate={navigate}
             />
-          )
-        )}
+          )}
 
-        {currentRoute === 'profile' && (
-          isAuthenticated ? (
-            <UserProfile
+          {currentRoute === 'truth-or-dare' && (
+            <TruthOrDare onGoToCatalog={() => navigate('catalog')} />
+          )}
+
+          {currentRoute === 'games' && (
+            <GamesAndActivities
               onGoToCatalog={() => navigate('catalog')}
-              onGoToAdmin={() => navigate('admin-dashboard')}
+              onRequireLogin={() => navigate('login')}
             />
-          ) : (
-            <AuthPage
-              onLoginSuccess={() => navigate(isAdmin ? 'admin-dashboard' : 'profile')}
-              onExploreCatalog={() => navigate('catalog')}
-            />
-          )
-        )}
+          )}
 
-        {currentRoute === 'admin-dashboard' && (
-          isAuthenticated ? (
-            isAdmin ? (
-              <AdminDashboard onLogout={() => navigate('catalog')} />
+          {currentRoute === 'about' && (
+            <AboutUs onExploreCatalog={() => navigate('catalog')} />
+          )}
+
+          {currentRoute === 'policies' && (
+            <Policies />
+          )}
+
+          {(currentRoute === 'admin-login' || currentRoute === 'login') && (
+            isAuthenticated ? (
+              isAdmin ? (
+                <AdminDashboard onLogout={() => navigate('catalog')} />
+              ) : (
+                <UserProfile
+                  onGoToCatalog={() => navigate('catalog')}
+                  onGoToAdmin={() => navigate('admin-dashboard')}
+                />
+              )
             ) : (
+              <AuthPage
+                onLoginSuccess={(userData) => {
+                  const userRole = userData?.role || admin?.role;
+                  const isUserAdmin = ['super_admin', 'admin'].includes(userRole);
+                  navigate(isUserAdmin ? 'admin-dashboard' : 'catalog');
+                }}
+                onExploreCatalog={() => navigate('catalog')}
+              />
+            )
+          )}
+
+          {currentRoute === 'profile' && (
+            isAuthenticated ? (
               <UserProfile
                 onGoToCatalog={() => navigate('catalog')}
                 onGoToAdmin={() => navigate('admin-dashboard')}
               />
+            ) : (
+              <AuthPage
+                onLoginSuccess={() => navigate(isAdmin ? 'admin-dashboard' : 'profile')}
+                onExploreCatalog={() => navigate('catalog')}
+              />
             )
-          ) : (
-            <AuthPage
-              onLoginSuccess={() => navigate('admin-dashboard')}
-              onExploreCatalog={() => navigate('catalog')}
-            />
-          )
-        )}
+          )}
+
+          {currentRoute === 'admin-dashboard' && (
+            isAuthenticated ? (
+              isAdmin ? (
+                <AdminDashboard onLogout={() => navigate('catalog')} />
+              ) : (
+                <UserProfile
+                  onGoToCatalog={() => navigate('catalog')}
+                  onGoToAdmin={() => navigate('admin-dashboard')}
+                />
+              )
+            ) : (
+              <AuthPage
+                onLoginSuccess={() => navigate('admin-dashboard')}
+                onExploreCatalog={() => navigate('catalog')}
+              />
+            )
+          )}
+        </Suspense>
       </div>
 
       {/* Shared Modals & Drawers */}
-      <QRModal
-        isOpen={isQRModalOpen}
-        onClose={() => setIsQRModalOpen(false)}
-        onTestScan={() => navigate('welcome')}
-      />
+      {isQRModalOpen && (
+        <Suspense fallback={null}>
+          <QRModal
+            isOpen={isQRModalOpen}
+            onClose={() => setIsQRModalOpen(false)}
+            onTestScan={() => navigate('welcome')}
+          />
+        </Suspense>
+      )}
       <CartDrawer />
       <CheckoutModal />
 

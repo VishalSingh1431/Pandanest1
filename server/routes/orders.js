@@ -1,6 +1,7 @@
 import express from 'express';
 import { getDB, readLocalStore, writeLocalStore } from '../db.js';
 import { authenticateAdmin, authenticateUser, optionalUser } from '../middleware/auth.js';
+import { sendOrderEmails } from '../email.js';
 
 const router = express.Router();
 
@@ -108,7 +109,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
 // POST /api/orders — Create new customer order (Checkout)
 router.post('/', optionalUser, async (req, res) => {
   try {
-    const { customer_name, phone, address, city, pincode, payment_method, items, total_amount, points_used } = req.body;
+    const { customer_name, phone, email, address, city, pincode, payment_method, items, total_amount, points_used } = req.body;
 
     if (!customer_name || !phone || !address || !city || !pincode || !items || !items.length) {
       return res.status(400).json({ error: 'Please provide all delivery details and at least one item.' });
@@ -129,8 +130,10 @@ router.post('/', optionalUser, async (req, res) => {
     const requestedPoints = parseInt(points_used || 0, 10);
     const numPointsUsed = Math.min(requestedPoints, MAX_REDEEM_POINTS);
 
-    // Capture the logged-in user's email for order ownership (optional — guest checkout allowed)
-    const userEmail = req.user?.email ? req.user.email.toLowerCase().trim() : null;
+    // Capture the logged-in user's email or the email provided in checkout
+    const userEmail = req.user?.email
+      ? req.user.email.toLowerCase().trim()
+      : (email && email.trim().length > 0 ? email.toLowerCase().trim() : null);
 
     const { isPostgres, pool } = getDB();
 
@@ -150,10 +153,26 @@ router.post('/', optionalUser, async (req, res) => {
         );
       }
 
+      const createdOrder = result.rows[0];
+
+      // Dispatch order confirmation email to customer + sales alert to admin in background
+      sendOrderEmails({
+        order: createdOrder,
+        items,
+        customerName: customer_name.trim(),
+        customerEmail: userEmail,
+        phone: cleanPhone,
+        address: address.trim(),
+        city: city.trim(),
+        pincode: pincode.trim(),
+        totalAmount: numTotal,
+        paymentMethod: finalPaymentMethod
+      }).catch((e) => console.warn('Order email trigger notice:', e.message));
+
       return res.status(201).json({
         success: true,
         message: 'Order placed successfully! Thank you for shopping with Pandanest.',
-        order: result.rows[0]
+        order: createdOrder
       });
     } else {
       const store = readLocalStore();
@@ -182,6 +201,20 @@ router.post('/', optionalUser, async (req, res) => {
       }
 
       writeLocalStore(store);
+
+      // Dispatch order confirmation email to customer + sales alert to admin in background
+      sendOrderEmails({
+        order: newOrder,
+        items,
+        customerName: customer_name.trim(),
+        customerEmail: userEmail,
+        phone: cleanPhone,
+        address: address.trim(),
+        city: city.trim(),
+        pincode: pincode.trim(),
+        totalAmount: numTotal,
+        paymentMethod: finalPaymentMethod
+      }).catch((e) => console.warn('Order email trigger notice:', e.message));
 
       return res.status(201).json({
         success: true,

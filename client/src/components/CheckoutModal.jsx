@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { X, CheckCircle, Truck, CreditCard, Award, Package, Sparkles, Tag } from 'lucide-react';
+import { X, CheckCircle, Truck, CreditCard, Award, Package, Sparkles, Tag, Mail } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { parseResponse } from '../utils/api';
 
 export function CheckoutModal() {
   const { isCheckoutOpen, closeCheckout, cart, cartTotal, clearCart, checkoutItem } = useCart();
+  const { admin } = useAuth();
 
   const [formData, setFormData] = useState({
     customer_name: '',
     phone: '',
+    email: admin?.email || '',
     address: '',
     city: '',
     pincode: '',
@@ -54,13 +57,12 @@ export function CheckoutModal() {
 
       const savedPhone = localStorage.getItem('pandanest_member_phone') || '';
       const savedChild = localStorage.getItem('pandanest_member_child') || '';
-      if (savedPhone) {
-        setFormData(prev => ({
-          ...prev,
-          phone: prev.phone || savedPhone,
-          customer_name: prev.customer_name || (savedChild ? `Parent of ${savedChild}` : '')
-        }));
-      }
+      setFormData(prev => ({
+        ...prev,
+        phone: prev.phone || savedPhone,
+        customer_name: prev.customer_name || (savedChild ? `Parent of ${savedChild}` : ''),
+        email: prev.email || admin?.email || ''
+      }));
     };
 
     if (isCheckoutOpen) fetchPoints();
@@ -254,6 +256,12 @@ export function CheckoutModal() {
                   {orderSuccess.address}, {orderSuccess.city} - {orderSuccess.pincode}
                 </span>
               </div>
+              {formData.email && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
+                  <span style={{ color: '#64748b' }}>Receipt & Updates:</span>
+                  <span style={{ fontWeight: '600', color: '#047857' }}>Sent to {formData.email} ✉️</span>
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #e2e8f0', fontSize: '1.05rem', fontWeight: '800' }}>
                 <span>Total Amount:</span>
                 <span style={{ color: '#047857' }}>₹{Number(orderSuccess.total_amount).toLocaleString('en-IN')}</span>
@@ -482,6 +490,20 @@ export function CheckoutModal() {
                     onChange={handleChange}
                   />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  Email Address <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 'normal' }}>(Optional — for order receipt & dispatch updates)</span>
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  className="form-input"
+                  placeholder="e.g. pooja@gmail.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                />
               </div>
 
               <div className="form-group">
