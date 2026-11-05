@@ -190,6 +190,8 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
             <span className="hide-on-mobile">Cart</span>
             {cartCount > 0 && (
               <span
+                key={cartCount}
+                className="animate-cart-bounce"
                 style={{
                   background: '#ef4444',
                   color: '#ffffff',

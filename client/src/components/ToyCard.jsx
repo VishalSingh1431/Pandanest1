@@ -29,6 +29,7 @@ export function ToyCard({ toy, onSelectToy }) {
 
   return (
     <div
+      className="card-hover-lift"
       style={{
         background: '#ffffff',
         borderRadius: '22px',
@@ -37,7 +38,6 @@ export function ToyCard({ toy, onSelectToy }) {
         display: 'flex',
         flexDirection: 'column',
         boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03)',
-        transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         position: 'relative'
       }}
       onMouseEnter={(e) => {
@@ -216,6 +216,7 @@ export function ToyCard({ toy, onSelectToy }) {
 
         {/* Title */}
         <h3
+          className="toy-card-title"
           style={{
             fontSize: '0.98rem',
             fontWeight: '800',
@@ -317,7 +318,7 @@ export function ToyCard({ toy, onSelectToy }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px' }}>
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-secondary btn-sm btn-press"
               onClick={handleAddToCart}
               style={{
                 padding: '8px 10px',
@@ -337,7 +338,7 @@ export function ToyCard({ toy, onSelectToy }) {
 
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm btn-press"
               onClick={handleBuyNow}
               style={{
                 padding: '8px 10px',

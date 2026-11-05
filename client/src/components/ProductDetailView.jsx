@@ -444,6 +444,8 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
               }}
             >
               <img
+                key={activeImageIndex}
+                className="img-fade-in"
                 src={activeImg}
                 alt={toy?.name}
                 style={{
@@ -735,6 +737,7 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
               {/* Main Green ADD TO CART Button (Matches Screenshot 1) */}
               <button
                 type="button"
+                className="btn-press"
                 onClick={handleAddToCart}
                 style={{
                   flex: 1,
@@ -765,6 +768,7 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
             {/* Buy Now Direct Button */}
             <button
               type="button"
+              className="btn-press"
               onClick={handleBuyNow}
               style={{
                 width: '100%',
@@ -1140,6 +1144,7 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
           ========================================================= */}
       {showStickyBar && (
         <div
+          className="sticky-bottom-bar-mobile"
           style={{
             position: 'fixed',
             bottom: 0,
@@ -1246,6 +1251,7 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
           ========================================================= */}
       <button
         type="button"
+        className="fab-green-pulse btn-press"
         onClick={openCart}
         title="Open Cart"
         style={{

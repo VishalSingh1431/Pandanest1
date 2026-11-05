@@ -580,6 +580,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             {categories.map((cat) => (
               <button
                 key={cat}
+                className="btn-press"
                 onClick={() => setSelectedCategory(cat)}
                 style={{
                   padding: '8px 16px',
@@ -622,6 +623,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
               {AGE_GROUPS.map((age) => (
                 <button
                   key={age}
+                  className="btn-press"
                   onClick={() => setSelectedAge(age)}
                   style={{
                     padding: '4px 10px',
