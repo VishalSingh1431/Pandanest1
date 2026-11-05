@@ -31,6 +31,54 @@ router.get('/my-points', authenticateUser, async (req, res) => {
   }
 });
 
+// POST /api/users/add-points — Authenticated user: Award points won in games/activities
+router.post('/add-points', authenticateUser, async (req, res) => {
+  try {
+    const userEmail = (req.user?.email || '').toLowerCase().trim();
+    if (!userEmail) {
+      return res.status(400).json({ error: 'Valid user email required.' });
+    }
+
+    const { amount, reason } = req.body;
+    const addAmount = Math.max(1, Math.min(parseInt(amount || 10, 10), 100));
+
+    const { isPostgres, pool } = getDB();
+    let newBalance = 0;
+
+    if (isPostgres && pool) {
+      const result = await pool.query(
+        `UPDATE users
+         SET panda_points = COALESCE(panda_points, 0) + $1
+         WHERE LOWER(email) = $2
+         RETURNING panda_points`,
+        [addAmount, userEmail]
+      );
+      if (result.rows.length > 0) {
+        newBalance = result.rows[0].panda_points;
+      }
+    } else {
+      const store = readLocalStore();
+      store.users = store.users || [];
+      const user = store.users.find(u => (u.email || '').toLowerCase().trim() === userEmail);
+      if (user) {
+        user.panda_points = (user.panda_points || 0) + addAmount;
+        newBalance = user.panda_points;
+        writeLocalStore(store);
+      }
+    }
+
+    return res.json({
+      success: true,
+      added: addAmount,
+      panda_points: newBalance,
+      reason: reason || 'Game Activity'
+    });
+  } catch (err) {
+    console.error('Add panda points error:', err);
+    res.status(500).json({ error: 'Failed to add panda points.' });
+  }
+});
+
 // GET /api/users - Super Admin: View all team members, admins, and role stats
 router.get('/', authenticateSuperAdmin, async (req, res) => {
   try {

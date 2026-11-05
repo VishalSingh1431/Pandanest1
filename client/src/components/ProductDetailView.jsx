@@ -231,31 +231,16 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
 
   return (
     <div style={{ background: '#ffffff', minHeight: '100vh', position: 'relative' }}>
-      {/* 1. Top Announcement Bar (Matches Screenshot 1) */}
+      {/* Top Sticky Header with Brand Logo, Navigation & Quick Cart */}
       <div
         style={{
-          background: '#000000',
-          color: '#ffffff',
-          textAlign: 'center',
-          padding: '10px 16px',
-          fontSize: '0.78rem',
-          fontWeight: '700',
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase'
-        }}
-      >
-        UNLOCK 5% OFF — APPLY COUPON &ldquo;PANDANEST&rdquo; AT CHECKOUT
-      </div>
-
-      {/* 2. Top Navigation / Back Breadcrumbs */}
-      <div
-        style={{
-          borderBottom: '1px solid #f1f5f9',
-          padding: '14px 0',
+          borderBottom: '1px solid #eef2f6',
+          padding: '12px 0',
           background: '#ffffff',
           position: 'sticky',
           top: 0,
-          zIndex: 40
+          zIndex: 40,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
         }}
       >
         <div
@@ -268,47 +253,112 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
             fontSize: '0.85rem'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b' }}>
+          {/* Brand + Breadcrumb Navigation */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div
+              onClick={onClose}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+            >
+              <img
+                src="/logo.jpeg"
+                alt="Panda Nest"
+                style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'cover' }}
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+              <span style={{ fontWeight: '800', fontSize: '1.05rem', color: '#0f172a', letterSpacing: '-0.02em' }}>
+                Panda Nest 🐼
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b' }}>
+              <span style={{ color: '#e2e8f0' }}>|</span>
+              <button
+                onClick={onClose}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: '#0f172a',
+                  fontWeight: '700',
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                  background: 'none',
+                  border: 'none',
+                  padding: 0
+                }}
+              >
+                <ArrowLeft size={16} />
+                <span>All Products</span>
+              </button>
+              <span>/</span>
+              <span style={{ color: '#64748b' }}>{toy?.category || 'Toys and Games'}</span>
+              <span>/</span>
+              <span style={{ color: '#0f172a', fontWeight: '600', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {toy?.name}
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Cart + Close Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={openCart}
+              style={{
+                position: 'relative',
+                background: '#f1f5f9',
+                border: 'none',
+                borderRadius: '50%',
+                width: '38px',
+                height: '38px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#0f172a'
+              }}
+              title="Cart"
+            >
+              <ShoppingBag size={18} />
+              {cartCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-3px',
+                    right: '-3px',
+                    background: '#15803d',
+                    color: '#ffffff',
+                    fontSize: '0.68rem',
+                    fontWeight: '800',
+                    borderRadius: '9999px',
+                    padding: '1px 5px',
+                    lineHeight: 1.2
+                  }}
+                >
+                  {cartCount}
+                </span>
+              )}
+            </button>
+
             <button
               onClick={onClose}
+              className="btn btn-sm"
               style={{
-                display: 'inline-flex',
+                borderRadius: '9999px',
+                padding: '6px 14px',
+                background: '#f1f5f9',
+                color: '#334155',
+                fontWeight: '700',
+                display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                color: '#0f172a',
-                fontWeight: '700',
-                fontSize: '0.88rem',
+                border: 'none',
                 cursor: 'pointer'
               }}
             >
-              <ArrowLeft size={16} />
-              <span>All Products</span>
+              <X size={15} />
+              <span>Close</span>
             </button>
-            <span>/</span>
-            <span style={{ color: '#64748b' }}>{toy?.category || 'Toys and Games'}</span>
-            <span>/</span>
-            <span style={{ color: '#0f172a', fontWeight: '600', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {toy?.name}
-            </span>
           </div>
-
-          <button
-            onClick={onClose}
-            className="btn btn-sm"
-            style={{
-              borderRadius: '9999px',
-              padding: '6px 14px',
-              background: '#f1f5f9',
-              color: '#334155',
-              fontWeight: '700',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <X size={15} />
-            <span>Close</span>
-          </button>
         </div>
       </div>
 

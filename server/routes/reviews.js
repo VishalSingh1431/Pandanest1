@@ -50,7 +50,7 @@ router.get('/toy/:toyId', async (req, res) => {
          FROM reviews
          WHERE toy_id = $1 AND status = 'approved'
          ORDER BY created_at DESC`,
-        [toyId]
+        [parseInt(toyId, 10) || 0]
       );
       const rows = result.rows;
       const count = rows.length;
@@ -123,7 +123,7 @@ router.post('/public', async (req, res) => {
       const result = await pool.query(
         `INSERT INTO reviews (toy_id, user_email, user_name, rating, comment, status)
          VALUES ($1, $2, $3, $4, $5, 'approved') RETURNING *`,
-        [toy_id, cleanEmail, cleanName, numRating, cleanComment]
+        [parseInt(toy_id, 10) || 0, cleanEmail, cleanName, numRating, cleanComment]
       );
       return res.status(201).json(result.rows[0]);
     } else {
@@ -179,7 +179,7 @@ router.post('/', authenticateUser, async (req, res) => {
       // Check duplicate
       const revCheck = await pool.query(
         'SELECT id FROM reviews WHERE toy_id = $1 AND LOWER(user_email) = $2',
-        [toy_id, userEmail.toLowerCase().trim()]
+        [parseInt(toy_id, 10) || 0, userEmail.toLowerCase().trim()]
       );
       if (revCheck.rows.length > 0) {
         return res.status(400).json({ error: 'You have already reviewed this toy.' });
@@ -188,7 +188,7 @@ router.post('/', authenticateUser, async (req, res) => {
       const result = await pool.query(
         `INSERT INTO reviews (toy_id, user_email, user_name, rating, comment, status)
          VALUES ($1, $2, $3, $4, $5, 'approved') RETURNING *`,
-        [toy_id, userEmail.toLowerCase().trim(), userName, numRating, cleanComment]
+        [parseInt(toy_id, 10) || 0, userEmail.toLowerCase().trim(), userName, numRating, cleanComment]
       );
       return res.status(201).json(result.rows[0]);
     } else {

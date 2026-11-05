@@ -400,6 +400,11 @@ export async function initDB() {
       ssl: { rejectUnauthorized: false }
     });
 
+    // Prevent idle client unhandled error events from crashing Node process
+    pool.on('error', (err) => {
+      console.error('PostgreSQL background pool idle error (handled):', err.message);
+    });
+
     const client = await pool.connect();
     client.release();
     isPostgresConnected = true;
@@ -605,6 +610,8 @@ async function initPostgresSchema() {
     await pool.query(
       `INSERT INTO coupons (code, discount_type, discount_value, min_order_amount, max_discount, usage_limit, is_active)
        VALUES
+       ('PANDANEST', 'percentage', 5, 0, 500, 9999, true),
+       ('PANDAWORLD', 'percentage', 5, 0, 500, 9999, true),
        ('PANDA50', 'flat', 50, 499, 50, 500, true),
        ('WELCOME10', 'percentage', 10, 0, 200, 1000, true)
        ON CONFLICT (code) DO NOTHING`

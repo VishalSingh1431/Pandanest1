@@ -70,12 +70,13 @@ export function CheckoutModal() {
 
   if (!isCheckoutOpen) return null;
 
+  const checkoutQuantity = Math.max(1, parseInt(checkoutItem?.quantity || 1, 10));
   const itemsToCheckout = checkoutItem
-    ? [{ ...checkoutItem, quantity: 1 }]
+    ? [{ ...checkoutItem, quantity: checkoutQuantity }]
     : cart;
 
   const rawTotal = checkoutItem
-    ? Number(checkoutItem.price)
+    ? Number(checkoutItem.price) * checkoutQuantity
     : cartTotal;
 
   // 10 Panda points = ₹1 discount (Max 300 points = ₹30 discount allowed per order)

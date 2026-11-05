@@ -19,16 +19,31 @@ router.post('/validate', async (req, res) => {
 
     if (isPostgres && pool) {
       const result = await pool.query('SELECT * FROM coupons WHERE UPPER(code) = $1', [cleanCode]);
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Invalid coupon code.' });
+      if (result.rows.length > 0) {
+        coupon = result.rows[0];
       }
-      coupon = result.rows[0];
     } else {
       const store = readLocalStore();
       coupon = (store.coupons || []).find(c => c.code.toUpperCase() === cleanCode);
-      if (!coupon) {
-        return res.status(404).json({ error: 'Invalid coupon code.' });
-      }
+    }
+
+    // Built-in banner coupons guarantee (PANDANEST 5% and PANDAWORLD 5%)
+    if (!coupon && (cleanCode === 'PANDANEST' || cleanCode === 'PANDAWORLD')) {
+      coupon = {
+        code: cleanCode,
+        discount_type: 'percentage',
+        discount_value: 5,
+        min_order_amount: 0,
+        max_discount: 500,
+        is_active: true,
+        expires_at: null,
+        usage_limit: 9999,
+        used_count: 0
+      };
+    }
+
+    if (!coupon) {
+      return res.status(404).json({ error: 'Invalid coupon code.' });
     }
 
     if (!coupon.is_active) {

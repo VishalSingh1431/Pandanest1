@@ -211,13 +211,58 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
       }
     };
     fetchVideos();
-  }, []);
+
+    // Sync real database points balance when authenticated
+    const syncPoints = async () => {
+      const token = localStorage.getItem('pandanest_admin_token');
+      if (token) {
+        try {
+          const res = await fetch('/api/users/my-points', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (typeof data.panda_points === 'number') {
+              setPoints(data.panda_points);
+              localStorage.setItem('pandanest_panda_points', String(data.panda_points));
+            }
+          }
+        } catch (err) {
+          console.warn('Could not sync user points:', err);
+        }
+      }
+    };
+    if (isAuthenticated) {
+      syncPoints();
+    }
+  }, [isAuthenticated]);
 
   // Award Panda Points Helper
   const awardPoints = (amount = 10, reason = 'Game Completed') => {
     const newPoints = points + amount;
     setPoints(newPoints);
     localStorage.setItem('pandanest_panda_points', String(newPoints));
+
+    // Persist to backend database for logged-in user
+    const token = localStorage.getItem('pandanest_admin_token');
+    if (token) {
+      fetch('/api/users/add-points', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ amount, reason })
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && typeof data.panda_points === 'number') {
+            setPoints(data.panda_points);
+            localStorage.setItem('pandanest_panda_points', String(data.panda_points));
+          }
+        })
+        .catch((err) => console.warn('Points sync notice:', err.message));
+    }
 
     // Confetti celebration
     try {
