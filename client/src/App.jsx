@@ -101,6 +101,22 @@ export function App() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Top Black Announcement Bar (Matches Screenshot 1) */}
+      <div
+        style={{
+          background: '#000000',
+          color: '#ffffff',
+          textAlign: 'center',
+          padding: '9px 14px',
+          fontSize: '0.78rem',
+          fontWeight: '700',
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase'
+        }}
+      >
+        UNLOCK 5% OFF — APPLY COUPON &ldquo;PANDANEST&rdquo; AT CHECKOUT
+      </div>
+
       {/* Top Navbar */}
       <Navbar
         onOpenQR={() => setIsQRModalOpen(true)}

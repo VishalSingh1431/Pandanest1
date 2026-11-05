@@ -60,3 +60,4 @@ export async function safeFetch(url, options = {}, defaultErrMsg) {
   }
   return await parseResponse(res, defaultErrMsg);
 }
+

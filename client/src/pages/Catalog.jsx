@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { parseResponse } from '../utils/api';
 import { ToyCard } from '../components/ToyCard';
+import { ProductDetailView } from '../components/ProductDetailView';
 import {
   Sparkles,
   ArrowUpDown,
@@ -144,6 +145,14 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
       if (res.ok) {
         const data = await res.json();
         setToys(data);
+
+        // Auto-open product if linked directly in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const prodId = urlParams.get('product') || urlParams.get('toy');
+        if (prodId) {
+          const match = data.find((t) => String(t.id) === String(prodId));
+          if (match) setSelectedToyModal(match);
+        }
       }
     } catch (err) {
       console.error('Error fetching toys:', err);
@@ -151,6 +160,31 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
       setLoading(false);
     }
   };
+
+  const handleSelectToy = (toy) => {
+    setSelectedToyModal(toy);
+    window.history.pushState({}, '', `/?product=${toy.id}`);
+  };
+
+  const handleCloseToyModal = () => {
+    setSelectedToyModal(null);
+    window.history.pushState({}, '', window.location.pathname);
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const prodId = urlParams.get('product') || urlParams.get('toy');
+      if (prodId && toys.length > 0) {
+        const match = toys.find((t) => String(t.id) === String(prodId));
+        if (match) setSelectedToyModal(match);
+      } else {
+        setSelectedToyModal(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [toys]);
 
   useEffect(() => {
     fetchToys();
@@ -665,223 +699,21 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
         ) : (
           <div className="product-grid">
             {toys.map((toy) => (
-              <ToyCard key={toy.id} toy={toy} onSelectToy={(t) => setSelectedToyModal(t)} />
+              <ToyCard key={toy.id} toy={toy} onSelectToy={handleSelectToy} />
             ))}
           </div>
         )}
       </main>
 
-      {/* Toy Detail Quick-View Modal */}
+      {/* Product Detail Page View (Matches Panda World PDP) */}
       {selectedToyModal && (
-        <div className="modal-overlay" onClick={() => setSelectedToyModal(null)}>
-          <div
-            className="modal-card"
-            style={{ maxWidth: '650px', padding: 0, overflow: 'hidden' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="modal-close"
-              onClick={() => setSelectedToyModal(null)}
-              style={{ top: '14px', right: '14px', zIndex: 10 }}
-            >
-              <X size={18} />
-            </button>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0' }}>
-              {/* Product Gallery (Multiple Images Support) */}
-              {(() => {
-                const imgList = Array.isArray(selectedToyModal.images) && selectedToyModal.images.length > 0
-                  ? selectedToyModal.images
-                  : [selectedToyModal.image_url];
-                const activeImg = imgList[activeImageIndex] || imgList[0];
-
-                return (
-                  <div>
-                    <div style={{ height: '340px', background: '#f8fafc', position: 'relative', overflow: 'hidden' }}>
-                      <img
-                        src={activeImg}
-                        alt={selectedToyModal.name}
-                        style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#f8fafc' }}
-                      />
-                      <div style={{ position: 'absolute', bottom: '12px', left: '16px', display: 'flex', gap: '8px' }}>
-                        <span className="badge badge-green">{selectedToyModal.category}</span>
-                        <span className="badge badge-blue">Age: {selectedToyModal.age_group}</span>
-                      </div>
-                      {imgList.length > 1 && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            bottom: '12px',
-                            right: '16px',
-                            background: 'rgba(15, 23, 42, 0.75)',
-                            color: '#fff',
-                            fontSize: '0.75rem',
-                            fontWeight: '700',
-                            padding: '3px 8px',
-                            borderRadius: '6px'
-                          }}
-                        >
-                          {activeImageIndex + 1} / {imgList.length}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Image Thumbnails bar */}
-                    {imgList.length > 1 && (
-                      <div style={{ display: 'flex', gap: '8px', padding: '10px 16px', background: '#ffffff', borderBottom: '1px solid #f1f5f9', overflowX: 'auto' }}>
-                        {imgList.map((thumb, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => setActiveImageIndex(idx)}
-                            style={{
-                              width: '54px',
-                              height: '54px',
-                              borderRadius: '8px',
-                              overflow: 'hidden',
-                              padding: 0,
-                              border: activeImageIndex === idx ? '2.5px solid #10b981' : '1px solid #cbd5e1',
-                              cursor: 'pointer',
-                              background: '#f8fafc',
-                              flexShrink: 0
-                            }}
-                          >
-                            <img src={thumb} alt={`Thumb ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-              <div style={{ padding: '24px' }}>
-                <h2 style={{ fontSize: '1.5rem', color: '#0f172a', marginBottom: '8px' }}>
-                  {selectedToyModal.name}
-                </h2>
-
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '1.6rem', fontWeight: '800', color: '#047857', fontFamily: 'var(--font-display)' }}>
-                    ₹{Number(selectedToyModal.price).toLocaleString('en-IN')}
-                  </span>
-                  {selectedToyModal.original_price && (
-                    <span style={{ fontSize: '1.05rem', color: '#94a3b8', textDecoration: 'line-through' }}>
-                      ₹{Number(selectedToyModal.original_price).toLocaleString('en-IN')}
-                    </span>
-                  )}
-                  <span style={{ marginLeft: 'auto', fontSize: '0.85rem', color: '#10b981', fontWeight: '600' }}>
-                    ✔ Free Delivery Across India
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star
-                        key={s}
-                        size={16}
-                        color={toyReviewsData.averageRating >= s ? '#f59e0b' : '#cbd5e1'}
-                        fill={toyReviewsData.averageRating >= s ? '#f59e0b' : 'none'}
-                      />
-                    ))}
-                  </div>
-                  <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a' }}>
-                    {toyReviewsData.averageRating > 0 ? toyReviewsData.averageRating : '5.0'} / 5.0
-                  </span>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                    ({toyReviewsData.totalReviews} verified {toyReviewsData.totalReviews === 1 ? 'review' : 'reviews'})
-                  </span>
-                </div>
-
-                <p style={{ color: '#475569', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '20px' }}>
-                  {selectedToyModal.description}
-                </p>
-
-                {/* Embedded YouTube Video (if linked) */}
-                {selectedToyModal.video_url && getYouTubeEmbedUrl(selectedToyModal.video_url) && (
-                  <div style={{ marginBottom: '22px' }}>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#0f172a', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ color: '#ef4444' }}>▶</span> Watch Toy in Action / Demo Video:
-                    </h4>
-                    <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', height: 0, borderRadius: '12px', overflow: 'hidden', background: '#000' }}>
-                      <iframe
-                        src={getYouTubeEmbedUrl(selectedToyModal.video_url)}
-                        title={`${selectedToyModal.name} Video Demo`}
-                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Verified Customer Reviews Section */}
-                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', marginBottom: '20px' }}>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#0f172a', marginBottom: '10px' }}>
-                    Verified Parent Reviews & Ratings:
-                  </h4>
-                  {toyReviewsData.reviews.length === 0 ? (
-                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', fontSize: '0.8rem', color: '#64748b' }}>
-                      🌟 Be the first verified buyer to rate this toy after delivery!
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '160px', overflowY: 'auto' }}>
-                      {toyReviewsData.reviews.map((r) => (
-                        <div key={r.id} style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontWeight: '700', fontSize: '0.8rem', color: '#0f172a' }}>{r.user_name}</span>
-                              <span className="badge badge-green" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>Verified Buyer</span>
-                            </div>
-                            <div style={{ display: 'flex', gap: '1px' }}>
-                              {[1, 2, 3, 4, 5].map((s) => (
-                                <Star
-                                  key={s}
-                                  size={12}
-                                  color={r.rating >= s ? '#f59e0b' : '#cbd5e1'}
-                                  fill={r.rating >= s ? '#f59e0b' : 'none'}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          {r.comment && (
-                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#475569', lineHeight: 1.4 }}>
-                              "{r.comment}"
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <button
-                    className="btn btn-secondary"
-                    style={{ padding: '12px' }}
-                    onClick={() => {
-                      addToCart(selectedToyModal);
-                      setSelectedToyModal(null);
-                    }}
-                  >
-                    <ShoppingBag size={18} />
-                    <span>Add to Bag</span>
-                  </button>
-                  <button
-                    className="btn btn-primary"
-                    style={{ padding: '12px' }}
-                    onClick={() => {
-                      buyNow(selectedToyModal);
-                      setSelectedToyModal(null);
-                    }}
-                  >
-                    <Zap size={18} />
-                    <span>Buy Now</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#ffffff', overflowY: 'auto' }}>
+          <ProductDetailView
+            toy={selectedToyModal}
+            allToys={toys}
+            onClose={handleCloseToyModal}
+            onSelectToy={handleSelectToy}
+          />
         </div>
       )}
 

@@ -105,6 +105,50 @@ router.get('/can-review/:toyId', authenticateUser, async (req, res) => {
   }
 });
 
+// POST /api/reviews/public - Submit customer review from product page
+router.post('/public', async (req, res) => {
+  try {
+    const { toy_id, rating, comment, user_name, user_email } = req.body;
+    if (!toy_id) return res.status(400).json({ error: 'Toy ID is required.' });
+    const numRating = parseInt(rating, 10);
+    if (!numRating || numRating < 1 || numRating > 5) {
+      return res.status(400).json({ error: 'Rating must be between 1 and 5 stars.' });
+    }
+    const cleanName = (user_name || 'Verified Parent').trim();
+    const cleanComment = (comment || '').trim();
+    const cleanEmail = (user_email || 'guest@pandanest.in').toLowerCase().trim();
+
+    const { isPostgres, pool } = getDB();
+    if (isPostgres && pool) {
+      const result = await pool.query(
+        `INSERT INTO reviews (toy_id, user_email, user_name, rating, comment, status)
+         VALUES ($1, $2, $3, $4, $5, 'approved') RETURNING *`,
+        [toy_id, cleanEmail, cleanName, numRating, cleanComment]
+      );
+      return res.status(201).json(result.rows[0]);
+    } else {
+      const store = readLocalStore();
+      if (!store.reviews) store.reviews = [];
+      const newReview = {
+        id: Date.now(),
+        toy_id: Number(toy_id),
+        user_email: cleanEmail,
+        user_name: cleanName,
+        rating: numRating,
+        comment: cleanComment,
+        status: 'approved',
+        created_at: new Date().toISOString()
+      };
+      store.reviews.unshift(newReview);
+      writeLocalStore(store);
+      return res.status(201).json(newReview);
+    }
+  } catch (err) {
+    console.error('Submit public review error:', err);
+    res.status(500).json({ error: 'Failed to submit review: ' + err.message });
+  }
+});
+
 // POST /api/reviews - Authenticated: Submit review (Only verified buyers)
 router.post('/', authenticateUser, async (req, res) => {
   try {

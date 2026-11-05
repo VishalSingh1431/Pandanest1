@@ -544,3 +544,31 @@ input, select, textarea {
     font-size: 1.3rem;
   }
 }
+
+/* Product Detail Page (PDP) Responsive Styles */
+@media (max-width: 900px) {
+  .pdp-main-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+  .pdp-gallery-wrap {
+    flex-direction: column-reverse !important;
+  }
+  .pdp-thumbnails-strip {
+    flex-direction: row !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    max-height: none !important;
+    padding-bottom: 6px;
+  }
+  .pdp-review-summary-grid {
+    grid-template-columns: 1fr !important;
+    gap: 18px !important;
+    text-align: center;
+  }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

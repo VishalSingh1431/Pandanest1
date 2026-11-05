@@ -286,12 +286,12 @@ export function ToyCard({ toy, onSelectToy }) {
         <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-              <span style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0f172a', fontFamily: 'var(--font-display)', letterSpacing: '-0.3px' }}>
-                ₹{Number(toy.price).toLocaleString('en-IN')}
+              <span style={{ fontSize: '1.18rem', fontWeight: '800', color: '#15803d', letterSpacing: '-0.2px' }}>
+                Rs. {Number(toy.price).toLocaleString('en-IN')}.00
               </span>
               {toy.original_price && Number(toy.original_price) > Number(toy.price) && (
                 <span style={{ fontSize: '0.82rem', color: '#94a3b8', textDecoration: 'line-through', fontWeight: '500' }}>
-                  ₹{Number(toy.original_price).toLocaleString('en-IN')}
+                  Rs. {Number(toy.original_price).toLocaleString('en-IN')}.00
                 </span>
               )}
             </div>
