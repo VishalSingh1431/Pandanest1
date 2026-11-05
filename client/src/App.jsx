@@ -3,6 +3,7 @@ import { Navbar } from './components/Navbar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
+import { AbandonedCartToast } from './components/AbandonedCartToast';
 import { Catalog } from './pages/Catalog';
 import { useAuth } from './context/AuthContext';
 import { Phone, Mail, MapPin, Heart, Truck, ShieldCheck } from 'lucide-react';
@@ -248,6 +249,7 @@ export function App() {
       )}
       <CartDrawer />
       <CheckoutModal />
+      <AbandonedCartToast />
 
       {/* Clean White & Emerald Consistent Footer */}
       <footer

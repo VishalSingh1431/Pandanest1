@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingBag, Search, X, Award, User, Gamepad2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +7,73 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
   const { cartCount, openCart } = useCart();
   const { isAuthenticated, admin, isAdmin } = useAuth();
   const [points, setPoints] = useState(0);
+
+  // Live Auto-Complete Suggestions State
+  const [suggestions, setSuggestions] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchContainerRef = useRef(null);
+  const mobileSearchRef = useRef(null);
+
+  // Debounced Auto-Complete Search
+  useEffect(() => {
+    if (!searchQuery || searchQuery.trim().length < 2) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await fetch(`/api/toys?search=${encodeURIComponent(searchQuery.trim())}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSuggestions(Array.isArray(data) ? data.slice(0, 5) : []);
+          setShowDropdown(true);
+        }
+      } catch (e) {
+        console.warn('Search auto-complete notice:', e);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 180);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Click Outside to Dismiss Suggestions
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(e.target) &&
+        (!mobileSearchRef.current || !mobileSearchRef.current.contains(e.target))
+      ) {
+        setShowDropdown(false);
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setShowDropdown(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const handleSelectSuggestion = (toy) => {
+    setShowDropdown(false);
+    if (currentRoute !== 'catalog') {
+      navigate('catalog');
+    }
+    window.history.pushState({}, '', `/?product=${toy.id}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('pandanest_admin_token');
@@ -73,8 +140,8 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
           />
         </button>
 
-        {/* 2. Search Product (Desktop / Tablet view) */}
-        <div className="hide-on-mobile" style={{ flex: '1', maxWidth: '480px', position: 'relative' }}>
+        {/* 2. Search Product (Desktop / Tablet view) with Auto-Complete */}
+        <div ref={searchContainerRef} className="hide-on-mobile" style={{ flex: '1', maxWidth: '480px', position: 'relative' }}>
           <Search
             size={18}
             style={{
@@ -83,7 +150,8 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
               top: '50%',
               transform: 'translateY(-50%)',
               color: '#94a3b8',
-              pointerEvents: 'none'
+              pointerEvents: 'none',
+              zIndex: 1
             }}
           />
           <input
@@ -93,6 +161,17 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
             onChange={(e) => {
               setSearchQuery(e.target.value);
               if (currentRoute !== 'catalog') navigate('catalog');
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = '#10b981';
+              e.target.style.background = '#ffffff';
+              e.target.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.15)';
+              if (searchQuery && searchQuery.trim().length >= 2) setShowDropdown(true);
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = '#e2e8f0';
+              e.target.style.background = '#f8fafc';
+              e.target.style.boxShadow = 'none';
             }}
             style={{
               width: '100%',
@@ -105,20 +184,13 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
               transition: 'all 0.2s ease',
               boxSizing: 'border-box'
             }}
-            onFocus={(e) => {
-              e.target.style.borderColor = '#10b981';
-              e.target.style.background = '#ffffff';
-              e.target.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.15)';
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = '#e2e8f0';
-              e.target.style.background = '#f8fafc';
-              e.target.style.boxShadow = 'none';
-            }}
           />
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery('')}
+              onClick={() => {
+                setSearchQuery('');
+                setShowDropdown(false);
+              }}
               style={{
                 position: 'absolute',
                 right: '14px',
@@ -130,12 +202,123 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
                 color: '#94a3b8',
                 display: 'flex',
                 alignItems: 'center',
-                padding: 0
+                padding: 0,
+                zIndex: 2
               }}
               title="Clear search"
             >
               <X size={16} />
             </button>
+          )}
+
+          {/* Desktop Auto-Complete Suggestions Dropdown */}
+          {showDropdown && searchQuery && searchQuery.trim().length >= 2 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                left: 0,
+                right: 0,
+                background: '#ffffff',
+                borderRadius: '16px',
+                border: '1.5px solid #e2e8f0',
+                boxShadow: '0 14px 34px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(0, 0, 0, 0.05)',
+                overflow: 'hidden',
+                zIndex: 250,
+                animation: 'fadeInScale 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            >
+              <div style={{ padding: '8px 14px', background: '#f8fafc', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  {isSearching ? 'Searching...' : `Matching Toys (${suggestions.length})`}
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Press Esc to close</span>
+              </div>
+
+              {suggestions.length > 0 ? (
+                <div>
+                  {suggestions.map((toy) => (
+                    <div
+                      key={toy.id}
+                      onClick={() => handleSelectSuggestion(toy)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '10px 14px',
+                        borderBottom: '1px solid #f8fafc',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f0fdf4')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = '#ffffff')}
+                    >
+                      <img
+                        src={toy.image_url}
+                        alt={toy.name}
+                        style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '8px',
+                          objectFit: 'cover',
+                          border: '1px solid #e2e8f0',
+                          flexShrink: 0
+                        }}
+                        onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1559454403-b8fb88521f11?w=200'; }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {toy.name}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#64748b' }}>
+                          <span>{toy.category}</span>
+                          <span>&bull;</span>
+                          <span style={{ color: '#059669', fontWeight: '600' }}>{toy.age_group}</span>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: '0.92rem', fontWeight: '800', color: '#15803d' }}>
+                          Rs. {Number(toy.price).toLocaleString('en-IN')}
+                        </div>
+                        {toy.original_price && Number(toy.original_price) > Number(toy.price) && (
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                            Rs. {Number(toy.original_price).toLocaleString('en-IN')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => {
+                      setShowDropdown(false);
+                      if (currentRoute !== 'catalog') navigate('catalog');
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      background: '#ecfdf5',
+                      color: '#047857',
+                      border: 'none',
+                      fontSize: '0.82rem',
+                      fontWeight: '700',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span>View all results for &ldquo;{searchQuery}&rdquo;</span>
+                    <span>&rarr;</span>
+                  </button>
+                </div>
+              ) : !isSearching ? (
+                <div style={{ padding: '16px 14px', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+                  No toys found matching &ldquo;{searchQuery}&rdquo;. Try searching <em>plush</em>, <em>car</em>, or <em>puzzle</em>.
+                </div>
+              ) : null}
+            </div>
           )}
         </div>
 
@@ -259,8 +442,8 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
         </div>
       </div>
 
-      {/* Mobile Search Row */}
-      <div className="show-on-mobile container" style={{ marginTop: '8px', position: 'relative' }}>
+      {/* Mobile Search Row with Auto-Complete */}
+      <div ref={mobileSearchRef} className="show-on-mobile container" style={{ marginTop: '8px', position: 'relative' }}>
         <Search
           size={16}
           style={{
@@ -269,7 +452,8 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
             top: '50%',
             transform: 'translateY(-50%)',
             color: '#94a3b8',
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            zIndex: 1
           }}
         />
         <input
@@ -279,6 +463,9 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
           onChange={(e) => {
             setSearchQuery(e.target.value);
             if (currentRoute !== 'catalog') navigate('catalog');
+          }}
+          onFocus={() => {
+            if (searchQuery && searchQuery.trim().length >= 2) setShowDropdown(true);
           }}
           style={{
             width: '100%',
@@ -293,7 +480,10 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
         />
         {searchQuery && (
           <button
-            onClick={() => setSearchQuery('')}
+            onClick={() => {
+              setSearchQuery('');
+              setShowDropdown(false);
+            }}
             style={{
               position: 'absolute',
               right: '26px',
@@ -305,11 +495,90 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
               color: '#94a3b8',
               display: 'flex',
               alignItems: 'center',
-              padding: 0
+              padding: 0,
+              zIndex: 2
             }}
           >
             <X size={15} />
           </button>
+        )}
+
+        {/* Mobile Suggestions Dropdown */}
+        {showDropdown && searchQuery && searchQuery.trim().length >= 2 && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 6px)',
+              left: '14px',
+              right: '14px',
+              background: '#ffffff',
+              borderRadius: '16px',
+              border: '1.5px solid #e2e8f0',
+              boxShadow: '0 12px 30px rgba(15, 23, 42, 0.15)',
+              overflow: 'hidden',
+              zIndex: 250,
+              animation: 'fadeInScale 0.18s ease'
+            }}
+          >
+            {suggestions.length > 0 ? (
+              <div>
+                {suggestions.map((toy) => (
+                  <div
+                    key={toy.id}
+                    onClick={() => handleSelectSuggestion(toy)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '9px 12px',
+                      borderBottom: '1px solid #f8fafc',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <img
+                      src={toy.image_url}
+                      alt={toy.name}
+                      style={{ width: '38px', height: '38px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }}
+                      onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1559454403-b8fb88521f11?w=200'; }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '0.84rem', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {toy.name}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                        {toy.category} &bull; <strong style={{ color: '#059669' }}>{toy.age_group}</strong>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#15803d', flexShrink: 0 }}>
+                      Rs. {Number(toy.price).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    setShowDropdown(false);
+                    if (currentRoute !== 'catalog') navigate('catalog');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    background: '#ecfdf5',
+                    color: '#047857',
+                    border: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: '700',
+                    textAlign: 'center'
+                  }}
+                >
+                  View all results for &ldquo;{searchQuery}&rdquo; &rarr;
+                </button>
+              </div>
+            ) : !isSearching ? (
+              <div style={{ padding: '14px', textAlign: 'center', color: '#64748b', fontSize: '0.82rem' }}>
+                No toys found.
+              </div>
+            ) : null}
+          </div>
         )}
       </div>
     </header>
