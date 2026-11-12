@@ -12,6 +12,7 @@ import { Phone, Mail, MapPin, Heart, Truck, ShieldCheck } from 'lucide-react';
 const QRModal = lazy(() => import('./components/QRModal').then(m => ({ default: m.QRModal || m.default })));
 const WelcomeQR = lazy(() => import('./pages/WelcomeQR').then(m => ({ default: m.WelcomeQR || m.default })));
 const TruthOrDare = lazy(() => import('./pages/TruthOrDare').then(m => ({ default: m.TruthOrDare || m.default })));
+const DrawingPage = lazy(() => import('./pages/DrawingPage').then(m => ({ default: m.DrawingPage || m.default })));
 const GamesAndActivities = lazy(() => import('./pages/GamesAndActivities').then(m => ({ default: m.GamesAndActivities || m.default })));
 const AboutUs = lazy(() => import('./pages/AboutUs').then(m => ({ default: m.AboutUs || m.default })));
 const Policies = lazy(() => import('./pages/Policies').then(m => ({ default: m.Policies || m.default })));
@@ -54,6 +55,9 @@ export function App() {
     if (params.get('page') === 'games' || window.location.hash === '#games') {
       return 'games';
     }
+    if (params.get('page') === 'drawing' || window.location.hash === '#drawing') {
+      return 'drawing';
+    }
     if (params.get('page') === 'admin' || window.location.hash === '#admin') {
       const savedToken = localStorage.getItem('pandanest_admin_token');
       try {
@@ -92,6 +96,8 @@ export function App() {
       window.history.pushState({}, '', '?page=game');
     } else if (route === 'games') {
       window.history.pushState({}, '', '?page=games');
+    } else if (route === 'drawing') {
+      window.history.pushState({}, '', '?page=drawing');
     } else if (route === 'profile') {
       window.history.pushState({}, '', '?page=profile');
     } else if (route === 'admin-login' || route === 'admin-dashboard') {
@@ -110,6 +116,7 @@ export function App() {
       else if (page === 'policies') setCurrentRoute('policies');
       else if (page === 'game') setCurrentRoute('truth-or-dare');
       else if (page === 'games') setCurrentRoute('games');
+      else if (page === 'drawing') setCurrentRoute('drawing');
       else if (page === 'profile') setCurrentRoute(isAuthenticated ? 'profile' : 'admin-login');
       else if (page === 'admin') setCurrentRoute(isAuthenticated ? (isAdmin ? 'admin-dashboard' : 'profile') : 'admin-login');
       else setCurrentRoute('catalog');
@@ -170,7 +177,12 @@ export function App() {
             <GamesAndActivities
               onGoToCatalog={() => navigate('catalog')}
               onRequireLogin={() => navigate('login')}
+              onNavigate={navigate}
             />
+          )}
+
+          {currentRoute === 'drawing' && (
+            <DrawingPage onNavigate={navigate} />
           )}
 
           {currentRoute === 'about' && (
@@ -342,7 +354,7 @@ export function App() {
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}
               >
-                🎮 Games & Activities (+10 PP)
+                🐼 Panda Club (+10 Points)
               </button>
               <button
                 onClick={() => navigate('welcome')}
@@ -463,6 +475,9 @@ export function App() {
                 <MapPin size={16} color="#d97706" style={{ flexShrink: 0, marginTop: '3px' }} />
                 <span style={{ color: '#64748b', lineHeight: 1.5 }}>SCO 94, Swastic Vihar, Mansa Devi Complex, Panchkula, Haryana 134114</span>
               </div>
+              <div style={{ marginTop: '4px', fontSize: '0.8rem', color: '#047857', fontWeight: '700', background: '#ecfdf5', padding: '4px 10px', borderRadius: '6px', border: '1px solid #a7f3d0', width: 'fit-content' }}>
+                GSTIN: 06BBZPY5715M1ZI
+              </div>
             </div>
           </div>
         </div>
@@ -478,7 +493,7 @@ export function App() {
             paddingBottom: '40px'
           }}
         >
-          © {new Date().getFullYear()} Panda Nest (pandanest.in) • All rights reserved. • Spreading Smiles Across India 🐼
+          © {new Date().getFullYear()} Panda Nest (pandanest.in) • GSTIN: 06BBZPY5715M1ZI • All rights reserved. • Spreading Smiles Across India 🐼
         </div>
       </footer>
 

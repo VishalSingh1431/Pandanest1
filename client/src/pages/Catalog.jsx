@@ -304,75 +304,70 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             </div>
           </div>
 
-          {/* Right Column: Embedded Toy Video Player Showcase (if logged in) OR Customer Onboarding Form (if guest) */}
-          {isAuthenticated ? (
-            <div
-              style={{
-                background: '#ffffff',
-                borderRadius: '20px',
-                padding: '14px',
-                boxShadow: '0 14px 34px -8px rgba(0, 0, 0, 0.22)',
-                color: '#0f172a',
-                maxWidth: '450px',
-                marginLeft: 'auto',
-                width: '100%'
-              }}
-            >
-              {/* Responsive 16:9 Video Container */}
-              <div
-                style={{
-                  position: 'relative',
-                  paddingBottom: '56.25%',
-                  height: 0,
-                  overflow: 'hidden',
-                  borderRadius: '14px',
-                  background: '#000000',
-                  marginBottom: '10px'
-                }}
-              >
-                <iframe
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                    borderRadius: '14px'
-                  }}
-                  src="https://www.youtube-nocookie.com/embed/3vTfq_724jM?autoplay=0&rel=0"
-                  title="Panda Toy Fun Adventures"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
+          {/* Right Column: High-Converting E-Commerce Promotional Showcase */}
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '20px',
+              padding: '20px 24px',
+              boxShadow: '0 14px 34px -8px rgba(0, 0, 0, 0.22)',
+              color: '#0f172a',
+              maxWidth: '450px',
+              marginLeft: 'auto',
+              width: '100%'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <span className="badge badge-amber" style={{ fontSize: '0.78rem', fontWeight: '800' }}>
+                🎉 FESTIVE SALE ACTIVE
+              </span>
+              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#047857' }}>
+                Use Code: PANDANEST
+              </span>
+            </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '14px', border: '1.5px solid #e2e8f0', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '1.5rem' }}>🎁</span>
                 <div>
-                  <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: '800', textTransform: 'uppercase' }}>
-                    🎬 Panda Kids Club
-                  </span>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', margin: '2px 0 0' }}>
-                    Baby Panda &amp; Wooden Toy Adventures 🐼
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800', color: '#0f172a' }}>
+                    Flat 5% OFF on All Educational Toys
                   </h4>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>
+                    Extra discount applied automatically at checkout!
+                  </p>
                 </div>
-                <a
-                  href="?page=games"
-                  style={{
-                    fontSize: '0.78rem',
-                    fontWeight: '700',
-                    color: '#047857',
-                    background: '#ecfdf5',
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    textDecoration: 'none',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  More Videos →
-                </a>
               </div>
             </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ background: '#ecfdf5', borderRadius: '12px', padding: '10px', textAlign: 'center', border: '1px solid #a7f3d0' }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#047857' }}>24h</div>
+                <div style={{ fontSize: '0.72rem', color: '#065f46', fontWeight: '600' }}>Express Dispatch</div>
+              </div>
+              <div style={{ background: '#fef3c7', borderRadius: '12px', padding: '10px', textAlign: 'center', border: '1px solid #fde68a' }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#b45309' }}>100%</div>
+                <div style={{ fontSize: '0.72rem', color: '#92400e', fontWeight: '600' }}>BIS Child Safe</div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
+              <a
+                href="?page=games"
+                className="btn btn-secondary btn-sm"
+                style={{ flex: 1, textAlign: 'center', textDecoration: 'none', padding: '10px', fontWeight: '700' }}
+              >
+                🐼 Panda Club
+              </a>
+              <a
+                href="?page=drawing"
+                className="btn btn-primary btn-sm"
+                style={{ flex: 1, textAlign: 'center', textDecoration: 'none', padding: '10px', fontWeight: '800' }}
+              >
+                🎨 Drawing Studio
+              </a>
+            </div>
+          </div>
           ) : (
             <div
               style={{

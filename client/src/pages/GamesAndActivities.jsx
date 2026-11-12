@@ -286,10 +286,6 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
   ];
 
   const startBalloonGame = () => {
-    if (!isAuthenticated) {
-      if (onRequireLogin) onRequireLogin();
-      return;
-    }
     setBalloonScore(0);
     setBalloonTimeLeft(25);
     setIsBalloonPlaying(true);
@@ -382,10 +378,6 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
   ];
 
   const startBambooGame = () => {
-    if (!isAuthenticated) {
-      if (onRequireLogin) onRequireLogin();
-      return;
-    }
     setBambooScore(0);
     setBambooTimeLeft(25);
     setIsBambooPlaying(true);
@@ -486,10 +478,6 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
   ];
 
   const handleSpinWheel = () => {
-    if (!isAuthenticated) {
-      if (onRequireLogin) onRequireLogin();
-      return;
-    }
     if (isSpinning || hasSpunToday) return;
 
     setIsSpinning(true);
@@ -528,10 +516,6 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
   }, []);
 
   const handleCardClick = (index) => {
-    if (!isAuthenticated) {
-      if (onRequireLogin) onRequireLogin();
-      return;
-    }
     if (flipped.length === 2 || matched.includes(index) || flipped.includes(index)) return;
 
     const newFlipped = [...flipped, index];
@@ -556,10 +540,6 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
 
   // --- Trivia Logic ---
   const handleTriviaAnswer = (optIndex) => {
-    if (!isAuthenticated) {
-      if (onRequireLogin) onRequireLogin();
-      return;
-    }
     if (triviaAnswered) return;
     setSelectedOption(optIndex);
     setTriviaAnswered(true);
@@ -605,10 +585,6 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
   }, [watching, watchTimer, activeVideo]);
 
   const startWatchingVideo = (video) => {
-    if (!isAuthenticated) {
-      if (onRequireLogin) onRequireLogin();
-      return;
-    }
     setActiveVideo(video);
     setVideoCompleted(completedVideos.includes(video.id));
     setWatchTimer(video.durationSec);
@@ -649,13 +625,13 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
                 marginBottom: '10px'
               }}
             >
-              <Sparkles size={14} /> Panda Play &amp; Earn Zone
+              <Sparkles size={14} /> Official Panda Club &amp; Rewards
             </div>
-            <h1 style={{ fontSize: '2rem', fontWeight: '900', color: '#ffffff', margin: '0 0 8px', lineHeight: 1.15 }}>
-              Interactive Games &amp; Fun Activities 🎮🎈
+            <h1 style={{ fontSize: '2.1rem', fontWeight: '900', color: '#ffffff', margin: '0 0 8px', lineHeight: 1.15 }}>
+              Welcome to Panda Club! 🐼🎈
             </h1>
             <p style={{ margin: 0, fontSize: '0.95rem', opacity: 0.95, maxWidth: '520px', lineHeight: 1.5 }}>
-              Tap balloons, match cards, answer fun riddles, or watch toy cartoons to earn <strong>real Panda Points</strong>!
+              Play mini games, sketch in the Art Studio, solve riddles, and earn <strong>real Panda Coins</strong> for toy discounts!
             </p>
           </div>
 
@@ -681,13 +657,72 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
           </div>
         </div>
 
+        {/* Intro Video Relocated from Catalog Hero (Item 3 Requirement) */}
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: '20px',
+            padding: '20px',
+            marginBottom: '28px',
+            border: '1.5px solid #e2e8f0',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.06)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+            <div>
+              <span className="badge badge-green" style={{ fontSize: '0.75rem', fontWeight: '800' }}>
+                🎬 CLUB SHOWCASE
+              </span>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: '4px 0 0' }}>
+                Panda Nest Adventures &amp; Storytime
+              </h3>
+            </div>
+            {onNavigate && (
+              <button
+                type="button"
+                onClick={() => onNavigate('drawing')}
+                className="btn btn-primary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                🎨 Open Drawing Studio →
+              </button>
+            )}
+          </div>
+          <div
+            style={{
+              position: 'relative',
+              paddingBottom: '45%',
+              height: 0,
+              overflow: 'hidden',
+              borderRadius: '14px',
+              background: '#000000'
+            }}
+          >
+            <iframe
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                borderRadius: '14px'
+              }}
+              src="https://www.youtube-nocookie.com/embed/3vTfq_724jM?autoplay=0&rel=0"
+              title="Panda Nest Intro Video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+
         {/* LOCKED BANNER FOR GUEST USERS */}
         {!isAuthenticated && (
           <div
             style={{
               background: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)',
               borderRadius: '20px',
-              padding: '24px 28px',
+              padding: '20px 24px',
               color: '#ffffff',
               marginBottom: '28px',
               display: 'flex',
@@ -711,14 +746,14 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
                   flexShrink: 0
                 }}
               >
-                <Lock size={26} color="#ffffff" />
+                <Sparkles size={26} color="#ffffff" />
               </div>
               <div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: '800', margin: '0 0 4px', color: '#ffffff' }}>
-                  Member-Only Gameplay &amp; Points Rewards 🔒
+                  Play Freely &amp; Earn Panda Coins! 🎮
                 </h3>
                 <p style={{ margin: 0, fontSize: '0.88rem', opacity: 0.9, lineHeight: 1.4 }}>
-                  Log in or sign up with your child's name &amp; birthday to unlock instant gameplay, save your high scores, and claim +100 bonus Panda Points!
+                  Enjoy unlimited gameplay! Sign in anytime to preserve your Panda Coins for discounts at checkout.
                 </p>
               </div>
             </div>
@@ -742,7 +777,7 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
               }}
             >
               <Unlock size={18} />
-              <span>Sign In / Register to Play</span>
+              <span>Log In to Save Coins</span>
             </button>
           </div>
         )}

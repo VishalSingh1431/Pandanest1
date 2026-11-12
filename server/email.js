@@ -145,7 +145,8 @@ export async function sendOrderEmails({
             </p>
           </div>
           <div class="footer">
-            Panda Nest India &bull; SCO 94 Swastic Vihar Mansa Devi Complex, Panchkula, Haryana 134114<br/>
+            Panda Nest India &bull; GSTIN: <strong>06BBZPY5715M1ZI</strong><br/>
+            SCO 94 Swastic Vihar Mansa Devi Complex, Panchkula, Haryana 134114<br/>
             &copy; ${new Date().getFullYear()} Pandanest.in. All rights reserved.
           </div>
         </div>

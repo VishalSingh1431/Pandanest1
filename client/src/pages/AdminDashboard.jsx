@@ -186,6 +186,33 @@ export function AdminDashboard({ onLogout }) {
   // Admin In-Store QR code
   const [adminQrUrl, setAdminQrUrl] = useState('');
 
+  // Truth or Dare CMS state (Item 5 Requirement)
+  const [truthList, setTruthList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pandanest_custom_truths');
+      return saved ? JSON.parse(saved) : [
+        "If your favorite toy could speak for 1 hour, what would it say to you?",
+        "What is your secret superhero power and what is your superhero name?",
+        "If you could invent any toy in the whole universe, what would it do?",
+        "What is the funniest face or silliest sound you can make right now?",
+        "Which toy in the room is your secret favorite bedtime guardian?"
+      ];
+    } catch { return []; }
+  });
+  const [dareList, setDareList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pandanest_custom_dares');
+      return saved ? JSON.parse(saved) : [
+        "Walk across the room like a waddling baby penguin without laughing! 🐧",
+        "Do your silliest robot dance for 15 seconds with robot beeps! 🤖",
+        "Roar like a friendly baby dinosaur 3 times as loud as you can! 🦖",
+        "Give the person closest to you your biggest, warmest panda bear hug! 🐼"
+      ];
+    } catch { return []; }
+  });
+  const [newPromptText, setNewPromptText] = useState('');
+  const [newPromptType, setNewPromptType] = useState('truth');
+
   useEffect(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://pandanest.in';
     QRCode.toDataURL(`${origin}?page=welcome`, { width: 300, margin: 2 })
@@ -914,6 +941,32 @@ export function AdminDashboard({ onLogout }) {
             </div>
             <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#0f172a' }}>{orders.length}</div>
           </div>
+
+          {/* Today's Sales Card (Item 18 Requirement) */}
+          <div style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', padding: '20px', borderRadius: '16px', border: '1.5px solid #a7f3d0', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#047857', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#065f46' }}>Today's Sales Revenue</span>
+              <Sparkles size={20} color="#059669" />
+            </div>
+            {(() => {
+              const todayStr = new Date().toISOString().split('T')[0];
+              const todayOrders = orders.filter(o => {
+                const dateStr = o.created_at ? new Date(o.created_at).toISOString().split('T')[0] : '';
+                return dateStr === todayStr;
+              });
+              const todayRev = todayOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+              return (
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                  <div style={{ fontSize: '1.8rem', fontWeight: '900', color: '#065f46' }}>
+                    ₹{todayRev.toLocaleString('en-IN')}
+                  </div>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#047857' }}>
+                    ({todayOrders.length} order{todayOrders.length === 1 ? '' : 's'})
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
         </div>
 
         {/* Tab Navigation */}
@@ -1055,6 +1108,22 @@ export function AdminDashboard({ onLogout }) {
           </button>
 
           <button
+            onClick={() => setActiveTab('truth-dare')}
+            style={{
+              padding: '10px 18px',
+              fontWeight: '700',
+              fontSize: '0.95rem',
+              borderBottom: activeTab === 'truth-dare' ? '3px solid #10b981' : 'none',
+              color: activeTab === 'truth-dare' ? '#10b981' : '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Sparkles size={17} /> Truth or Dare CMS ({truthList.length + dareList.length})
+          </button>
+
+          <button
             onClick={() => setActiveTab('qr')}
             style={{
               padding: '10px 18px',
@@ -1116,7 +1185,22 @@ export function AdminDashboard({ onLogout }) {
                         <td style={{ padding: '12px 16px' }}>
                           <span className="badge badge-green">{toy.category}</span>
                         </td>
-                        <td style={{ padding: '12px 16px' }}>{toy.age_group}</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span
+                            style={{
+                              background: '#eff6ff',
+                              color: '#1d4ed8',
+                              border: '1px solid #bfdbfe',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontWeight: '700',
+                              fontSize: '0.78rem',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            👶 {toy.age_group}
+                          </span>
+                        </td>
                         <td style={{ padding: '12px 16px', fontWeight: '700', color: '#047857' }}>
                           ₹{Number(toy.price).toLocaleString('en-IN')}
                         </td>
@@ -2059,6 +2143,112 @@ export function AdminDashboard({ onLogout }) {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        {/* Tab 8: Truth or Dare CMS (Item 5 Requirement) */}
+        {activeTab === 'truth-dare' && (
+          <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                  Truth or Dare Question Manager 🎯
+                </h3>
+                <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 0' }}>
+                  Manage the questions and fun challenges played by children in the Panda Club.
+                </p>
+              </div>
+            </div>
+
+            {/* Add prompt form */}
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <select
+                  value={newPromptType}
+                  onChange={(e) => setNewPromptType(e.target.value)}
+                  style={{ padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontWeight: '700' }}
+                >
+                  <option value="truth">Truth Question</option>
+                  <option value="dare">Dare Challenge</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Enter fun prompt / challenge for kids..."
+                  value={newPromptText}
+                  onChange={(e) => setNewPromptText(e.target.value)}
+                  style={{ flex: 1, minWidth: '240px', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!newPromptText.trim()) return;
+                    if (newPromptType === 'truth') {
+                      const updated = [...truthList, newPromptText.trim()];
+                      setTruthList(updated);
+                      localStorage.setItem('pandanest_custom_truths', JSON.stringify(updated));
+                    } else {
+                      const updated = [...dareList, newPromptText.trim()];
+                      setDareList(updated);
+                      localStorage.setItem('pandanest_custom_dares', JSON.stringify(updated));
+                    }
+                    setNewPromptText('');
+                  }}
+                  className="btn btn-primary btn-sm"
+                  style={{ fontWeight: '800' }}
+                >
+                  + Add Challenge
+                </button>
+              </div>
+            </div>
+
+            {/* Two lists side by side */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+              <div>
+                <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#0369a1', marginBottom: '12px' }}>
+                  💡 Truth Questions ({truthList.length})
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {truthList.map((item, idx) => (
+                    <div key={idx} style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.85rem', color: '#0c4a6e', fontWeight: '600' }}>{item}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = truthList.filter((_, i) => i !== idx);
+                          setTruthList(updated);
+                          localStorage.setItem('pandanest_custom_truths', JSON.stringify(updated));
+                        }}
+                        style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#b45309', marginBottom: '12px' }}>
+                  🔥 Dare Challenges ({dareList.length})
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {dareList.map((item, idx) => (
+                    <div key={idx} style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.85rem', color: '#78350f', fontWeight: '600' }}>{item}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = dareList.filter((_, i) => i !== idx);
+                          setDareList(updated);
+                          localStorage.setItem('pandanest_custom_dares', JSON.stringify(updated));
+                        }}
+                        style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

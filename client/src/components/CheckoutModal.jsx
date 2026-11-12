@@ -16,7 +16,7 @@ export function CheckoutModal() {
     address: '',
     city: '',
     pincode: '',
-    payment_method: 'COD'
+    payment_method: 'Online'
   });
 
   const [usePandaPoints, setUsePandaPoints] = useState(false);
@@ -79,8 +79,8 @@ export function CheckoutModal() {
     ? Number(checkoutItem.price) * checkoutQuantity
     : cartTotal;
 
-  // 10 Panda points = ₹1 discount (Max 300 points = ₹30 discount allowed per order)
-  const MAX_REDEEM_POINTS = 300;
+  // 10 Panda points = ₹1 discount (Max 30 Panda Coins = ₹3 discount allowed per order)
+  const MAX_REDEEM_POINTS = 30;
   const maxUsablePoints = Math.min(availablePoints, MAX_REDEEM_POINTS);
   const redeemableRupees = Math.floor(maxUsablePoints / 10);
   const pointsDiscount = (usePandaPoints && availablePoints >= 10) ? Math.min(redeemableRupees, rawTotal) : 0;
@@ -328,42 +328,42 @@ export function CheckoutModal() {
               ))}
             </div>
 
-            {/* Panda Points Redemption Option (10 Points = ₹1, Max 300 points per order) */}
+            {/* Panda Points Redemption Option (10 Points = ₹1, Max 30 coins per order) */}
             {availablePoints >= 10 && (
               <div
                 style={{
                   background: '#fef3c7',
                   border: '1.5px solid #fde68a',
                   borderRadius: '12px',
-                  padding: '10px 14px',
+                  padding: '12px 14px',
                   marginBottom: '16px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  boxShadow: '0 2px 6px rgba(245, 158, 11, 0.12)'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Award size={20} color="#d97706" />
+                  <Award size={22} color="#d97706" />
                   <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#92400e' }}>
-                      Redeem {Math.min(availablePoints, MAX_REDEEM_POINTS, Math.floor(rawTotal * 10))} Panda Points
-                      {availablePoints > MAX_REDEEM_POINTS && (
-                        <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#b45309', marginLeft: '6px' }}>
-                          (Max 300 pts / order)
-                        </span>
-                      )}
+                    <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#92400e' }}>
+                      🪙 Redeem {Math.min(availablePoints, MAX_REDEEM_POINTS, Math.floor(rawTotal * 10))} Panda Coins
+                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#b45309', marginLeft: '6px' }}>
+                        (Max 30 Coins / order)
+                      </span>
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#b45309' }}>
-                      Get ₹{Math.min(redeemableRupees, rawTotal)} instant discount on this order!
+                    <div style={{ fontSize: '0.78rem', color: '#b45309', fontWeight: '600' }}>
+                      You have {availablePoints} coins • Save ₹{Math.min(redeemableRupees, rawTotal)} instantly!
                     </div>
                   </div>
                 </div>
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '700', color: '#047857' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '800', color: '#047857' }}>
                   <input
                     type="checkbox"
                     checked={usePandaPoints}
                     onChange={(e) => setUsePandaPoints(e.target.checked)}
+                    style={{ width: '18px', height: '18px', accentColor: '#10b981' }}
                   />
                   <span>Apply -₹{Math.min(redeemableRupees, rawTotal)}</span>
                 </label>
@@ -549,63 +549,28 @@ export function CheckoutModal() {
 
               {/* Payment Method Selector */}
               <div className="form-group">
-                <label className="form-label">Select Payment Method</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <label
-                    style={{
-                      border: formData.payment_method === 'COD' ? '2px solid #10b981' : '1.5px solid #e2e8f0',
-                      background: formData.payment_method === 'COD' ? '#ecfdf5' : '#ffffff',
-                      borderRadius: '12px',
-                      padding: '12px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <input
-                        type="radio"
-                        name="payment_method"
-                        value="COD"
-                        checked={formData.payment_method === 'COD'}
-                        onChange={handleChange}
-                      />
-                      <Truck size={16} color="#10b981" />
-                      <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>Cash on Delivery</strong>
+                <label className="form-label">Payment Method</label>
+                <div
+                  style={{
+                    border: '2px solid #10b981',
+                    background: '#ecfdf5',
+                    borderRadius: '12px',
+                    padding: '12px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <CreditCard size={18} color="#059669" />
+                    <div>
+                      <strong style={{ fontSize: '0.9rem', color: '#0f172a', display: 'block' }}>Online Payment (Prepaid)</strong>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Instant secure checkout via UPI, Cards, NetBanking</span>
                     </div>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', paddingLeft: '20px' }}>
-                      Pay when delivered
-                    </span>
-                  </label>
-
-                  <label
-                    style={{
-                      border: formData.payment_method === 'Online' ? '2px solid #10b981' : '1.5px solid #e2e8f0',
-                      background: formData.payment_method === 'Online' ? '#ecfdf5' : '#ffffff',
-                      borderRadius: '12px',
-                      padding: '12px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <input
-                        type="radio"
-                        name="payment_method"
-                        value="Online"
-                        checked={formData.payment_method === 'Online'}
-                        onChange={handleChange}
-                      />
-                      <CreditCard size={16} color="#059669" />
-                      <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>Online Pay (UPI/Card)</strong>
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', paddingLeft: '20px' }}>
-                      Instant secure checkout
-                    </span>
-                  </label>
+                  </div>
+                  <span className="badge badge-green" style={{ fontSize: '0.72rem', fontWeight: '800' }}>
+                    FAST &amp; SECURE
+                  </span>
                 </div>
               </div>
 

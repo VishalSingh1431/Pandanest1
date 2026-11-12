@@ -322,9 +322,9 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
           )}
         </div>
 
-        {/* Right Section: Games & Activities | Cart | Panda Points | Login / Profile */}
+        {/* Right Section: Panda Club | Cart | Panda Points | Login / Profile */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-          {/* Games & Activities (Desktop Only) */}
+          {/* Panda Club (Desktop Only) */}
           <button
             className="hide-on-mobile"
             onClick={() => navigate('games')}
@@ -343,10 +343,10 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
               transition: 'all 0.2s ease',
               boxShadow: currentRoute === 'games' ? '0 2px 8px rgba(245, 158, 11, 0.3)' : '0 1px 3px rgba(0,0,0,0.04)'
             }}
-            title="Play Games & Watch Videos to Earn 10 PP"
+            title="Panda Club: Play Games, Draw & Earn Rewards!"
           >
-            <Gamepad2 size={17} />
-            <span>Games &amp; Activities</span>
+            <Sparkles size={17} />
+            <span>Panda Club</span>
           </button>
 
           {/* Cart Trigger */}

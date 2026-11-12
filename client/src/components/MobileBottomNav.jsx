@@ -63,8 +63,8 @@ export function MobileBottomNav({ currentRoute, navigate }) {
           padding: '4px 0'
         }}
       >
-        <Gamepad2 size={20} color={currentRoute === 'games' ? '#d97706' : '#64748b'} />
-        <span>Play &amp; Earn</span>
+        <Sparkles size={20} color={currentRoute === 'games' ? '#d97706' : '#64748b'} />
+        <span>Panda Club</span>
       </button>
 
       <button

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Sparkles, RefreshCw, Award, ArrowRight, Smile, Zap, Heart } from 'lucide-react';
+import { Sparkles, RefreshCw, Award, ArrowRight, Smile, Zap, Heart, ShoppingBag } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 const TRUTH_PROMPTS = [
   "If your favorite toy could speak for 1 hour, what would it say to you?",
@@ -31,6 +32,17 @@ export function TruthOrDare({ onGoToCatalog }) {
     return parseInt(localStorage.getItem('pandanest_panda_points') || '100', 10);
   });
   const [completedCount, setCompletedCount] = useState(0);
+  const [featuredToys, setFeaturedToys] = useState([]);
+  const { addToCart, openBuyNow } = useCart();
+
+  useEffect(() => {
+    fetch('/api/toys?featured=true')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setFeaturedToys(data.slice(0, 4));
+      })
+      .catch(err => console.warn('Could not fetch toys for T/D', err));
+  }, []);
 
   const pickRandom = (type) => {
     setMode(type);
@@ -183,6 +195,73 @@ export function TruthOrDare({ onGoToCatalog }) {
             </div>
           )}
         </div>
+
+        {/* Buy Now Recommended Toys Tray (Item 7 Requirement) */}
+        {featuredToys.length > 0 && (
+          <div style={{ marginTop: '40px', textAlign: 'left', borderTop: '2px dashed #e2e8f0', paddingTop: '28px', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#10b981', textTransform: 'uppercase' }}>
+                  🎯 Popular Party Toys
+                </span>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: '2px 0 0' }}>
+                  Featured Toys for Game Night 🐼
+                </h3>
+              </div>
+              <button onClick={onGoToCatalog} className="btn btn-secondary btn-sm">
+                Browse All →
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '14px' }}>
+              {featuredToys.map(toy => (
+                <div
+                  key={toy.id}
+                  style={{
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '16px',
+                    padding: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
+                  }}
+                >
+                  <img
+                    src={toy.image_url}
+                    alt={toy.name}
+                    style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '12px', marginBottom: '8px' }}
+                  />
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#0f172a', marginBottom: '4px', lineHeight: 1.3 }}>
+                    {toy.name}
+                  </h4>
+                  <div style={{ fontSize: '1rem', fontWeight: '800', color: '#047857', marginBottom: '10px' }}>
+                    ₹{Number(toy.price).toLocaleString('en-IN')}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => addToCart(toy)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '6px 4px', fontSize: '0.78rem', fontWeight: '700' }}
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openBuyNow(toy)}
+                      className="btn btn-primary btn-sm"
+                      style={{ padding: '6px 4px', fontSize: '0.78rem', fontWeight: '800' }}
+                    >
+                      Buy Now
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Footer CTA */}
         <div style={{ marginTop: '28px' }}>
