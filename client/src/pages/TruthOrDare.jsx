@@ -46,7 +46,16 @@ export function TruthOrDare({ onGoToCatalog }) {
 
   const pickRandom = (type) => {
     setMode(type);
-    const list = type === 'truth' ? TRUTH_PROMPTS : DARE_PROMPTS;
+    let list = type === 'truth' ? TRUTH_PROMPTS : DARE_PROMPTS;
+    try {
+      const storageKey = type === 'truth' ? 'pandanest_custom_truths' : 'pandanest_custom_dares';
+      const custom = JSON.parse(localStorage.getItem(storageKey) || 'null');
+      if (Array.isArray(custom) && custom.length > 0) {
+        list = custom;
+      }
+    } catch {
+      // fallback to defaults
+    }
     const randomItem = list[Math.floor(Math.random() * list.length)];
     setCurrentPrompt(randomItem);
   };

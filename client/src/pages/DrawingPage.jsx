@@ -288,3 +288,4 @@ export function DrawingPage({ onNavigate }) {
   );
 }
 export default DrawingPage;
+

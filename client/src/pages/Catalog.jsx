@@ -352,210 +352,24 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             </div>
 
             <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
-              <a
-                href="?page=games"
+              <button
+                type="button"
+                onClick={() => onNavigate && onNavigate('games')}
                 className="btn btn-secondary btn-sm"
-                style={{ flex: 1, textAlign: 'center', textDecoration: 'none', padding: '10px', fontWeight: '700' }}
+                style={{ flex: 1, textAlign: 'center', padding: '10px', fontWeight: '700', cursor: 'pointer' }}
               >
                 🐼 Panda Club
-              </a>
-              <a
-                href="?page=drawing"
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate && onNavigate('drawing')}
                 className="btn btn-primary btn-sm"
-                style={{ flex: 1, textAlign: 'center', textDecoration: 'none', padding: '10px', fontWeight: '800' }}
+                style={{ flex: 1, textAlign: 'center', padding: '10px', fontWeight: '800', cursor: 'pointer' }}
               >
                 🎨 Drawing Studio
-              </a>
+              </button>
             </div>
           </div>
-          ) : (
-            <div
-              style={{
-                background: '#ffffff',
-                borderRadius: '20px',
-                padding: '20px 22px',
-                boxShadow: '0 14px 34px -8px rgba(0, 0, 0, 0.22)',
-                border: '1.5px solid rgba(255, 255, 255, 0.6)',
-                color: '#0f172a',
-                maxWidth: '450px',
-                marginLeft: 'auto',
-                width: '100%'
-              }}
-            >
-              {heroSubmitted ? (
-                <div style={{ textAlign: 'center', padding: '16px 8px' }}>
-                  <div
-                    style={{
-                      width: '56px',
-                      height: '56px',
-                      background: '#ecfdf5',
-                      color: '#10b981',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto 12px',
-                      boxShadow: '0 6px 16px rgba(16, 185, 129, 0.2)'
-                    }}
-                  >
-                    <CheckCircle2 size={32} />
-                  </div>
-                  {heroResult?.already_registered ? (
-                    <>
-                      <div className="badge badge-green" style={{ marginBottom: '8px', fontSize: '0.82rem' }}>
-                        ⭐ Active Member Recognized
-                      </div>
-                      <h3 style={{ fontSize: '1.25rem', color: '#0f172a', marginBottom: '6px' }}>
-                        Welcome Back, {heroForm.child_name}! 🐼
-                      </h3>
-                      <p style={{ color: '#64748b', fontSize: '0.84rem', lineHeight: 1.5, marginBottom: '14px' }}>
-                        Your details are updated. Please log in to view your points balance and redeem them on checkout!
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="badge badge-amber" style={{ marginBottom: '8px', fontSize: '0.82rem' }}>
-                        🪙 You Got 100 Free Panda Points!
-                      </div>
-                      <h3 style={{ fontSize: '1.25rem', color: '#0f172a', marginBottom: '6px' }}>
-                        Welcome, {heroForm.child_name}! 🎉
-                      </h3>
-                      <p style={{ color: '#475569', fontSize: '0.88rem', lineHeight: 1.5, marginBottom: '14px' }}>
-                        <strong>Please Note:</strong> Please <strong>log in or sign up</strong> now so your 100 points stay safe in your account. You can use them to get a discount right now or on any toy you buy later!
-                      </p>
-                    </>
-                  )}
-
-                  {!isAuthenticated ? (
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', marginTop: '6px' }}>
-                      <p style={{ fontSize: '0.78rem', color: '#ea580c', fontWeight: '600', margin: '0 0 10px', lineHeight: 1.4 }}>
-                        ⚠️ If you leave this page without logging in, your 100 points will be lost!
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => onNavigate && onNavigate('admin-login')}
-                        className="btn btn-primary"
-                        style={{
-                          width: '100%',
-                          padding: '10px 14px',
-                          fontSize: '0.9rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          fontWeight: '700'
-                        }}
-                      >
-                        <Lock size={15} />
-                        <span>Log In to Save &amp; Use My 100 Points</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', padding: '10px', marginTop: '8px' }}>
-                      <span style={{ fontSize: '0.82rem', color: '#047857', fontWeight: '600' }}>
-                        ✓ All set! Your points are saved in your account and ready to use at checkout.
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                    <div style={{ background: '#ecfdf5', color: '#047857', padding: '5px', borderRadius: '8px' }}>
-                      <Gift size={18} />
-                    </div>
-                    <div>
-                      <h3 style={{ fontSize: '1.1rem', color: '#0f172a', lineHeight: 1.2, margin: 0 }}>
-                        Join Panda Club & Get 100 Pts 🎁
-                      </h3>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        Register child's birthday for special gifts & perks!
-                      </span>
-                    </div>
-                  </div>
-
-                  {heroError && (
-                    <div
-                      style={{
-                        background: '#fef2f2',
-                        border: '1px solid #fee2e2',
-                        color: '#991b1b',
-                        padding: '6px 10px',
-                        borderRadius: '8px',
-                        fontSize: '0.75rem',
-                        marginBottom: '10px'
-                      }}
-                    >
-                      {heroError}
-                    </div>
-                  )}
-
-                  <form onSubmit={handleHeroSubmit}>
-                    {/* Child Name & Mobile Number in a neat 2-col row */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label" style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
-                          <Heart size={11} color="#ec4899" />
-                          Child's Name *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          className="form-input"
-                          style={{ padding: '7px 10px', fontSize: '0.85rem' }}
-                          placeholder="e.g. Aarav"
-                          value={heroForm.child_name}
-                          onChange={(e) => setHeroForm({ ...heroForm, child_name: e.target.value })}
-                        />
-                      </div>
-
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label" style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
-                          <Phone size={11} color="#059669" />
-                          Mobile / WhatsApp *
-                        </label>
-                        <input
-                          type="tel"
-                          required
-                          className="form-input"
-                          style={{ padding: '7px 10px', fontSize: '0.85rem' }}
-                          placeholder="10-digit number"
-                          value={heroForm.phone}
-                          onChange={(e) => setHeroForm({ ...heroForm, phone: e.target.value })}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Child's Date of Birth */}
-                    <div className="form-group" style={{ marginBottom: '10px' }}>
-                      <label className="form-label" style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
-                        <Calendar size={11} color="#8b5cf6" />
-                        Child's Date of Birth (DOB) *
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        className="form-input"
-                        style={{ padding: '7px 10px', fontSize: '0.85rem' }}
-                        value={heroForm.dob}
-                        onChange={(e) => setHeroForm({ ...heroForm, dob: e.target.value })}
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={heroLoading}
-                      className="btn btn-primary"
-                      style={{ width: '100%', padding: '9px', fontSize: '0.88rem' }}
-                    >
-                      <Award size={16} />
-                      <span>{heroLoading ? 'Unlocking Points...' : 'Unlock 100 Points & Rewards'}</span>
-                    </button>
-                  </form>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </section>
 

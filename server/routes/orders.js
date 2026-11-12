@@ -122,12 +122,12 @@ router.post('/', optionalUser, async (req, res) => {
     }
 
     const orderNumber = generateOrderNumber();
-    const finalPaymentMethod = payment_method || 'COD';
+    const finalPaymentMethod = (!payment_method || payment_method === 'COD') ? 'Online' : payment_method;
     const numTotal = parseFloat(total_amount);
     
-    // STRICT RULE: User can redeem up to 300 Panda Points at max per order (300 points = ₹30 discount)
-    const MAX_REDEEM_POINTS = 300;
-    const requestedPoints = parseInt(points_used || 0, 10);
+    // STRICT RULE: User can redeem up to 30 Panda Coins at max per order
+    const MAX_REDEEM_POINTS = 30;
+    const requestedPoints = Math.max(0, parseInt(points_used || 0, 10));
     const numPointsUsed = Math.min(requestedPoints, MAX_REDEEM_POINTS);
 
     // Capture the logged-in user's email or the email provided in checkout

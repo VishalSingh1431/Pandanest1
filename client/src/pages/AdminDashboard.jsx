@@ -213,6 +213,30 @@ export function AdminDashboard({ onLogout }) {
   const [newPromptText, setNewPromptText] = useState('');
   const [newPromptType, setNewPromptType] = useState('truth');
 
+  // Games & Activities Switchboard state (Item 16 Requirement)
+  const [enabledGames, setEnabledGames] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pandanest_enabled_games');
+      return saved ? JSON.parse(saved) : {
+        balloon: true,
+        bamboo: true,
+        spin: true,
+        memory: true,
+        trivia: true,
+        truthDare: true,
+        drawing: true
+      };
+    } catch {
+      return { balloon: true, bamboo: true, spin: true, memory: true, trivia: true, truthDare: true, drawing: true };
+    }
+  });
+
+  const toggleGameEnabled = (key) => {
+    const updated = { ...enabledGames, [key]: !enabledGames[key] };
+    setEnabledGames(updated);
+    localStorage.setItem('pandanest_enabled_games', JSON.stringify(updated));
+  };
+
   useEffect(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://pandanest.in';
     QRCode.toDataURL(`${origin}?page=welcome`, { width: 300, margin: 2 })
@@ -2146,8 +2170,54 @@ export function AdminDashboard({ onLogout }) {
               </div>
             </div>
           </div>
-        {/* Tab 8: Truth or Dare CMS (Item 5 Requirement) */}
+        )}
+
+        {/* Tab 8: Panda Club, Games & Truth or Dare CMS (Items 5 & 16) */}
         {activeTab === 'truth-dare' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Games & Activities Switchboard (Item 16 Requirement) */}
+            <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: '0 0 4px' }}>
+                Games &amp; Activities Manager 🎮
+              </h3>
+              <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 16px' }}>
+                Enable or disable games and creative activities in Panda Club.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '12px' }}>
+                {[
+                  { key: 'balloon', label: '🎈 Balloon Popper' },
+                  { key: 'bamboo', label: '🎍 Bamboo Catcher' },
+                  { key: 'spin', label: '🎡 Lucky Spin Wheel' },
+                  { key: 'memory', label: '🃏 Memory Card Match' },
+                  { key: 'trivia', label: '🧠 Panda Trivia' },
+                  { key: 'truthDare', label: '🎯 Truth or Dare' },
+                  { key: 'drawing', label: '🎨 Drawing Studio' }
+                ].map((g) => (
+                  <label
+                    key={g.key}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: enabledGames[g.key] ? '1.5px solid #10b981' : '1.5px solid #e2e8f0',
+                      background: enabledGames[g.key] ? '#ecfdf5' : '#f8fafc',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span style={{ fontWeight: '700', fontSize: '0.88rem', color: '#0f172a' }}>{g.label}</span>
+                    <input
+                      type="checkbox"
+                      checked={!!enabledGames[g.key]}
+                      onChange={() => toggleGameEnabled(g.key)}
+                      style={{ width: '18px', height: '18px', accentColor: '#10b981' }}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+
           <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
@@ -2251,6 +2321,7 @@ export function AdminDashboard({ onLogout }) {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         )}
       </div>

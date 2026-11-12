@@ -23,6 +23,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 // YouTube Videos curated for kids & toys
 const TOY_VIDEOS = [
@@ -118,12 +119,24 @@ const TRUTHS_AND_DARES = [
   { type: 'dare', text: "Give the person closest to you your biggest, warmest panda bear hug! 🐼" }
 ];
 
-export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
+export function GamesAndActivities({ onGoToCatalog, onRequireLogin, onNavigate }) {
   const { isAuthenticated, admin } = useAuth();
+  const { addToCart, openBuyNow } = useCart();
 
   const [activeTab, setActiveTab] = useState('games'); // 'games' | 'videos'
   const [selectedGame, setSelectedGame] = useState('balloon'); // 'balloon' | 'memory' | 'trivia' | 'truth-dare'
   const [points, setPoints] = useState(() => parseInt(localStorage.getItem('pandanest_panda_points') || '100', 10));
+  const [guestRewardPrompt, setGuestRewardPrompt] = useState(null);
+  const [featuredToys, setFeaturedToys] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/toys?featured=true')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setFeaturedToys(data.slice(0, 4));
+      })
+      .catch(() => {});
+  }, []);
 
   // --- GAME 1: PANDA BALLOON POPPER ---
   const [balloonScore, setBalloonScore] = useState(0);
@@ -262,6 +275,9 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
           }
         })
         .catch((err) => console.warn('Points sync notice:', err.message));
+    } else if (!isAuthenticated) {
+      // Item 10: Prompt login only when points are awarded to a guest
+      setGuestRewardPrompt({ amount, reason });
     }
 
     // Confetti celebration
@@ -2351,7 +2367,129 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin }) {
           </div>
         )}
 
+        {/* Buy Now Recommended Toys Tray (Item 7 Requirement) */}
+        {featuredToys.length > 0 && (
+          <div style={{ marginTop: '48px', borderTop: '2px dashed #e2e8f0', paddingTop: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#10b981', textTransform: 'uppercase' }}>
+                  🛍️ Spend Your Panda Coins
+                </span>
+                <h2 style={{ fontSize: '1.45rem', fontWeight: '800', color: '#0f172a', margin: '2px 0 0' }}>
+                  Top Toys to Buy Now 🐼
+                </h2>
+              </div>
+              {onGoToCatalog && (
+                <button onClick={onGoToCatalog} className="btn btn-secondary btn-sm">
+                  View Full Catalog →
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '16px' }}>
+              {featuredToys.map(toy => (
+                <div
+                  key={toy.id}
+                  style={{
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '16px',
+                    padding: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
+                  }}
+                >
+                  <img
+                    src={toy.image_url}
+                    alt={toy.name}
+                    style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '12px', marginBottom: '10px' }}
+                  />
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#0f172a', marginBottom: '4px', lineHeight: 1.3 }}>
+                    {toy.name}
+                  </h4>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#047857' }}>
+                      ₹{Number(toy.price).toLocaleString('en-IN')}
+                    </span>
+                    {toy.original_price && (
+                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                        ₹{Number(toy.original_price).toLocaleString('en-IN')}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => addToCart(toy)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '8px 4px', fontSize: '0.8rem', fontWeight: '700' }}
+                    >
+                      Add to Cart
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openBuyNow(toy)}
+                      className="btn btn-primary btn-sm"
+                      style={{ padding: '8px 4px', fontSize: '0.8rem', fontWeight: '800' }}
+                    >
+                      Buy Now
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
+
+      {/* Celebratory Login Prompt when Guest Earns Points (Item 10 Requirement) */}
+      {guestRewardPrompt && !isAuthenticated && (
+        <div
+          className="modal-overlay"
+          onClick={() => setGuestRewardPrompt(null)}
+          style={{ zIndex: 1200 }}
+        >
+          <div
+            className="modal-card"
+            style={{ maxWidth: '420px', textAlign: 'center', padding: '28px 24px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: '2.8rem', marginBottom: '10px' }}>🪙🎉</div>
+            <div className="badge badge-amber" style={{ marginBottom: '10px', fontSize: '0.82rem' }}>
+              +{guestRewardPrompt.amount} Panda Coins Earned!
+            </div>
+            <h3 style={{ fontSize: '1.35rem', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>
+              Save Your Panda Coins!
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: '#475569', lineHeight: 1.5, marginBottom: '20px' }}>
+              Awesome job on <strong>{guestRewardPrompt.reason}</strong>! Log in or create a free account now so your <strong>{points} Panda Coins</strong> stay safe for checkout discounts.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '12px', fontWeight: '800' }}
+                onClick={() => {
+                  setGuestRewardPrompt(null);
+                  if (onRequireLogin) onRequireLogin();
+                }}
+              >
+                Log In / Sign Up to Save Coins →
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setGuestRewardPrompt(null)}
+              >
+                Continue Playing as Guest
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

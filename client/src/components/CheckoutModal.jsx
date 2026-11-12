@@ -244,8 +244,12 @@ export function CheckoutModal() {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
                 <span style={{ color: '#64748b' }}>Payment Mode:</span>
                 <span style={{ fontWeight: '600', color: '#0f172a' }}>
-                  {orderSuccess.payment_method === 'COD' ? 'Cash on Delivery (COD)' : 'Online Paid'}
+                  Online Paid (Prepaid)
                 </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
+                <span style={{ color: '#64748b' }}>Seller GSTIN:</span>
+                <span style={{ fontWeight: '700', color: '#334155' }}>06BBZPY5715M1ZI</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
                 <span style={{ color: '#64748b' }}>Shipping:</span>

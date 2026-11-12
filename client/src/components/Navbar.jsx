@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Search, X, Award, User, Gamepad2 } from 'lucide-react';
+import { ShoppingBag, Search, X, Award, User, Gamepad2, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
