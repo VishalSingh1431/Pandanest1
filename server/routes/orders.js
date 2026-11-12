@@ -148,7 +148,13 @@ router.post('/', optionalUser, async (req, res) => {
       // Deduct panda points server-side if used
       if (numPointsUsed > 0 && userEmail) {
         await pool.query(
-          'UPDATE users SET panda_points = GREATEST(0, panda_points - $1) WHERE email = $2',
+          `INSERT INTO users (email, name, panda_points, role)
+           VALUES ($1, $2, 100, 'user')
+           ON CONFLICT (email) DO NOTHING`,
+          [userEmail, customer_name.trim()]
+        );
+        await pool.query(
+          'UPDATE users SET panda_points = GREATEST(0, COALESCE(panda_points, 0) - $1) WHERE LOWER(email) = $2',
           [numPointsUsed, userEmail]
         );
       }

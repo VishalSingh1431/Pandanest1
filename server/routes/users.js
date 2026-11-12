@@ -9,19 +9,41 @@ const router = express.Router();
 router.get('/my-points', authenticateUser, async (req, res) => {
   try {
     const userEmail = (req.user?.email || '').toLowerCase().trim();
+    if (!userEmail) {
+      return res.status(400).json({ error: 'Valid user email required.' });
+    }
     const { isPostgres, pool } = getDB();
     let points = 0;
 
     if (isPostgres && pool) {
+      await pool.query(
+        `INSERT INTO users (email, name, panda_points, role)
+         VALUES ($1, $2, 100, $3)
+         ON CONFLICT (email) DO NOTHING`,
+        [userEmail, req.user?.name || userEmail.split('@')[0], req.user?.role || 'user']
+      );
       const result = await pool.query(
-        'SELECT panda_points FROM users WHERE email = $1',
+        'SELECT COALESCE(panda_points, 0) AS panda_points FROM users WHERE LOWER(email) = $1',
         [userEmail]
       );
       points = result.rows[0]?.panda_points ?? 0;
     } else {
       const store = readLocalStore();
-      const user = (store.users || []).find(u => u.email === userEmail);
-      points = user?.panda_points ?? 0;
+      store.users = store.users || [];
+      let user = store.users.find(u => (u.email || '').toLowerCase().trim() === userEmail);
+      if (!user) {
+        user = {
+          id: Date.now(),
+          email: userEmail,
+          name: req.user?.name || userEmail.split('@')[0],
+          panda_points: 100,
+          role: req.user?.role || 'user',
+          created_at: new Date().toISOString()
+        };
+        store.users.push(user);
+        writeLocalStore(store);
+      }
+      points = user.panda_points ?? 0;
     }
 
     res.json({ panda_points: points });
@@ -46,6 +68,12 @@ router.post('/add-points', authenticateUser, async (req, res) => {
     let newBalance = 0;
 
     if (isPostgres && pool) {
+      await pool.query(
+        `INSERT INTO users (email, name, panda_points, role)
+         VALUES ($1, $2, 100, $3)
+         ON CONFLICT (email) DO NOTHING`,
+        [userEmail, req.user?.name || userEmail.split('@')[0], req.user?.role || 'user']
+      );
       const result = await pool.query(
         `UPDATE users
          SET panda_points = COALESCE(panda_points, 0) + $1
@@ -59,12 +87,21 @@ router.post('/add-points', authenticateUser, async (req, res) => {
     } else {
       const store = readLocalStore();
       store.users = store.users || [];
-      const user = store.users.find(u => (u.email || '').toLowerCase().trim() === userEmail);
-      if (user) {
-        user.panda_points = (user.panda_points || 0) + addAmount;
-        newBalance = user.panda_points;
-        writeLocalStore(store);
+      let user = store.users.find(u => (u.email || '').toLowerCase().trim() === userEmail);
+      if (!user) {
+        user = {
+          id: Date.now(),
+          email: userEmail,
+          name: req.user?.name || userEmail.split('@')[0],
+          panda_points: 100,
+          role: req.user?.role || 'user',
+          created_at: new Date().toISOString()
+        };
+        store.users.push(user);
       }
+      user.panda_points = (user.panda_points || 0) + addAmount;
+      newBalance = user.panda_points;
+      writeLocalStore(store);
     }
 
     return res.json({

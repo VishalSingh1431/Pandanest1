@@ -76,17 +76,28 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('pandanest_admin_token');
-    if (token) {
-      fetch('/api/users/my-points', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(r => r.ok ? r.json() : null)
-        .then(d => setPoints(d?.panda_points ?? 0))
-        .catch(() => setPoints(parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10)));
-    } else {
-      setPoints(parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10));
-    }
+    const refreshPoints = () => {
+      const token = localStorage.getItem('pandanest_admin_token');
+      if (token) {
+        fetch('/api/users/my-points', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+          .then(r => r.ok ? r.json() : null)
+          .then(d => {
+            if (d && typeof d.panda_points === 'number') {
+              setPoints(d.panda_points);
+              localStorage.setItem('pandanest_panda_points', String(d.panda_points));
+            }
+          })
+          .catch(() => setPoints(parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10)));
+      } else {
+        setPoints(parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10));
+      }
+    };
+
+    refreshPoints();
+    window.addEventListener('pandanest-points-updated', refreshPoints);
+    return () => window.removeEventListener('pandanest-points-updated', refreshPoints);
   }, [currentRoute, isAuthenticated]);
 
   return (

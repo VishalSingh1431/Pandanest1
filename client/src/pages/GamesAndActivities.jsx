@@ -125,7 +125,7 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin, onNavigate }
 
   const [activeTab, setActiveTab] = useState('games'); // 'games' | 'videos'
   const [selectedGame, setSelectedGame] = useState('balloon'); // 'balloon' | 'memory' | 'trivia' | 'truth-dare'
-  const [points, setPoints] = useState(() => parseInt(localStorage.getItem('pandanest_panda_points') || '100', 10));
+  const [points, setPoints] = useState(() => parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10));
   const [guestRewardPrompt, setGuestRewardPrompt] = useState(null);
   const [featuredToys, setFeaturedToys] = useState([]);
 
@@ -255,6 +255,7 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin, onNavigate }
     const newPoints = points + amount;
     setPoints(newPoints);
     localStorage.setItem('pandanest_panda_points', String(newPoints));
+    window.dispatchEvent(new Event('pandanest-points-updated'));
 
     // Persist to backend database for logged-in user
     const token = localStorage.getItem('pandanest_admin_token');
@@ -272,6 +273,7 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin, onNavigate }
           if (data && typeof data.panda_points === 'number') {
             setPoints(data.panda_points);
             localStorage.setItem('pandanest_panda_points', String(data.panda_points));
+            window.dispatchEvent(new Event('pandanest-points-updated'));
           }
         })
         .catch((err) => console.warn('Points sync notice:', err.message));

@@ -29,7 +29,7 @@ export function TruthOrDare({ onGoToCatalog }) {
   const [mode, setMode] = useState(null); // 'truth' or 'dare'
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [pointsEarned, setPointsEarned] = useState(() => {
-    return parseInt(localStorage.getItem('pandanest_panda_points') || '100', 10);
+    return parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10);
   });
   const [completedCount, setCompletedCount] = useState(0);
   const [featuredToys, setFeaturedToys] = useState([]);
@@ -71,6 +71,28 @@ export function TruthOrDare({ onGoToCatalog }) {
     setPointsEarned(newPoints);
     setCompletedCount(prev => prev + 1);
     localStorage.setItem('pandanest_panda_points', String(newPoints));
+    window.dispatchEvent(new Event('pandanest-points-updated'));
+
+    const token = localStorage.getItem('pandanest_admin_token');
+    if (token) {
+      fetch('/api/users/add-points', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ amount: 10, reason: 'Truth or Dare Challenge' })
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data && typeof data.panda_points === 'number') {
+            setPointsEarned(data.panda_points);
+            localStorage.setItem('pandanest_panda_points', String(data.panda_points));
+            window.dispatchEvent(new Event('pandanest-points-updated'));
+          }
+        })
+        .catch(() => {});
+    }
     setMode(null);
   };
 

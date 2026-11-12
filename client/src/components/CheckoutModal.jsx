@@ -160,6 +160,7 @@ export function CheckoutModal() {
         setAvailablePoints(remaining);
         // Keep localStorage in sync for guests
         localStorage.setItem('pandanest_panda_points', String(remaining));
+        window.dispatchEvent(new Event('pandanest-points-updated'));
       }
 
       // Celebrate with confetti!

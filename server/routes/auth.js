@@ -98,6 +98,13 @@ async function findOrCreateUser({ email, name, phone = '', child_name = '', dob 
 
   if (isPostgres && pool) {
     const existing = await pool.query('SELECT * FROM admins WHERE email = $1', [normalizedEmail]);
+    // Ensure a matching row exists in `users` for Panda Coins tracking
+    await pool.query(
+      `INSERT INTO users (email, name, phone, panda_points, role)
+       VALUES ($1, $2, $3, 100, $4)
+       ON CONFLICT (email) DO NOTHING`,
+      [normalizedEmail, name || normalizedEmail.split('@')[0], phone || '', assignedRole]
+    );
     if (existing.rows.length > 0) {
       if (isSuperAdminEmail && existing.rows[0].role !== 'super_admin') {
         const updated = await pool.query("UPDATE admins SET role = 'super_admin' WHERE email = $1 RETURNING *", [normalizedEmail]);
@@ -132,6 +139,20 @@ async function findOrCreateUser({ email, name, phone = '', child_name = '', dob 
   } else {
     const store = readLocalStore();
     store.admins = store.admins || [];
+    store.users = store.users || [];
+    let existingUser = store.users.find(u => (u.email || '').toLowerCase() === normalizedEmail);
+    if (!existingUser) {
+      store.users.push({
+        id: Date.now(),
+        email: normalizedEmail,
+        name: name || normalizedEmail.split('@')[0],
+        phone: phone || '',
+        panda_points: 100,
+        role: assignedRole,
+        created_at: new Date().toISOString()
+      });
+      writeLocalStore(store);
+    }
     let existing = store.admins.find(a => a.email.toLowerCase() === normalizedEmail);
     if (existing) {
       if (isSuperAdminEmail && existing.role !== 'super_admin') {
