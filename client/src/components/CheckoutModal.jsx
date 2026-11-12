@@ -79,8 +79,8 @@ export function CheckoutModal() {
     ? Number(checkoutItem.price) * checkoutQuantity
     : cartTotal;
 
-  // 10 Panda points = ₹1 discount (Max 30 Panda Coins = ₹3 discount allowed per order)
-  const MAX_REDEEM_POINTS = 30;
+  // 10 Panda coins = ₹1 discount (Max 300 Panda Coins = ₹30 discount allowed per order)
+  const MAX_REDEEM_POINTS = 300;
   const maxUsablePoints = Math.min(availablePoints, MAX_REDEEM_POINTS);
   const redeemableRupees = Math.floor(maxUsablePoints / 10);
   const pointsDiscount = (usePandaPoints && availablePoints >= 10) ? Math.min(redeemableRupees, rawTotal) : 0;
@@ -332,7 +332,7 @@ export function CheckoutModal() {
               ))}
             </div>
 
-            {/* Panda Points Redemption Option (10 Points = ₹1, Max 30 coins per order) */}
+            {/* Panda Points Redemption Option (10 Coins = ₹1, Max 300 coins = ₹30 off per order) */}
             {availablePoints >= 10 && (
               <div
                 style={{
@@ -353,7 +353,7 @@ export function CheckoutModal() {
                     <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#92400e' }}>
                       🪙 Redeem {Math.min(availablePoints, MAX_REDEEM_POINTS, Math.floor(rawTotal * 10))} Panda Coins
                       <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#b45309', marginLeft: '6px' }}>
-                        (Max 30 Coins / order)
+                        (Max 300 Coins = ₹30 off / order)
                       </span>
                     </div>
                     <div style={{ fontSize: '0.78rem', color: '#b45309', fontWeight: '600' }}>

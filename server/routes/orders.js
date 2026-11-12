@@ -125,8 +125,8 @@ router.post('/', optionalUser, async (req, res) => {
     const finalPaymentMethod = (!payment_method || payment_method === 'COD') ? 'Online' : payment_method;
     const numTotal = parseFloat(total_amount);
     
-    // STRICT RULE: User can redeem up to 30 Panda Coins at max per order
-    const MAX_REDEEM_POINTS = 30;
+    // STRICT RULE: User can redeem up to 300 Panda Coins at max per order (300 coins = ₹30 discount)
+    const MAX_REDEEM_POINTS = 300;
     const requestedPoints = Math.max(0, parseInt(points_used || 0, 10));
     const numPointsUsed = Math.min(requestedPoints, MAX_REDEEM_POINTS);
 
