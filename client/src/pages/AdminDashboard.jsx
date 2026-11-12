@@ -1025,175 +1025,70 @@ export function AdminDashboard({ onLogout }) {
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid #e2e8f0', paddingBottom: '2px', marginBottom: '24px', overflowX: 'auto' }}>
-          <button
-            onClick={() => setActiveTab('inventory')}
-            style={{
-              padding: '10px 18px',
-              fontWeight: '700',
-              fontSize: '0.95rem',
-              borderBottom: activeTab === 'inventory' ? '3px solid #10b981' : 'none',
-              color: activeTab === 'inventory' ? '#10b981' : '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Package size={17} /> Toy Inventory ({toys.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('leads')}
-            style={{
-              padding: '10px 18px',
-              fontWeight: '700',
-              fontSize: '0.95rem',
-              borderBottom: activeTab === 'leads' ? '3px solid #10b981' : 'none',
-              color: activeTab === 'leads' ? '#10b981' : '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Users size={17} /> Customer QR Leads ({leads.length})
-            {upcomingBdaysCount > 0 && (
-              <span className="badge badge-pink" style={{ fontSize: '0.7rem' }}>
-                {upcomingBdaysCount} B-Days 🎉
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('orders')}
-            style={{
-              padding: '10px 18px',
-              fontWeight: '700',
-              fontSize: '0.95rem',
-              borderBottom: activeTab === 'orders' ? '3px solid #10b981' : 'none',
-              color: activeTab === 'orders' ? '#10b981' : '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <ShoppingBag size={17} /> Orders ({orders.length})
-          </button>
-
-          {/* Super Admin Exclusive User Handling Tab */}
-          {effectiveIsSuperAdmin && (
-            <button
-              onClick={() => setActiveTab('users')}
-              style={{
-                padding: '10px 18px',
-                fontWeight: '700',
-                fontSize: '0.95rem',
-                borderBottom: activeTab === 'users' ? '3px solid #f59e0b' : 'none',
-                color: activeTab === 'users' ? '#d97706' : '#64748b',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <Crown size={17} color="#d97706" /> User & Role Handling ({teamMembers.length})
-            </button>
-          )}
-
-          <button
-            onClick={() => setActiveTab('categories')}
-            style={{
-              padding: '10px 18px',
-              fontWeight: '700',
-              fontSize: '0.95rem',
-              borderBottom: activeTab === 'categories' ? '3px solid #10b981' : 'none',
-              color: activeTab === 'categories' ? '#10b981' : '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Tag size={17} /> Categories ({categories.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('videos')}
-            style={{
-              padding: '10px 18px',
-              fontWeight: '700',
-              fontSize: '0.95rem',
-              borderBottom: activeTab === 'videos' ? '3px solid #10b981' : 'none',
-              color: activeTab === 'videos' ? '#10b981' : '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Video size={17} /> Activity Videos ({videos.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('coupons')}
-            style={{
-              padding: '10px 18px',
-              fontWeight: '700',
-              fontSize: '0.95rem',
-              borderBottom: activeTab === 'coupons' ? '3px solid #10b981' : 'none',
-              color: activeTab === 'coupons' ? '#10b981' : '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Ticket size={17} /> Coupons ({coupons.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('reviews')}
-            style={{
-              padding: '10px 18px',
-              fontWeight: '700',
-              fontSize: '0.95rem',
-              borderBottom: activeTab === 'reviews' ? '3px solid #10b981' : 'none',
-              color: activeTab === 'reviews' ? '#10b981' : '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Star size={17} /> Customer Reviews ({reviews.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('truth-dare')}
-            style={{
-              padding: '10px 18px',
-              fontWeight: '700',
-              fontSize: '0.95rem',
-              borderBottom: activeTab === 'truth-dare' ? '3px solid #10b981' : 'none',
-              color: activeTab === 'truth-dare' ? '#10b981' : '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Sparkles size={17} /> Truth or Dare CMS ({truthList.length + dareList.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('qr')}
-            style={{
-              padding: '10px 18px',
-              fontWeight: '700',
-              fontSize: '0.95rem',
-              borderBottom: activeTab === 'qr' ? '3px solid #10b981' : 'none',
-              color: activeTab === 'qr' ? '#10b981' : '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <QrCode size={17} /> In-Store QR Standee
-          </button>
+        {/* Tab Navigation — Clean Wrapping Pill Bar */}
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '8px',
+            background: '#ffffff',
+            padding: '12px',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+            marginBottom: '24px',
+            boxShadow: 'var(--shadow-sm)'
+          }}
+        >
+          {[
+            { id: 'inventory', label: `Products (${toys.length})`, icon: <Package size={16} /> },
+            { id: 'orders', label: `Orders (${orders.length})`, icon: <ShoppingBag size={16} /> },
+            {
+              id: 'leads',
+              label: `Customers (${leads.length})`,
+              icon: <Users size={16} />,
+              badge: upcomingBdaysCount > 0 ? `${upcomingBdaysCount} B-Days 🎉` : null
+            },
+            { id: 'truth-dare', label: 'Panda Club & Drawing', icon: <Sparkles size={16} /> },
+            { id: 'videos', label: `Videos & Intro (${videos.length})`, icon: <Video size={16} /> },
+            { id: 'categories', label: `Categories (${categories.length})`, icon: <Tag size={16} /> },
+            { id: 'coupons', label: `Coupons (${coupons.length})`, icon: <Ticket size={16} /> },
+            { id: 'reviews', label: `Reviews (${reviews.length})`, icon: <Star size={16} /> },
+            { id: 'qr', label: 'Store QR', icon: <QrCode size={16} /> },
+            ...(effectiveIsSuperAdmin
+              ? [{ id: 'users', label: `Staff & Roles (${teamMembers.length})`, icon: <Crown size={16} color={activeTab === 'users' ? '#ffffff' : '#d97706'} /> }]
+              : [])
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  padding: '9px 14px',
+                  borderRadius: '10px',
+                  fontWeight: '700',
+                  fontSize: '0.86rem',
+                  border: isActive ? '1.5px solid #059669' : '1.5px solid #e2e8f0',
+                  background: isActive ? '#10b981' : '#f8fafc',
+                  color: isActive ? '#ffffff' : '#475569',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+                {tab.badge && (
+                  <span className="badge badge-pink" style={{ fontSize: '0.68rem', marginLeft: '2px' }}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Tab 1: Toy Inventory Manager */}
@@ -1940,7 +1835,7 @@ export function AdminDashboard({ onLogout }) {
               <div>
                 <h2 style={{ fontSize: '1.3rem', color: '#0f172a', margin: '0 0 4px' }}>Activity Videos</h2>
                 <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>
-                  Add YouTube video links shown in the Games & Activities page for children to watch and earn points.
+                  Add YouTube video links shown in the Panda Club page for children to watch and earn points.
                 </p>
               </div>
               <button className="btn btn-primary btn-sm" onClick={() => handleOpenVideoModal()}>
