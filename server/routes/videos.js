@@ -17,6 +17,85 @@ function extractYouTubeId(urlOrId) {
   return match ? match[1] : null;
 }
 
+// GET /api/videos/intro - Public: Get Panda Club main showcase video
+router.get('/intro', async (req, res) => {
+  const defaultIntro = {
+    youtube_id: '3vTfq_724jM',
+    youtube_url: 'https://www.youtube.com/watch?v=3vTfq_724jM',
+    title: 'Panda Nest Adventures & Storytime',
+    enabled: true
+  };
+  try {
+    const { isPostgres, pool } = getDB();
+    if (isPostgres && pool) {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS site_settings (
+          key VARCHAR(100) PRIMARY KEY,
+          value JSONB NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      const result = await pool.query("SELECT value FROM site_settings WHERE key = 'club_intro_video'");
+      if (result.rows.length > 0 && result.rows[0].value) {
+        return res.json({ ...defaultIntro, ...result.rows[0].value });
+      }
+      return res.json(defaultIntro);
+    } else {
+      const store = readLocalStore();
+      return res.json(store.club_intro_video ? { ...defaultIntro, ...store.club_intro_video } : defaultIntro);
+    }
+  } catch (err) {
+    console.error('Fetch intro video error:', err);
+    return res.json(defaultIntro);
+  }
+});
+
+// PUT /api/videos/intro - Admin: Update Panda Club main showcase video
+router.put('/intro', authenticateAdmin, async (req, res) => {
+  try {
+    const { youtube_url, youtube_id, title, enabled } = req.body;
+    const isEnabled = enabled !== undefined ? Boolean(enabled) : true;
+    const ytId = extractYouTubeId(youtube_url || youtube_id);
+
+    if (isEnabled && !ytId) {
+      return res.status(400).json({ error: 'Please enter a valid YouTube link or 11-character Video ID.' });
+    }
+
+    const payload = {
+      youtube_id: ytId || '',
+      youtube_url: (youtube_url || (ytId ? `https://www.youtube.com/watch?v=${ytId}` : '')).trim(),
+      title: (title || 'Panda Nest Adventures & Storytime').trim(),
+      enabled: isEnabled
+    };
+
+    const { isPostgres, pool } = getDB();
+    if (isPostgres && pool) {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS site_settings (
+          key VARCHAR(100) PRIMARY KEY,
+          value JSONB NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      await pool.query(
+        `INSERT INTO site_settings (key, value, updated_at)
+         VALUES ('club_intro_video', $1::jsonb, CURRENT_TIMESTAMP)
+         ON CONFLICT (key) DO UPDATE SET value = $1::jsonb, updated_at = CURRENT_TIMESTAMP`,
+        [JSON.stringify(payload)]
+      );
+    } else {
+      const store = readLocalStore();
+      store.club_intro_video = payload;
+      writeLocalStore(store);
+    }
+
+    return res.json({ success: true, intro: payload });
+  } catch (err) {
+    console.error('Update intro video error:', err);
+    res.status(500).json({ error: 'Failed to update main showcase video: ' + err.message });
+  }
+});
+
 // GET /api/videos - Public: List activity videos
 router.get('/', async (req, res) => {
   try {

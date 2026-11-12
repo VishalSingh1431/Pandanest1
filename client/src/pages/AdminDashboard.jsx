@@ -154,6 +154,16 @@ export function AdminDashboard({ onLogout }) {
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState('');
 
+  // Panda Club Main Showcase Intro Video state
+  const [introVideoForm, setIntroVideoForm] = useState({
+    youtube_url: 'https://www.youtube.com/watch?v=3vTfq_724jM',
+    youtube_id: '3vTfq_724jM',
+    title: 'Panda Nest Adventures & Storytime',
+    enabled: true
+  });
+  const [introSaving, setIntroSaving] = useState(false);
+  const [introMsg, setIntroMsg] = useState('');
+
   // Coupons state
   const [coupons, setCoupons] = useState([]);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
@@ -294,6 +304,13 @@ export function AdminDashboard({ onLogout }) {
       if (resVideos.ok) {
         const dataVids = await resVideos.json();
         setVideos(Array.isArray(dataVids) ? dataVids : []);
+      }
+
+      // Fetch Panda Club Main Showcase Intro Video
+      const resIntro = await fetch('/api/videos/intro');
+      if (resIntro.ok) {
+        const dataIntro = await resIntro.json();
+        if (dataIntro) setIntroVideoForm(dataIntro);
       }
 
       // Fetch coupons
@@ -1808,6 +1825,102 @@ export function AdminDashboard({ onLogout }) {
         {/* Tab 7: Activity Videos Manager */}
         {activeTab === 'videos' && (
           <div>
+            {/* Dedicated Section: Panda Club Main Showcase Video */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)',
+                border: '2px solid #10b981',
+                borderRadius: '18px',
+                padding: '22px',
+                marginBottom: '28px',
+                boxShadow: '0 8px 20px rgba(16, 185, 129, 0.08)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                  <span className="badge badge-green" style={{ fontSize: '0.75rem', fontWeight: '800', marginBottom: '4px' }}>
+                    🎬 MAIN PANDA CLUB VIDEO
+                  </span>
+                  <h2 style={{ fontSize: '1.25rem', color: '#065f46', margin: '4px 0 2px', fontWeight: '800' }}>
+                    Panda Club Main Showcase Video (Top Hero)
+                  </h2>
+                  <p style={{ fontSize: '0.84rem', color: '#475569', margin: 0 }}>
+                    This is the main video shown immediately when anyone opens the Panda Club page.
+                  </p>
+                </div>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: '#ffffff', padding: '8px 14px', borderRadius: '10px', border: '1.5px solid #a7f3d0', fontWeight: '700', fontSize: '0.85rem', color: '#047857' }}>
+                  <input
+                    type="checkbox"
+                    checked={!!introVideoForm.enabled}
+                    onChange={(e) => setIntroVideoForm({ ...introVideoForm, enabled: e.target.checked })}
+                    style={{ width: '17px', height: '17px', accentColor: '#10b981' }}
+                  />
+                  <span>Show on Panda Club</span>
+                </label>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>YouTube Video Link or ID *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    value={introVideoForm.youtube_url || ''}
+                    onChange={(e) => setIntroVideoForm({ ...introVideoForm, youtube_url: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Showcase Title *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Panda Nest Adventures & Storytime"
+                    value={introVideoForm.title || ''}
+                    onChange={(e) => setIntroVideoForm({ ...introVideoForm, title: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  disabled={introSaving}
+                  className="btn btn-primary btn-sm"
+                  style={{ padding: '10px 20px', fontWeight: '800' }}
+                  onClick={async () => {
+                    setIntroSaving(true);
+                    setIntroMsg('');
+                    try {
+                      const res = await fetch('/api/videos/intro', {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify(introVideoForm)
+                      });
+                      const data = await parseResponse(res, 'Failed to update main video.');
+                      if (data.intro) setIntroVideoForm(data.intro);
+                      setIntroMsg('✅ Main Showcase Video updated!');
+                    } catch (err) {
+                      setIntroMsg('❌ ' + err.message);
+                    } finally {
+                      setIntroSaving(false);
+                    }
+                  }}
+                >
+                  {introSaving ? 'Saving...' : 'Save Main Showcase Video'}
+                </button>
+                {introMsg && (
+                  <span style={{ fontSize: '0.85rem', fontWeight: '700', color: introMsg.startsWith('✅') ? '#047857' : '#dc2626' }}>
+                    {introMsg}
+                  </span>
+                )}
+              </div>
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
                 <h2 style={{ fontSize: '1.3rem', color: '#0f172a', margin: '0 0 4px' }}>Activity Videos</h2>

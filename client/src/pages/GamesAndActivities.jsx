@@ -128,12 +128,25 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin, onNavigate }
   const [points, setPoints] = useState(() => parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10));
   const [guestRewardPrompt, setGuestRewardPrompt] = useState(null);
   const [featuredToys, setFeaturedToys] = useState([]);
+  const [introVideo, setIntroVideo] = useState({
+    youtube_id: '3vTfq_724jM',
+    title: 'Panda Nest Adventures & Storytime',
+    enabled: true
+  });
 
   useEffect(() => {
     fetch('/api/toys?featured=true')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setFeaturedToys(data.slice(0, 4));
+      })
+      .catch(() => {});
+    fetch('/api/videos/intro')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && typeof data.enabled === 'boolean') {
+          setIntroVideo(data);
+        }
       })
       .catch(() => {});
   }, []);
@@ -675,64 +688,110 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin, onNavigate }
           </div>
         </div>
 
-        {/* Intro Video Relocated from Catalog Hero (Item 3 Requirement) */}
-        <div
-          style={{
-            background: '#ffffff',
-            borderRadius: '20px',
-            padding: '20px',
-            marginBottom: '28px',
-            border: '1.5px solid #e2e8f0',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.06)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
-            <div>
-              <span className="badge badge-green" style={{ fontSize: '0.75rem', fontWeight: '800' }}>
-                🎬 CLUB SHOWCASE
-              </span>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: '4px 0 0' }}>
-                Panda Nest Adventures &amp; Storytime
-              </h3>
-            </div>
-            {onNavigate && (
-              <button
-                type="button"
-                onClick={() => onNavigate('drawing')}
-                className="btn btn-primary btn-sm"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-              >
-                🎨 Open Drawing Studio →
-              </button>
-            )}
-          </div>
+        {/* Highlighted Drawing Studio Spotlight Banner */}
+        {onNavigate && (
           <div
             style={{
-              position: 'relative',
-              paddingBottom: '45%',
-              height: 0,
-              overflow: 'hidden',
-              borderRadius: '14px',
-              background: '#000000'
+              background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
+              borderRadius: '22px',
+              padding: '22px 26px',
+              marginBottom: '24px',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px',
+              flexWrap: 'wrap',
+              boxShadow: '0 14px 32px -8px rgba(139, 92, 246, 0.45)'
             }}
           >
-            <iframe
+            <div>
+              <div style={{ fontSize: '0.78rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.8px', opacity: 0.95, marginBottom: '4px' }}>
+                ✨ Creative Corner for Kids
+              </div>
+              <h2 style={{ fontSize: '1.55rem', fontWeight: '900', color: '#ffffff', margin: '0 0 4px' }}>
+                🎨 Panda Magic Drawing Studio
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.92rem', opacity: 0.95 }}>
+                Draw, paint with vibrant colors, and download your artwork for free!
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate('drawing')}
+              className="btn-press"
               style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
+                background: '#ffffff',
+                color: '#7c3aed',
                 border: 'none',
-                borderRadius: '14px'
+                padding: '15px 28px',
+                borderRadius: '14px',
+                fontSize: '1.08rem',
+                fontWeight: '900',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '10px',
+                boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2)',
+                whiteSpace: 'nowrap'
               }}
-              src="https://www.youtube-nocookie.com/embed/3vTfq_724jM?autoplay=0&rel=0"
-              title="Panda Nest Intro Video"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+            >
+              <span>🎨 Open Drawing Studio</span>
+              <ArrowRight size={20} />
+            </button>
           </div>
-        </div>
+        )}
+
+        {/* Intro Video Relocated from Catalog Hero (Admin-managed via /api/videos/intro) */}
+        {introVideo.enabled && introVideo.youtube_id && (
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '20px',
+              padding: '20px',
+              marginBottom: '28px',
+              border: '1.5px solid #e2e8f0',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.06)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <span className="badge badge-green" style={{ fontSize: '0.75rem', fontWeight: '800' }}>
+                  🎬 CLUB SHOWCASE
+                </span>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: '4px 0 0' }}>
+                  {introVideo.title || 'Panda Nest Adventures & Storytime'}
+                </h3>
+              </div>
+            </div>
+            <div
+              style={{
+                position: 'relative',
+                paddingBottom: '45%',
+                height: 0,
+                overflow: 'hidden',
+                borderRadius: '14px',
+                background: '#000000'
+              }}
+            >
+              <iframe
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  borderRadius: '14px'
+                }}
+                src={`https://www.youtube.com/embed/${introVideo.youtube_id}?autoplay=0&rel=0`}
+                title={introVideo.title || 'Panda Nest Intro Video'}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        )}
 
         {/* LOCKED BANNER FOR GUEST USERS */}
         {!isAuthenticated && (
