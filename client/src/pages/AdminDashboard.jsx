@@ -164,6 +164,14 @@ export function AdminDashboard({ onLogout }) {
   const [introSaving, setIntroSaving] = useState(false);
   const [introMsg, setIntroMsg] = useState('');
 
+  // Admin Drawing Book Extra Pages state
+  const [drawingPages, setDrawingPages] = useState([]);
+  const [newDrawingTitle, setNewDrawingTitle] = useState('');
+  const [newDrawingFile, setNewDrawingFile] = useState(null);
+  const [newDrawingUrl, setNewDrawingUrl] = useState('');
+  const [drawingSaving, setDrawingSaving] = useState(false);
+  const [drawingMsg, setDrawingMsg] = useState('');
+
   // Coupons state
   const [coupons, setCoupons] = useState([]);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
@@ -311,6 +319,13 @@ export function AdminDashboard({ onLogout }) {
       if (resIntro.ok) {
         const dataIntro = await resIntro.json();
         if (dataIntro) setIntroVideoForm(dataIntro);
+      }
+
+      // Fetch Admin Drawing Book Extra Pages
+      const resDrawing = await fetch('/api/videos/drawing-pages');
+      if (resDrawing.ok) {
+        const dataDrawing = await resDrawing.json();
+        setDrawingPages(Array.isArray(dataDrawing) ? dataDrawing : []);
       }
 
       // Fetch coupons
@@ -2329,6 +2344,107 @@ export function AdminDashboard({ onLogout }) {
                   </label>
                 ))}
               </div>
+            </div>
+
+            {/* Drawing Book Extra Pages Manager */}
+            <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: '0 0 4px' }}>
+                Drawing Book Pages Manager 🎨📖
+              </h3>
+              <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 16px' }}>
+                118 built-in Drawing Book pages are already live. Upload extra coloring page images here to add them to Drawing Studio!
+              </p>
+
+              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', marginBottom: '18px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginBottom: '10px' }}>
+                  <input
+                    type="text"
+                    placeholder="Page Title (e.g. Cute Panda Coloring)"
+                    value={newDrawingTitle}
+                    onChange={(e) => setNewDrawingTitle(e.target.value)}
+                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1' }}
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setNewDrawingFile(e.target.files?.[0] || null)}
+                    style={{ padding: '6px 10px', borderRadius: '8px', border: '1.5px solid #cbd5e1', background: '#fff' }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Or paste Image URL (optional)"
+                    value={newDrawingUrl}
+                    onChange={(e) => setNewDrawingUrl(e.target.value)}
+                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    disabled={drawingSaving}
+                    className="btn btn-primary btn-sm"
+                    style={{ fontWeight: '800' }}
+                    onClick={async () => {
+                      setDrawingSaving(true);
+                      setDrawingMsg('');
+                      try {
+                        const fd = new FormData();
+                        fd.append('title', newDrawingTitle || 'Custom Coloring Page');
+                        if (newDrawingFile) fd.append('image', newDrawingFile);
+                        else if (newDrawingUrl) fd.append('image_url', newDrawingUrl);
+                        const res = await fetch('/api/videos/drawing-pages', {
+                          method: 'POST',
+                          headers: { Authorization: `Bearer ${token}` },
+                          body: fd
+                        });
+                        const created = await parseResponse(res, 'Failed to upload drawing page.');
+                        setDrawingPages(prev => [created, ...prev]);
+                        setNewDrawingTitle('');
+                        setNewDrawingFile(null);
+                        setNewDrawingUrl('');
+                        setDrawingMsg('✅ Drawing page added!');
+                      } catch (err) {
+                        setDrawingMsg('❌ ' + err.message);
+                      } finally {
+                        setDrawingSaving(false);
+                      }
+                    }}
+                  >
+                    {drawingSaving ? 'Uploading...' : '+ Upload Coloring Page'}
+                  </button>
+                  {drawingMsg && (
+                    <span style={{ fontSize: '0.84rem', fontWeight: '700', color: drawingMsg.startsWith('✅') ? '#047857' : '#dc2626' }}>
+                      {drawingMsg}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {drawingPages.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '12px' }}>
+                  {drawingPages.map((dp) => (
+                    <div key={dp.id} style={{ border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '8px', textAlign: 'center', background: '#fff' }}>
+                      <img src={dp.image_url} alt={dp.title} style={{ width: '100%', height: '90px', objectFit: 'contain', borderRadius: '8px', background: '#f8fafc', marginBottom: '6px' }} />
+                      <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#0f172a', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {dp.title}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await fetch(`/api/videos/drawing-pages/${dp.id}`, {
+                            method: 'DELETE',
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                          setDrawingPages(prev => prev.filter(p => p.id !== dp.id));
+                        }}
+                        style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700' }}
+                      >
+                        <Trash2 size={14} style={{ verticalAlign: 'middle' }} /> Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
           <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}>

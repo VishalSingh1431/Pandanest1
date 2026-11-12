@@ -1,8 +1,19 @@
 import express from 'express';
+import multer from 'multer';
 import { getDB, readLocalStore, writeLocalStore } from '../db.js';
 import { authenticateAdmin } from '../middleware/auth.js';
+import { uploadToCloudinary } from '../cloudinary.js';
 
 const router = express.Router();
+
+const uploadDrawing = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only image files are allowed.'));
+  }
+});
 
 // Helper to extract YouTube video ID from various URL formats
 function extractYouTubeId(urlOrId) {
@@ -93,6 +104,112 @@ router.put('/intro', authenticateAdmin, async (req, res) => {
   } catch (err) {
     console.error('Update intro video error:', err);
     res.status(500).json({ error: 'Failed to update main showcase video: ' + err.message });
+  }
+});
+
+// GET /api/videos/drawing-pages - Public: List admin-added drawing book pages
+router.get('/drawing-pages', async (req, res) => {
+  try {
+    const { isPostgres, pool } = getDB();
+    if (isPostgres && pool) {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS site_settings (
+          key VARCHAR(100) PRIMARY KEY,
+          value JSONB NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      const result = await pool.query("SELECT value FROM site_settings WHERE key = 'custom_drawing_pages'");
+      const pages = result.rows[0]?.value;
+      return res.json(Array.isArray(pages) ? pages : []);
+    } else {
+      const store = readLocalStore();
+      return res.json(Array.isArray(store.custom_drawing_pages) ? store.custom_drawing_pages : []);
+    }
+  } catch (err) {
+    console.error('Fetch drawing pages error:', err);
+    return res.json([]);
+  }
+});
+
+// POST /api/videos/drawing-pages - Admin: Upload/add a new drawing book page
+router.post('/drawing-pages', authenticateAdmin, uploadDrawing.single('image'), async (req, res) => {
+  try {
+    let imageUrl = (req.body.image_url || '').trim();
+    const title = (req.body.title || 'Custom Coloring Page').trim();
+
+    if (req.file) {
+      const uploaded = await uploadToCloudinary(req.file.buffer, 'pandanest_drawing_book');
+      imageUrl = uploaded.secure_url || uploaded.url;
+    }
+
+    if (!imageUrl) {
+      return res.status(400).json({ error: 'Please upload an image file or provide an image URL.' });
+    }
+
+    const newPage = {
+      id: Date.now(),
+      title,
+      image_url: imageUrl,
+      created_at: new Date().toISOString()
+    };
+
+    const { isPostgres, pool } = getDB();
+    if (isPostgres && pool) {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS site_settings (
+          key VARCHAR(100) PRIMARY KEY,
+          value JSONB NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      const existing = await pool.query("SELECT value FROM site_settings WHERE key = 'custom_drawing_pages'");
+      const pages = Array.isArray(existing.rows[0]?.value) ? existing.rows[0].value : [];
+      pages.unshift(newPage);
+      await pool.query(
+        `INSERT INTO site_settings (key, value, updated_at)
+         VALUES ('custom_drawing_pages', $1::jsonb, CURRENT_TIMESTAMP)
+         ON CONFLICT (key) DO UPDATE SET value = $1::jsonb, updated_at = CURRENT_TIMESTAMP`,
+        [JSON.stringify(pages)]
+      );
+    } else {
+      const store = readLocalStore();
+      store.custom_drawing_pages = Array.isArray(store.custom_drawing_pages) ? store.custom_drawing_pages : [];
+      store.custom_drawing_pages.unshift(newPage);
+      writeLocalStore(store);
+    }
+
+    return res.status(201).json(newPage);
+  } catch (err) {
+    console.error('Add drawing page error:', err);
+    res.status(500).json({ error: 'Failed to add drawing page: ' + err.message });
+  }
+});
+
+// DELETE /api/videos/drawing-pages/:pageId - Admin: Remove a custom drawing page
+router.delete('/drawing-pages/:pageId', authenticateAdmin, async (req, res) => {
+  try {
+    const pageId = String(req.params.pageId);
+    const { isPostgres, pool } = getDB();
+    if (isPostgres && pool) {
+      const existing = await pool.query("SELECT value FROM site_settings WHERE key = 'custom_drawing_pages'");
+      const pages = Array.isArray(existing.rows[0]?.value) ? existing.rows[0].value : [];
+      const updated = pages.filter(p => String(p.id) !== pageId);
+      await pool.query(
+        `INSERT INTO site_settings (key, value, updated_at)
+         VALUES ('custom_drawing_pages', $1::jsonb, CURRENT_TIMESTAMP)
+         ON CONFLICT (key) DO UPDATE SET value = $1::jsonb, updated_at = CURRENT_TIMESTAMP`,
+        [JSON.stringify(updated)]
+      );
+    } else {
+      const store = readLocalStore();
+      store.custom_drawing_pages = (store.custom_drawing_pages || []).filter(p => String(p.id) !== pageId);
+      writeLocalStore(store);
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Delete drawing page error:', err);
+    res.status(500).json({ error: 'Failed to delete drawing page.' });
   }
 });
 
