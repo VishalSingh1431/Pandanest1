@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { StarRating } from './StarRating';
 import {
   X,
   Star,
@@ -586,16 +587,11 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
               }}
             >
-              <div style={{ display: 'flex', gap: '2px' }}>
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    size={18}
-                    color="#f59e0b"
-                    fill={reviewsData.totalReviews > 0 && reviewsData.averageRating >= s - 0.5 ? '#f59e0b' : 'none'}
-                  />
-                ))}
-              </div>
+              <StarRating
+                rating={reviewsData.totalReviews > 0 ? reviewsData.averageRating : 0}
+                size={18}
+                gap={3}
+              />
               <span style={{ fontSize: '0.9rem', color: '#6b7280', textDecoration: 'underline' }}>
                 {reviewsData.totalReviews > 0
                   ? `${reviewsData.totalReviews} ${reviewsData.totalReviews === 1 ? 'review' : 'reviews'}`
@@ -995,15 +991,12 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
           >
             {/* Left: Overall rating score */}
             <div style={{ textAlign: 'center' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '3px', marginBottom: '6px' }}>
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    size={20}
-                    color="#f59e0b"
-                    fill={totalRev > 0 && reviewsData.averageRating >= s - 0.5 ? '#f59e0b' : 'none'}
-                  />
-                ))}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                <StarRating
+                  rating={totalRev > 0 ? reviewsData.averageRating : 0}
+                  size={22}
+                  gap={3}
+                />
               </div>
               <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#111827', marginBottom: '2px' }}>
                 {totalRev > 0 ? `${reviewsData.averageRating.toFixed(1)} out of 5` : 'Not yet rated'}
@@ -1022,8 +1015,13 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
                 return (
                   <div key={star} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem' }}>
                     <div style={{ display: 'flex', gap: '1px', width: '70px' }}>
-                      {[...Array(star)].map((_, i) => (
-                        <Star key={i} size={11} color="#f59e0b" fill="#f59e0b" />
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Star
+                          key={i}
+                          size={11}
+                          color={i <= star ? '#f59e0b' : '#cbd5e1'}
+                          fill={i <= star ? '#f59e0b' : '#f1f5f9'}
+                        />
                       ))}
                     </div>
                     <div style={{ flex: 1, height: '10px', background: '#f3f4f6', borderRadius: '9999px', overflow: 'hidden' }}>
@@ -1109,16 +1107,7 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ display: 'flex', gap: '2px' }}>
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Star
-                          key={s}
-                          size={14}
-                          color="#f59e0b"
-                          fill={(rev.rating || 5) >= s ? '#f59e0b' : 'none'}
-                        />
-                      ))}
-                    </div>
+                    <StarRating rating={Number(rev.rating || 5)} size={14} gap={2} />
                     <span style={{ fontWeight: '700', fontSize: '0.9rem', color: '#111827' }}>
                       {rev.user_name}
                     </span>
@@ -1433,12 +1422,12 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
                       key={star}
                       type="button"
                       onClick={() => setNewReview((r) => ({ ...r, rating: star }))}
-                      style={{ padding: '4px', cursor: 'pointer' }}
+                      style={{ padding: '4px', cursor: 'pointer', background: 'none', border: 'none' }}
                     >
                       <Star
                         size={28}
-                        color="#f59e0b"
-                        fill={newReview.rating >= star ? '#f59e0b' : 'none'}
+                        color={newReview.rating >= star ? '#f59e0b' : '#cbd5e1'}
+                        fill={newReview.rating >= star ? '#f59e0b' : '#f1f5f9'}
                       />
                     </button>
                   ))}
@@ -1453,7 +1442,7 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Priya Sharma"
+                  placeholder="e.g. Rahul Sharma"
                   className="form-input"
                   value={newReview.user_name}
                   onChange={(e) => setNewReview({ ...newReview, user_name: e.target.value })}

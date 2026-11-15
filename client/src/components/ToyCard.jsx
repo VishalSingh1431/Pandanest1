@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ShoppingBag, Zap, Heart, Star, Sparkles, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { StarRating } from './StarRating';
 
 export function ToyCard({ toy, onSelectToy }) {
   const { addToCart, buyNow } = useCart();
@@ -395,17 +396,8 @@ export function ToyCard({ toy, onSelectToy }) {
                 </span>
               </div>
 
-              {/* Stars visual */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    size={11}
-                    color={Number(toyRating) >= star ? '#f59e0b' : '#cbd5e1'}
-                    fill={Number(toyRating) >= star ? '#f59e0b' : '#f1f5f9'}
-                  />
-                ))}
-              </div>
+              {/* Stars visual with precise full, half and empty fills */}
+              <StarRating rating={Number(toyRating)} size={11} gap={1} />
 
               {/* Review Count */}
               <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: '600' }}>
@@ -413,12 +405,8 @@ export function ToyCard({ toy, onSelectToy }) {
               </span>
             </>
           ) : (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.74rem', color: '#94a3b8' }}>
-              <div style={{ display: 'flex', gap: '1px' }}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} size={11} color="#cbd5e1" fill="none" />
-                ))}
-              </div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#94a3b8' }}>
+              <StarRating rating={0} size={11} gap={1} />
               <span style={{ fontWeight: '500' }}>No reviews yet</span>
             </div>
           )}
