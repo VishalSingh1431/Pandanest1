@@ -667,35 +667,60 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             flexWrap: 'wrap',
             gap: '14px',
             marginBottom: '26px',
-            padding: '12px 18px',
-            background: 'white',
+            padding: '14px 20px',
+            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
             borderRadius: '16px',
-            border: '1px solid #e2e8f0'
+            border: '1.5px solid #e2e8f0',
+            boxShadow: '0 4px 14px rgba(15, 23, 42, 0.04)'
           }}
         >
           {/* Age Group Filter (0-3, 3-5, 5-8, 8-12, 12+) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748b' }}>Age Range:</span>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {AGE_GROUPS.map((age) => (
-                <button
-                  key={age}
-                  className="btn-press"
-                  onClick={() => setSelectedAge(age)}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '8px',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    border: '1px solid',
-                    borderColor: selectedAge === age ? '#10b981' : '#e2e8f0',
-                    background: selectedAge === age ? '#ecfdf5' : '#f8fafc',
-                    color: selectedAge === age ? '#059669' : '#64748b'
-                  }}
-                >
-                  {age}
-                </button>
-              ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.88rem',
+                fontWeight: '800',
+                color: '#92400e',
+                background: '#fef3c7',
+                padding: '6px 14px',
+                borderRadius: '9999px',
+                border: '1px solid #fde68a',
+                boxShadow: '0 1px 3px rgba(245, 158, 11, 0.15)'
+              }}
+            >
+              <span>🎂</span> Age Range:
+            </span>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {AGE_GROUPS.map((age) => {
+                const isSelected = selectedAge === age;
+                return (
+                  <button
+                    key={age}
+                    className="btn-press"
+                    onClick={() => setSelectedAge(age)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '9999px',
+                      fontSize: '0.85rem',
+                      fontWeight: isSelected ? '800' : '700',
+                      border: isSelected ? '1.5px solid #059669' : '1.5px solid #cbd5e1',
+                      background: isSelected ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#ffffff',
+                      color: isSelected ? '#ffffff' : '#334155',
+                      boxShadow: isSelected
+                        ? '0 4px 12px rgba(16, 185, 129, 0.35)'
+                        : '0 1px 3px rgba(0, 0, 0, 0.04)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      transform: isSelected ? 'scale(1.04)' : 'scale(1)'
+                    }}
+                  >
+                    {age}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
