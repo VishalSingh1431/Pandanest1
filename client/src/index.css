@@ -707,4 +707,16 @@ html {
     line-height: 1.35 !important;
     height: 2.7em !important;
   }
+
+  /* Responsive Mobile Form Fields (Stack 2-col grids to 1-col on small screens) */
+  .checkout-form-grid,
+  .admin-form-grid-2 {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .admin-form-grid-3 {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
 }
