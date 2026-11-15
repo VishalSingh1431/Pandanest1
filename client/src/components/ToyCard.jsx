@@ -1,19 +1,37 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Zap, Heart, Star, Sparkles, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Zap, Heart, Star, Sparkles, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
 export function ToyCard({ toy, onSelectToy }) {
   const { addToCart, buyNow } = useCart();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [addedAnim, setAddedAnim] = useState(false);
+  const [currentImgIndex, setCurrentImgIndex] = useState(0);
+
+  // Extract all available images (from images array or image_url)
+  const rawImages = Array.isArray(toy?.images) && toy.images.length > 0
+    ? toy.images.filter(Boolean)
+    : [toy?.image_url].filter(Boolean);
+
+  const activeImg = rawImages[currentImgIndex] || toy?.image_url || 'https://images.unsplash.com/photo-1559454403-b8fb88521f11?w=800&auto=format&fit=crop&q=80';
 
   const discountPercent = toy.original_price && Number(toy.original_price) > Number(toy.price)
     ? Math.round(((Number(toy.original_price) - Number(toy.price)) / Number(toy.original_price)) * 100)
     : null;
 
-  // Rating fallback if not set: deterministic high rating (4.8 - 5.0)
-  const toyRating = toy.rating ? Number(toy.rating).toFixed(1) : (4.8 + ((Number(toy.id || 1) % 3) * 0.1)).toFixed(1);
-  const reviewCount = toy.review_count || (18 + ((Number(toy.id || 1) * 7) % 32));
+  // Real review counts and ratings from database (zero hardcoding)
+  const reviewCount = Number(toy.review_count || 0);
+  const toyRating = toy.rating && Number(toy.rating) > 0 ? Number(toy.rating).toFixed(1) : null;
+
+  const handlePrevImage = (e) => {
+    e.stopPropagation();
+    setCurrentImgIndex((prev) => (prev === 0 ? rawImages.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = (e) => {
+    e.stopPropagation();
+    setCurrentImgIndex((prev) => (prev === rawImages.length - 1 ? 0 : prev + 1));
+  };
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
@@ -63,7 +81,7 @@ export function ToyCard({ toy, onSelectToy }) {
         onClick={() => onSelectToy && onSelectToy(toy)}
       >
         <img
-          src={toy.image_url}
+          src={activeImg}
           alt={toy.name}
           style={{
             position: 'absolute',
@@ -80,6 +98,116 @@ export function ToyCard({ toy, onSelectToy }) {
             e.currentTarget.src = 'https://images.unsplash.com/photo-1559454403-b8fb88521f11?w=800&auto=format&fit=crop&q=80';
           }}
         />
+
+        {/* Previous & Next Arrow Buttons for multi-image toys */}
+        {rawImages.length > 1 && (
+          <button
+            type="button"
+            onClick={handlePrevImage}
+            aria-label="Previous image"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '8px',
+              transform: 'translateY(-50%)',
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.92)',
+              backdropFilter: 'blur(4px)',
+              border: '1px solid rgba(226, 232, 240, 0.8)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 3,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+              transition: 'all 0.15s ease',
+              color: '#0f172a'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#ffffff';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1.12)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.92)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+            }}
+          >
+            <ChevronLeft size={16} strokeWidth={2.5} />
+          </button>
+        )}
+
+        {rawImages.length > 1 && (
+          <button
+            type="button"
+            onClick={handleNextImage}
+            aria-label="Next image"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              right: '8px',
+              transform: 'translateY(-50%)',
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.92)',
+              backdropFilter: 'blur(4px)',
+              border: '1px solid rgba(226, 232, 240, 0.8)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 3,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+              transition: 'all 0.15s ease',
+              color: '#0f172a'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#ffffff';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1.12)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.92)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+            }}
+          >
+            <ChevronRight size={16} strokeWidth={2.5} />
+          </button>
+        )}
+
+        {/* Dot Indicators */}
+        {rawImages.length > 1 && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '8px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              background: 'rgba(0,0,0,0.45)',
+              backdropFilter: 'blur(4px)',
+              padding: '3px 7px',
+              borderRadius: '9999px',
+              zIndex: 3
+            }}
+          >
+            {rawImages.map((_, idx) => (
+              <span
+                key={idx}
+                style={{
+                  width: idx === currentImgIndex ? '10px' : '4px',
+                  height: '4px',
+                  borderRadius: '9999px',
+                  background: idx === currentImgIndex ? '#10b981' : 'rgba(255,255,255,0.7)',
+                  transition: 'all 0.2s ease'
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Soft bottom vignette overlay on image */}
         <div
@@ -247,40 +375,53 @@ export function ToyCard({ toy, onSelectToy }) {
           }}
           onClick={() => onSelectToy && onSelectToy(toy)}
         >
-          {/* Rating Pill */}
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              background: '#fffbeb',
-              border: '1px solid #fde68a',
-              padding: '2px 7px',
-              borderRadius: '7px'
-            }}
-          >
-            <Star size={13} color="#f59e0b" fill="#f59e0b" />
-            <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#92400e' }}>
-              {toyRating}
-            </span>
-          </div>
+          {reviewCount > 0 && toyRating ? (
+            <>
+              {/* Rating Pill */}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  padding: '2px 7px',
+                  borderRadius: '7px'
+                }}
+              >
+                <Star size={13} color="#f59e0b" fill="#f59e0b" />
+                <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#92400e' }}>
+                  {toyRating}
+                </span>
+              </div>
 
-          {/* Stars visual */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                size={11}
-                color={Number(toyRating) >= star ? '#f59e0b' : '#cbd5e1'}
-                fill={Number(toyRating) >= star ? '#f59e0b' : '#f1f5f9'}
-              />
-            ))}
-          </div>
+              {/* Stars visual */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    size={11}
+                    color={Number(toyRating) >= star ? '#f59e0b' : '#cbd5e1'}
+                    fill={Number(toyRating) >= star ? '#f59e0b' : '#f1f5f9'}
+                  />
+                ))}
+              </div>
 
-          {/* Review Count */}
-          <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: '600' }}>
-            ({reviewCount})
-          </span>
+              {/* Review Count */}
+              <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: '600' }}>
+                ({reviewCount})
+              </span>
+            </>
+          ) : (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.74rem', color: '#94a3b8' }}>
+              <div style={{ display: 'flex', gap: '1px' }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star key={star} size={11} color="#cbd5e1" fill="none" />
+                ))}
+              </div>
+              <span style={{ fontWeight: '500' }}>No reviews yet</span>
+            </div>
+          )}
         </div>
 
         {/* Pricing & Stock Indicator */}

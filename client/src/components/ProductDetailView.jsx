@@ -35,8 +35,8 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
   // Reviews state
   const [reviewsData, setReviewsData] = useState({
     reviews: [],
-    averageRating: 5.0,
-    totalReviews: 1
+    averageRating: 0,
+    totalReviews: 0
   });
   const [newReview, setNewReview] = useState({
     rating: 5,
@@ -79,28 +79,11 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
         const res = await fetch(`/api/reviews/toy/${toy.id}`);
         if (res.ok) {
           const data = await res.json();
-          // If no reviews yet, use clean realistic baseline
-          if (!data.reviews || data.reviews.length === 0) {
-            setReviewsData({
-              reviews: [
-                {
-                  id: 'def-1',
-                  user_name: 'Priya Sharma (Verified Mom)',
-                  rating: 5,
-                  comment: 'Super fast delivery! Extremely high quality plastic, my baby loves the lights and sounds.',
-                  created_at: new Date(Date.now() - 86400000 * 2).toISOString()
-                }
-              ],
-              averageRating: 5.0,
-              totalReviews: 1
-            });
-          } else {
-            setReviewsData({
-              reviews: data.reviews,
-              averageRating: Number(data.averageRating) || 5.0,
-              totalReviews: Number(data.totalReviews) || data.reviews.length
-            });
-          }
+          setReviewsData({
+            reviews: Array.isArray(data.reviews) ? data.reviews : [],
+            averageRating: Number(data.averageRating) || 0,
+            totalReviews: Number(data.totalReviews) || (Array.isArray(data.reviews) ? data.reviews.length : 0)
+          });
         }
       } catch (err) {
         console.warn('Could not fetch reviews:', err);
@@ -220,14 +203,12 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
   const relatedToys = allToys.filter((t) => String(t.id) !== String(toy?.id)).slice(0, 4);
 
   // Review breakdown stats
-  const totalRev = reviewsData.totalReviews || 1;
+  const totalRev = reviewsData.totalReviews || 0;
   const starCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
   reviewsData.reviews.forEach((r) => {
     const star = Math.min(5, Math.max(1, Math.round(r.rating || 5)));
     starCounts[star] = (starCounts[star] || 0) + 1;
   });
-  // If baseline 1 review of 5 stars
-  if (reviewsData.reviews.length === 0) starCounts[5] = 1;
 
   return (
     <div style={{ background: '#ffffff', minHeight: '100vh', position: 'relative' }}>
@@ -611,12 +592,14 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
                     key={s}
                     size={18}
                     color="#f59e0b"
-                    fill={reviewsData.averageRating >= s - 0.5 ? '#f59e0b' : 'none'}
+                    fill={reviewsData.totalReviews > 0 && reviewsData.averageRating >= s - 0.5 ? '#f59e0b' : 'none'}
                   />
                 ))}
               </div>
               <span style={{ fontSize: '0.9rem', color: '#6b7280', textDecoration: 'underline' }}>
-                {reviewsData.totalReviews} {reviewsData.totalReviews === 1 ? 'review' : 'reviews'}
+                {reviewsData.totalReviews > 0
+                  ? `${reviewsData.totalReviews} ${reviewsData.totalReviews === 1 ? 'review' : 'reviews'}`
+                  : 'No reviews yet'}
               </span>
             </div>
 
@@ -1014,14 +997,19 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
             <div style={{ textAlign: 'center' }}>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '3px', marginBottom: '6px' }}>
                 {[1, 2, 3, 4, 5].map((s) => (
-                  <Star key={s} size={20} color="#f59e0b" fill="#f59e0b" />
+                  <Star
+                    key={s}
+                    size={20}
+                    color="#f59e0b"
+                    fill={totalRev > 0 && reviewsData.averageRating >= s - 0.5 ? '#f59e0b' : 'none'}
+                  />
                 ))}
               </div>
               <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#111827', marginBottom: '2px' }}>
-                {reviewsData.averageRating.toFixed(2)} out of 5
+                {totalRev > 0 ? `${reviewsData.averageRating.toFixed(1)} out of 5` : 'Not yet rated'}
               </div>
               <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                Based on {totalRev} {totalRev === 1 ? 'review' : 'reviews'}
+                {totalRev > 0 ? `Based on ${totalRev} ${totalRev === 1 ? 'review' : 'reviews'}` : 'Be the first to review this toy!'}
               </div>
             </div>
 
@@ -1029,7 +1017,7 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {[5, 4, 3, 2, 1].map((star) => {
                 const count = starCounts[star] || 0;
-                const pct = Math.round((count / totalRev) * 100);
+                const pct = totalRev > 0 ? Math.round((count / totalRev) * 100) : 0;
 
                 return (
                   <div key={star} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem' }}>
@@ -1082,7 +1070,34 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
 
           {/* Reviews List */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {reviewsData.reviews.map((rev) => (
+            {reviewsData.reviews.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '36px 20px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                <p style={{ color: '#64748b', fontSize: '0.95rem', margin: '0 0 12px', fontWeight: '500' }}>
+                  No customer reviews yet for this toy.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsWriteReviewOpen(true)}
+                  style={{
+                    background: '#15803d',
+                    color: '#ffffff',
+                    fontWeight: '700',
+                    fontSize: '0.85rem',
+                    padding: '8px 18px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    border: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Star size={14} fill="#ffffff" color="#ffffff" />
+                  Be the first to review
+                </button>
+              </div>
+            ) : (
+              reviewsData.reviews.map((rev) => (
               <div
                 key={rev.id}
                 style={{
@@ -1134,7 +1149,7 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
                   </p>
                 )}
               </div>
-            ))}
+            )))}
           </div>
         </div>
       </main>

@@ -192,10 +192,10 @@ export function AdminDashboard({ onLogout }) {
   const [isAddReviewModalOpen, setIsAddReviewModalOpen] = useState(false);
   const [newReviewForm, setNewReviewForm] = useState({
     toy_id: '',
-    user_name: 'Priya Sharma (Verified Mom)',
+    user_name: '',
     user_email: '',
     rating: 5,
-    comment: 'Super fast delivery, child loved this toy immediately! Extremely high quality plastic.',
+    comment: '',
     status: 'approved'
   });
   const [newReviewLoading, setNewReviewLoading] = useState(false);
@@ -885,10 +885,10 @@ export function AdminDashboard({ onLogout }) {
     setNewReviewError('');
     setNewReviewForm({
       toy_id: toys[0]?.id || '',
-      user_name: 'Priya Sharma (Verified Mom)',
+      user_name: '',
       user_email: '',
       rating: 5,
-      comment: 'Super fast delivery, child loved this toy immediately! Extremely high quality plastic.',
+      comment: '',
       status: 'approved'
     });
     setIsAddReviewModalOpen(true);

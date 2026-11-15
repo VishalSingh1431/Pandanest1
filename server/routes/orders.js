@@ -21,6 +21,51 @@ function normalizePhone(raw) {
 // IMPORTANT: Named routes MUST be declared before /:id routes
 // ─────────────────────────────────────────────────────────
 
+// GET /api/orders/pincode/:pincode — Auto-detect City, District & State from 6-digit Indian PIN code
+router.get('/pincode/:pincode', async (req, res) => {
+  try {
+    const rawPin = String(req.params.pincode || '').replace(/\D/g, '');
+    if (rawPin.length !== 6) {
+      return res.status(400).json({ error: 'Please enter a valid 6-digit Indian PIN code.' });
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+
+    const response = await fetch(`https://api.postalpincode.in/pincode/${rawPin}`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      return res.status(502).json({ error: 'Pincode service temporarily unavailable.' });
+    }
+
+    const data = await response.json();
+    if (Array.isArray(data) && data[0]?.Status === 'Success' && Array.isArray(data[0]?.PostOffice) && data[0].PostOffice.length > 0) {
+      const po = data[0].PostOffice[0];
+      const district = po.District || '';
+      const state = po.State || '';
+      const area = po.Name || '';
+      const cityFormatted = district && state ? (district.toLowerCase() === state.toLowerCase() ? district : `${district}, ${state}`) : (district || state || area);
+
+      return res.json({
+        success: true,
+        pincode: rawPin,
+        district,
+        state,
+        area,
+        city: cityFormatted
+      });
+    }
+
+    return res.status(404).json({ success: false, error: 'Pincode not found.' });
+  } catch (err) {
+    console.warn('Pincode lookup failed:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to look up pincode.' });
+  }
+});
+
 // GET /api/orders/my-orders — Customer: View personal orders (uses user_email from JWT)
 router.get('/my-orders', authenticateUser, async (req, res) => {
   try {

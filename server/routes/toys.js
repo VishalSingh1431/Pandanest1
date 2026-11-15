@@ -58,7 +58,7 @@ router.get('/', async (req, res) => {
       const result = await pool.query(query, params);
       toys = result.rows;
 
-      // Attach review rating and count for each toy
+      // Attach review rating and count for each toy from actual approved reviews
       try {
         const revResult = await pool.query(
           `SELECT toy_id, AVG(rating) as avg_rating, COUNT(*) as review_count
@@ -74,24 +74,19 @@ router.get('/', async (req, res) => {
           };
         });
         toys = toys.map(t => {
-          const tidNum = Number(t.id) || 1;
-          const fallbackRating = Number((4.4 + ((tidNum * 13) % 6) * 0.1).toFixed(1)); // 4.4 - 4.9 realistic spread
-          const fallbackReviews = 8 + ((tidNum * 7) % 38);
+          const rev = revMap[String(t.id)];
           return {
             ...t,
-            rating: revMap[String(t.id)]?.rating || fallbackRating,
-            review_count: revMap[String(t.id)]?.review_count || fallbackReviews
+            rating: rev ? rev.rating : (Number(t.rating) || 0),
+            review_count: rev ? rev.review_count : (Number(t.review_count) || 0)
           };
         });
       } catch (revErr) {
-        toys = toys.map(t => {
-          const tidNum = Number(t.id) || 1;
-          return {
-            ...t,
-            rating: Number((4.4 + ((tidNum * 13) % 6) * 0.1).toFixed(1)),
-            review_count: 8 + ((tidNum * 7) % 38)
-          };
-        });
+        toys = toys.map(t => ({
+          ...t,
+          rating: Number(t.rating) || 0,
+          review_count: Number(t.review_count) || 0
+        }));
       }
     } else {
       const store = readLocalStore();
@@ -106,14 +101,13 @@ router.get('/', async (req, res) => {
 
       toys = (store.toys || []).map(t => {
         const tid = String(t.id);
-        const tidNum = Number(t.id) || 1;
         const revInfo = revMap[tid];
         const rating = revInfo && revInfo.count > 0
           ? Number((revInfo.sum / revInfo.count).toFixed(1))
-          : Number((4.4 + ((tidNum * 13) % 6) * 0.1).toFixed(1));
+          : (Number(t.rating) || 0);
         const review_count = revInfo && revInfo.count > 0
           ? revInfo.count
-          : (8 + ((tidNum * 7) % 38));
+          : (Number(t.review_count) || 0);
         return {
           ...t,
           rating,
@@ -159,10 +153,28 @@ router.get('/:id', async (req, res) => {
 
     if (isPostgres && pool) {
       const result = await pool.query('SELECT * FROM toys WHERE id = $1', [id]);
-      if (result.rows.length > 0) toy = result.rows[0];
+      if (result.rows.length > 0) {
+        toy = result.rows[0];
+        const revResult = await pool.query(
+          `SELECT AVG(rating) as avg_rating, COUNT(*) as review_count
+           FROM reviews
+           WHERE toy_id = $1 AND status = 'approved'`,
+          [id]
+        );
+        const row = revResult.rows[0];
+        const count = row ? Number(row.review_count) : 0;
+        toy.rating = count > 0 ? Number(Number(row.avg_rating).toFixed(1)) : (Number(toy.rating) || 0);
+        toy.review_count = count > 0 ? count : (Number(toy.review_count) || 0);
+      }
     } else {
       const store = readLocalStore();
       toy = store.toys.find(t => String(t.id) === String(id));
+      if (toy) {
+        const revs = (store.reviews || []).filter(r => String(r.toy_id) === String(id) && r.status === 'approved');
+        const count = revs.length;
+        const avg = count > 0 ? Number((revs.reduce((sum, r) => sum + Number(r.rating || 5), 0) / count).toFixed(1)) : (Number(toy.rating) || 0);
+        toy = { ...toy, rating: avg, review_count: count };
+      }
     }
 
     if (!toy) {

@@ -32,6 +32,10 @@ export function CheckoutModal() {
   const [error, setError] = useState('');
   const [orderSuccess, setOrderSuccess] = useState(null);
 
+  // Auto-fill city & state from 6-digit Indian Postal Pincode
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [pincodeMessage, setPincodeMessage] = useState('');
+
   useEffect(() => {
     const fetchPoints = async () => {
       const token = localStorage.getItem('pandanest_admin_token');
@@ -56,11 +60,10 @@ export function CheckoutModal() {
       }
 
       const savedPhone = localStorage.getItem('pandanest_member_phone') || '';
-      const savedChild = localStorage.getItem('pandanest_member_child') || '';
       setFormData(prev => ({
         ...prev,
         phone: prev.phone || savedPhone,
-        customer_name: prev.customer_name || (savedChild ? `Parent of ${savedChild}` : ''),
+        customer_name: prev.customer_name || admin?.name || '',
         email: prev.email || admin?.email || ''
       }));
     };
@@ -120,6 +123,52 @@ export function CheckoutModal() {
 
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handlePincodeChange = async (val) => {
+    const cleanPin = val.replace(/\D/g, '').slice(0, 6);
+    setFormData(prev => ({ ...prev, pincode: cleanPin }));
+
+    if (cleanPin.length === 6) {
+      setPincodeLoading(true);
+      setPincodeMessage('Detecting city...');
+      try {
+        let detectedCity = '';
+        try {
+          const res = await fetch(`/api/orders/pincode/${cleanPin}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.city) detectedCity = data.city;
+          }
+        } catch {
+          // Fallback to direct client API if backend proxy fails
+        }
+
+        if (!detectedCity) {
+          const resDirect = await fetch(`https://api.postalpincode.in/pincode/${cleanPin}`);
+          const directData = await resDirect.json();
+          if (Array.isArray(directData) && directData[0]?.Status === 'Success' && directData[0]?.PostOffice?.length > 0) {
+            const po = directData[0].PostOffice[0];
+            detectedCity = po.District && po.State
+              ? (po.District.toLowerCase() === po.State.toLowerCase() ? po.District : `${po.District}, ${po.State}`)
+              : (po.District || po.State || '');
+          }
+        }
+
+        if (detectedCity) {
+          setFormData(prev => ({ ...prev, city: detectedCity }));
+          setPincodeMessage(`✓ ${detectedCity}`);
+        } else {
+          setPincodeMessage('Not found');
+        }
+      } catch {
+        setPincodeMessage('');
+      } finally {
+        setPincodeLoading(false);
+      }
+    } else {
+      setPincodeMessage('');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -473,13 +522,13 @@ export function CheckoutModal() {
             <form onSubmit={handleSubmit}>
               <div className="checkout-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="form-group">
-                  <label className="form-label">Full Name / Parent Name *</label>
+                  <label className="form-label">Full Name *</label>
                   <input
                     type="text"
                     name="customer_name"
                     required
                     className="form-input"
-                    placeholder="e.g. Pooja Sharma"
+                    placeholder="e.g. Rahul Sharma"
                     value={formData.customer_name}
                     onChange={handleChange}
                   />
@@ -527,26 +576,39 @@ export function CheckoutModal() {
 
               <div className="checkout-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="form-group">
-                  <label className="form-label">City *</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label className="form-label" style={{ margin: 0 }}>Postal Pincode *</label>
+                    {pincodeLoading && (
+                      <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: '600' }}>
+                        Detecting...
+                      </span>
+                    )}
+                    {!pincodeLoading && pincodeMessage && (
+                      <span style={{ fontSize: '0.72rem', color: pincodeMessage.startsWith('✓') ? '#059669' : '#dc2626', fontWeight: '700' }}>
+                        {pincodeMessage}
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    name="pincode"
+                    required
+                    maxLength={6}
+                    className="form-input"
+                    placeholder="e.g. 134114 (Auto-fills city)"
+                    value={formData.pincode}
+                    onChange={(e) => handlePincodeChange(e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">City & State *</label>
                   <input
                     type="text"
                     name="city"
                     required
                     className="form-input"
-                    placeholder="e.g. Panchkula, Chandigarh, Delhi"
+                    placeholder="e.g. Panchkula, Haryana"
                     value={formData.city}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Postal Pincode *</label>
-                  <input
-                    type="text"
-                    name="pincode"
-                    required
-                    className="form-input"
-                    placeholder="e.g. 134114"
-                    value={formData.pincode}
                     onChange={handleChange}
                   />
                 </div>
