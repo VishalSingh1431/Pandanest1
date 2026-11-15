@@ -739,3 +739,30 @@ html {
 .marquee-track:hover {
   animation-play-state: paused;
 }
+
+/* =========================================================
+   Hero Banner TV Screen / Mobile Form Responsive Classes
+   ========================================================= */
+@media (max-width: 768px) {
+  .hero-tv-desktop-form {
+    display: none !important;
+  }
+  .hero-tv-mobile-video {
+    display: block !important;
+  }
+  .hero-tv-mobile-form {
+    display: block !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .hero-tv-desktop-form {
+    display: flex !important;
+  }
+  .hero-tv-mobile-video {
+    display: none !important;
+  }
+  .hero-tv-mobile-form {
+    display: none !important;
+  }
+}
