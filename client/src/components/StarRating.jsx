@@ -90,3 +90,4 @@ export function StarRating({ rating = 0, size = 14, gap = 2, totalReviews, showC
     </div>
   );
 }
+

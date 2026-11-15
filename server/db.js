@@ -220,6 +220,19 @@ function ensureLocalStore() {
       coupons: [
         {
           id: 1,
+          code: 'PANDANEST',
+          discount_type: 'percentage',
+          discount_value: 5,
+          min_order_amount: 0,
+          max_discount: 500,
+          expires_at: null,
+          usage_limit: 9999,
+          used_count: 0,
+          is_active: true,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 2,
           code: 'PANDA50',
           discount_type: 'flat',
           discount_value: 50,
@@ -232,7 +245,7 @@ function ensureLocalStore() {
           created_at: new Date().toISOString()
         },
         {
-          id: 2,
+          id: 3,
           code: 'WELCOME10',
           discount_type: 'percentage',
           discount_value: 10,
@@ -275,6 +288,19 @@ export function readLocalStore() {
       localStoreCache.coupons = [
         {
           id: 1,
+          code: 'PANDANEST',
+          discount_type: 'percentage',
+          discount_value: 5,
+          min_order_amount: 0,
+          max_discount: 500,
+          expires_at: null,
+          usage_limit: 9999,
+          used_count: 0,
+          is_active: true,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 2,
           code: 'PANDA50',
           discount_type: 'flat',
           discount_value: 50,
@@ -287,7 +313,7 @@ export function readLocalStore() {
           created_at: new Date().toISOString()
         },
         {
-          id: 2,
+          id: 3,
           code: 'WELCOME10',
           discount_type: 'percentage',
           discount_value: 10,
@@ -616,7 +642,18 @@ async function initPostgresSchema() {
        ('WELCOME10', 'percentage', 10, 0, 200, 1000, true)
        ON CONFLICT (code) DO NOTHING`
     );
-    console.log('🎟️  Seeded default coupons (PANDA50, WELCOME10) into PostgreSQL!');
+    console.log('🎟️  Seeded default coupons (PANDANEST, PANDA50, WELCOME10) into PostgreSQL!');
+  } else {
+    // Ensure PANDANEST 5% coupon is always available
+    try {
+      await pool.query(
+        `INSERT INTO coupons (code, discount_type, discount_value, min_order_amount, max_discount, usage_limit, is_active)
+         VALUES ('PANDANEST', 'percentage', 5, 0, 500, 9999, true)
+         ON CONFLICT (code) DO NOTHING`
+      );
+    } catch (e) {
+      // ignore
+    }
   }
 }
 

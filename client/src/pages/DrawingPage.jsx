@@ -11,7 +11,8 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
-  FileDown
+  FileDown,
+  Sparkles
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
@@ -33,7 +34,10 @@ function hexToRgb(hex) {
 
 export function DrawingPage({ onNavigate }) {
   const canvasRef = useRef(null);
+  const baseCanvasRef = useRef(null);
+  const templateBoundsRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const historyRef = useRef([]);
+  const lastCoordRef = useRef({ x: 0, y: 0 });
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [tool, setTool] = useState('fill'); // 'brush' | 'fill' | 'eraser'
@@ -65,10 +69,23 @@ export function DrawingPage({ onNavigate }) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
+    // Initialize or resize offscreen base canvas
+    if (!baseCanvasRef.current) {
+      baseCanvasRef.current = document.createElement('canvas');
+    }
+    const baseCanvas = baseCanvasRef.current;
+    baseCanvas.width = canvas.width;
+    baseCanvas.height = canvas.height;
+    const baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true });
+
+    // Fill white on both
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    baseCtx.fillStyle = '#ffffff';
+    baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
 
     if (!pageNum) {
+      templateBoundsRef.current = { x: 0, y: 0, w: canvas.width, h: canvas.height };
       historyRef.current = [];
       saveHistorySnapshot();
       return;
@@ -87,14 +104,30 @@ export function DrawingPage({ onNavigate }) {
     img.onload = () => {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      baseCtx.fillStyle = '#ffffff';
+      baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
 
       const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
-      const drawW = img.width * scale;
-      const drawH = img.height * scale;
-      const offsetX = (canvas.width - drawW) / 2;
-      const offsetY = (canvas.height - drawH) / 2;
+      const drawW = Math.floor(img.width * scale);
+      const drawH = Math.floor(img.height * scale);
+      const offsetX = Math.floor((canvas.width - drawW) / 2);
+      const offsetY = Math.floor((canvas.height - drawH) / 2);
 
+      templateBoundsRef.current = { x: offsetX, y: offsetY, w: drawW, h: drawH };
+
+      // Draw onto both the visible canvas and the offscreen base canvas
       ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+      baseCtx.drawImage(img, offsetX, offsetY, drawW, drawH);
+
+      // Draw subtle boundary frame so floodFill never leaks outside the coloring sheet
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(offsetX, offsetY, drawW, drawH);
+
+      baseCtx.strokeStyle = '#334155';
+      baseCtx.lineWidth = 2;
+      baseCtx.strokeRect(offsetX, offsetY, drawW, drawH);
+
       historyRef.current = [];
       saveHistorySnapshot();
     };
@@ -128,19 +161,50 @@ export function DrawingPage({ onNavigate }) {
     loadTemplateToCanvas(pageNum);
   };
 
-  // Scanline Flood Fill for Bucket Tool
+  const handlePrevPage = () => {
+    const cur = typeof selectedPage === 'number' ? selectedPage : 1;
+    const next = cur <= 1 ? TOTAL_BOOK_PAGES : cur - 1;
+    handleSelectPage(next);
+  };
+
+  const handleNextPage = () => {
+    const cur = typeof selectedPage === 'number' ? selectedPage : 1;
+    const next = cur >= TOTAL_BOOK_PAGES ? 1 : cur + 1;
+    handleSelectPage(next);
+  };
+
+  const handleBuyFullBookPdf = () => {
+    openBuyNow({
+      id: 'drawing-book-118-pdf',
+      name: 'Panda Nest 118-Page Jumbo Activity & Coloring Book (PDF Download)',
+      price: 9,
+      original_price: 99,
+      image_url: '/drawing-book/page-001.jpg',
+      description: '118 High-Resolution Printable Animals, Vehicles, Dinosaurs & Fantasy coloring pages. Instant download upon checkout.'
+    });
+  };
+
+  // Boundary-aware Flood Fill for Bucket Tool
   const floodFill = (startX, startY, fillHex) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    const w = canvas.width;
-    const h = canvas.height;
+    const bounds = templateBoundsRef.current;
+
+    const minX = bounds?.w > 0 ? bounds.x : 0;
+    const maxX = bounds?.w > 0 ? bounds.x + bounds.w : canvas.width;
+    const minY = bounds?.h > 0 ? bounds.y : 0;
+    const maxY = bounds?.h > 0 ? bounds.y + bounds.h : canvas.height;
+
     const x0 = Math.floor(startX);
     const y0 = Math.floor(startY);
-    if (x0 < 0 || x0 >= w || y0 < 0 || y0 >= h) return;
+    // Ignore clicks outside the coloring book page frame
+    if (x0 < minX || x0 >= maxX || y0 < minY || y0 >= maxY) return;
 
     saveHistorySnapshot();
 
+    const w = canvas.width;
+    const h = canvas.height;
     const imageData = ctx.getImageData(0, 0, w, h);
     const data = imageData.data;
     const startIdx = (y0 * w + x0) * 4;
@@ -149,21 +213,30 @@ export function DrawingPage({ onNavigate }) {
     const sb = data[startIdx + 2];
 
     const [fr, fg, fb] = hexToRgb(fillHex);
-    if (Math.abs(sr - fr) < 8 && Math.abs(sg - fg) < 8 && Math.abs(sb - fb) < 8) return;
+    if (Math.abs(sr - fr) < 6 && Math.abs(sg - fg) < 6 && Math.abs(sb - fb) < 6) return;
 
-    // Don't fill dark outline strokes (luminance < 90)
-    if (sr < 90 && sg < 90 && sb < 90) return;
+    // Luminance barrier: Don't fill dark outline strokes (luminance < 135)
+    const startLuminance = sr * 0.299 + sg * 0.587 + sb * 0.114;
+    if (startLuminance < 135) return;
 
-    const tolerance = 48;
+    const tolerance = 32;
     const visited = new Uint8Array(w * h);
     const stack = [x0, y0];
 
     const matchesStart = (pos) => {
       const idx = pos * 4;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+
+      // Outline barrier check: Stop at any dark line
+      const lum = r * 0.299 + g * 0.587 + b * 0.114;
+      if (lum < 135) return false;
+
       return (
-        Math.abs(data[idx] - sr) <= tolerance &&
-        Math.abs(data[idx + 1] - sg) <= tolerance &&
-        Math.abs(data[idx + 2] - sb) <= tolerance
+        Math.abs(r - sr) <= tolerance &&
+        Math.abs(g - sg) <= tolerance &&
+        Math.abs(b - sb) <= tolerance
       );
     };
 
@@ -172,7 +245,7 @@ export function DrawingPage({ onNavigate }) {
       const x = stack.pop();
       let curX = x;
 
-      while (curX >= 0 && !visited[y * w + curX] && matchesStart(y * w + curX)) {
+      while (curX >= minX && !visited[y * w + curX] && matchesStart(y * w + curX)) {
         curX--;
       }
       curX++;
@@ -180,7 +253,7 @@ export function DrawingPage({ onNavigate }) {
       let spanAbove = false;
       let spanBelow = false;
 
-      while (curX < w && !visited[y * w + curX] && matchesStart(y * w + curX)) {
+      while (curX < maxX && !visited[y * w + curX] && matchesStart(y * w + curX)) {
         const p = y * w + curX;
         visited[p] = 1;
         const idx = p * 4;
@@ -189,7 +262,7 @@ export function DrawingPage({ onNavigate }) {
         data[idx + 2] = fb;
         data[idx + 3] = 255;
 
-        if (y > 0) {
+        if (y > minY) {
           const aboveMatch = !visited[(y - 1) * w + curX] && matchesStart((y - 1) * w + curX);
           if (!spanAbove && aboveMatch) {
             stack.push(curX, y - 1);
@@ -199,7 +272,7 @@ export function DrawingPage({ onNavigate }) {
           }
         }
 
-        if (y < h - 1) {
+        if (y < maxY - 1) {
           const belowMatch = !visited[(y + 1) * w + curX] && matchesStart((y + 1) * w + curX);
           if (!spanBelow && belowMatch) {
             stack.push(curX, y + 1);
@@ -228,32 +301,73 @@ export function DrawingPage({ onNavigate }) {
     };
   };
 
+  // Erases user paint without deleting the original base template line art
+  const eraseAlongStroke = (x1, y1, x2, y2) => {
+    const canvas = canvasRef.current;
+    const baseCanvas = baseCanvasRef.current;
+    if (!canvas || !baseCanvas) return;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const r = Math.max(8, brushSize * 1.5);
+    const dist = Math.hypot(x2 - x1, y2 - y1);
+    const steps = Math.max(1, Math.ceil(dist / 3));
+
+    ctx.save();
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const cx = x1 + (x2 - x1) * t;
+      const cy = y1 + (y2 - y1) * t;
+      ctx.moveTo(cx + r, cy);
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    }
+    ctx.clip();
+    ctx.drawImage(baseCanvas, 0, 0);
+    ctx.restore();
+  };
+
   const startDraw = (e) => {
     const { x, y } = getCanvasCoords(e);
+    lastCoordRef.current = { x, y };
+
     if (tool === 'fill') {
       floodFill(x, y, currentColor);
       return;
     }
 
     saveHistorySnapshot();
+    setIsDrawing(true);
+
+    if (tool === 'eraser') {
+      eraseAlongStroke(x, y, x, y);
+      return;
+    }
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = tool === 'eraser' ? '#ffffff' : currentColor;
+    ctx.strokeStyle = currentColor;
     ctx.lineWidth = brushSize;
-    setIsDrawing(true);
   };
 
   const draw = (e) => {
     if (!isDrawing || tool === 'fill') return;
     const { x, y } = getCanvasCoords(e);
+    const prev = lastCoordRef.current;
+
+    if (tool === 'eraser') {
+      eraseAlongStroke(prev.x, prev.y, x, y);
+      lastCoordRef.current = { x, y };
+      return;
+    }
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     ctx.lineTo(x, y);
     ctx.stroke();
+    lastCoordRef.current = { x, y };
   };
 
   const stopDraw = () => {
@@ -314,15 +428,78 @@ export function DrawingPage({ onNavigate }) {
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <a
-            href="/drawing-book/pandanest-drawing-book.pdf"
-            download="PandaNest-Drawing-Book-118-Pages.pdf"
+          <button
+            type="button"
+            onClick={handleBuyFullBookPdf}
             className="btn btn-primary btn-sm"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none', fontWeight: '800' }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: '800',
+              background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+              border: 'none',
+              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+              padding: '9px 18px',
+              borderRadius: '9999px',
+              cursor: 'pointer'
+            }}
           >
-            <FileDown size={16} /> Download Full Book (118 Pages PDF)
-          </a>
+            <Sparkles size={15} color="#fde047" /> Buy Full Book PDF • ₹9 Only
+          </button>
         </div>
+      </div>
+
+      {/* ₹9 Full Printable Book Promo Banner */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #fef3c7 0%, #ecfdf5 100%)',
+          border: '1.5px solid #6ee7b7',
+          borderRadius: '16px',
+          padding: '14px 20px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.08)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
+            📚
+          </div>
+          <div>
+            <div style={{ fontWeight: '800', fontSize: '1rem', color: '#065f46' }}>
+              Want the Full 118-Page Printable Drawing Book?
+            </div>
+            <div style={{ fontSize: '0.84rem', color: '#047857' }}>
+              Get all 118 high-resolution pages in one printable PDF for only ₹9!
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleBuyFullBookPdf}
+          style={{
+            background: '#059669',
+            color: '#ffffff',
+            fontWeight: '800',
+            fontSize: '0.88rem',
+            padding: '9px 20px',
+            borderRadius: '9999px',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)'
+          }}
+        >
+          <FileDown size={15} /> Buy &amp; Download PDF (₹9)
+        </button>
       </div>
 
       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
@@ -337,7 +514,7 @@ export function DrawingPage({ onNavigate }) {
         </p>
       </div>
 
-      {/* Mode Switch + Drawing Book Selector */}
+      {/* Mode Switch + Quick Page Navigation */}
       <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '18px', padding: '16px', marginBottom: '16px', boxShadow: '0 4px 14px rgba(0,0,0,0.03)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: showBookDrawer ? '14px' : 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -362,6 +539,50 @@ export function DrawingPage({ onNavigate }) {
               📄 Blank Canvas
             </button>
           </div>
+
+          {/* Quick Page Prev / Next & Dropdown */}
+          {selectedPage && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={handlePrevPage}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 10px', fontSize: '0.8rem' }}
+                title="Previous Coloring Page"
+              >
+                <ChevronLeft size={15} /> Prev
+              </button>
+              <select
+                value={selectedPage || 1}
+                onChange={(e) => handleSelectPage(Number(e.target.value))}
+                style={{
+                  padding: '5px 8px',
+                  borderRadius: '8px',
+                  border: '1.5px solid #cbd5e1',
+                  fontSize: '0.82rem',
+                  fontWeight: '700',
+                  color: '#0f172a',
+                  background: '#f8fafc',
+                  cursor: 'pointer'
+                }}
+              >
+                {Array.from({ length: TOTAL_BOOK_PAGES }, (_, i) => i + 1).map((p) => (
+                  <option key={p} value={p}>
+                    Page {p} of {TOTAL_BOOK_PAGES}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={handleNextPage}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 10px', fontSize: '0.8rem' }}
+                title="Next Coloring Page"
+              >
+                Next <ChevronRight size={15} />
+              </button>
+            </div>
+          )}
 
           {showBookDrawer && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -1,21 +1,39 @@
 import express from 'express';
 import { getDB, readLocalStore, writeLocalStore } from '../db.js';
-import { authenticateUser, authenticateAdmin } from '../middleware/auth.js';
+import { authenticateUser, authenticateAdmin, optionalUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Helper to check if a user has bought a toy
-async function userHasPurchasedToy(userEmail, toyId) {
-  if (!userEmail) return false;
+// Helper to check if a user has bought a toy (by email or 10-digit mobile number)
+async function userHasPurchasedToy(userEmail, userPhone, toyId) {
+  if (!userEmail && !userPhone) return false;
   const { isPostgres, pool } = getDB();
-  const normalizedEmail = userEmail.toLowerCase().trim();
+  const normalizedEmail = (userEmail || '').toLowerCase().trim();
+  const rawPhone = String(userPhone || '').replace(/\D/g, '');
+  const cleanPhone = rawPhone.length >= 10 ? rawPhone.slice(-10) : '';
 
   if (isPostgres && pool) {
-    const res = await pool.query(
-      `SELECT items FROM orders
-       WHERE LOWER(user_email) = $1 AND status != 'Cancelled'`,
-      [normalizedEmail]
-    );
+    let query = '';
+    let params = [];
+
+    if (normalizedEmail && cleanPhone) {
+      query = `SELECT items FROM orders
+               WHERE (LOWER(user_email) = $1 OR RIGHT(REGEXP_REPLACE(phone, '[^0-9]', '', 'g'), 10) = $2)
+                 AND status != 'Cancelled'`;
+      params = [normalizedEmail, cleanPhone];
+    } else if (normalizedEmail) {
+      query = `SELECT items FROM orders
+               WHERE LOWER(user_email) = $1 AND status != 'Cancelled'`;
+      params = [normalizedEmail];
+    } else if (cleanPhone) {
+      query = `SELECT items FROM orders
+               WHERE RIGHT(REGEXP_REPLACE(phone, '[^0-9]', '', 'g'), 10) = $1 AND status != 'Cancelled'`;
+      params = [cleanPhone];
+    } else {
+      return false;
+    }
+
+    const res = await pool.query(query, params);
     for (const row of res.rows) {
       const items = Array.isArray(row.items) ? row.items : [];
       if (items.some(item => String(item.id) === String(toyId))) {
@@ -25,9 +43,15 @@ async function userHasPurchasedToy(userEmail, toyId) {
     return false;
   } else {
     const store = readLocalStore();
-    const orders = (store.orders || []).filter(o =>
-      (o.user_email || '').toLowerCase().trim() === normalizedEmail && o.status !== 'Cancelled'
-    );
+    const orders = (store.orders || []).filter(o => {
+      if (o.status === 'Cancelled') return false;
+      const oEmail = (o.user_email || '').toLowerCase().trim();
+      const oPhone = String(o.phone || '').replace(/\D/g, '').slice(-10);
+      const emailMatch = normalizedEmail && oEmail === normalizedEmail;
+      const phoneMatch = cleanPhone && oPhone === cleanPhone;
+      return emailMatch || phoneMatch;
+    });
+
     for (const o of orders) {
       const items = Array.isArray(o.items) ? o.items : [];
       if (items.some(item => String(item.id) === String(toyId))) {
@@ -35,6 +59,42 @@ async function userHasPurchasedToy(userEmail, toyId) {
       }
     }
     return false;
+  }
+}
+
+// Helper to check if a user has already reviewed a toy
+async function hasUserAlreadyReviewed(userEmail, userPhone, toyId) {
+  if (!userEmail && !userPhone) return false;
+  const { isPostgres, pool } = getDB();
+  const normalizedEmail = (userEmail || '').toLowerCase().trim();
+  const rawPhone = String(userPhone || '').replace(/\D/g, '');
+  const cleanPhone = rawPhone.length >= 10 ? rawPhone.slice(-10) : '';
+
+  if (isPostgres && pool) {
+    let query = '';
+    let params = [];
+    if (normalizedEmail && cleanPhone) {
+      query = `SELECT id FROM reviews
+               WHERE toy_id = $1 AND (LOWER(user_email) = $2 OR LOWER(user_email) = $3)`;
+      params = [parseInt(toyId, 10) || 0, normalizedEmail, cleanPhone];
+    } else if (normalizedEmail) {
+      query = `SELECT id FROM reviews
+               WHERE toy_id = $1 AND LOWER(user_email) = $2`;
+      params = [parseInt(toyId, 10) || 0, normalizedEmail];
+    } else {
+      query = `SELECT id FROM reviews
+               WHERE toy_id = $1 AND LOWER(user_email) = $2`;
+      params = [parseInt(toyId, 10) || 0, cleanPhone];
+    }
+    const res = await pool.query(query, params);
+    return res.rows.length > 0;
+  } else {
+    const store = readLocalStore();
+    return (store.reviews || []).some(r => {
+      if (String(r.toy_id) !== String(toyId)) return false;
+      const rEmail = (r.user_email || '').toLowerCase().trim();
+      return (normalizedEmail && rEmail === normalizedEmail) || (cleanPhone && rEmail === cleanPhone);
+    });
   }
 }
 
@@ -71,28 +131,19 @@ router.get('/toy/:toyId', async (req, res) => {
   }
 });
 
-// GET /api/reviews/can-review/:toyId - Authenticated: Check if current user bought this toy
-router.get('/can-review/:toyId', authenticateUser, async (req, res) => {
+// GET /api/reviews/can-review/:toyId - Check if current user or email/phone bought this toy
+router.get('/can-review/:toyId', optionalUser, async (req, res) => {
   try {
     const { toyId } = req.params;
-    const userEmail = req.user.email;
-    const purchased = await userHasPurchasedToy(userEmail, toyId);
+    const userEmail = (req.user?.email || req.query.email || '').toLowerCase().trim();
+    const userPhone = (req.user?.phone || req.query.phone || '').replace(/\D/g, '').slice(-10);
 
-    // Also check if user already reviewed
-    const { isPostgres, pool } = getDB();
-    let alreadyReviewed = false;
-    if (isPostgres && pool) {
-      const revCheck = await pool.query(
-        'SELECT id FROM reviews WHERE toy_id = $1 AND LOWER(user_email) = $2',
-        [toyId, userEmail.toLowerCase().trim()]
-      );
-      alreadyReviewed = revCheck.rows.length > 0;
-    } else {
-      const store = readLocalStore();
-      alreadyReviewed = (store.reviews || []).some(
-        r => String(r.toy_id) === String(toyId) && (r.user_email || '').toLowerCase().trim() === userEmail.toLowerCase().trim()
-      );
+    if (!userEmail && !userPhone) {
+      return res.json({ canReview: false, purchased: false, alreadyReviewed: false, reason: 'not_provided' });
     }
+
+    const purchased = await userHasPurchasedToy(userEmail, userPhone, toyId);
+    const alreadyReviewed = await hasUserAlreadyReviewed(userEmail, userPhone, toyId);
 
     return res.json({
       canReview: purchased && !alreadyReviewed,
@@ -105,25 +156,64 @@ router.get('/can-review/:toyId', authenticateUser, async (req, res) => {
   }
 });
 
-// POST /api/reviews/public - Submit customer review from product page
-router.post('/public', async (req, res) => {
+// POST /api/reviews/public - Submit customer review (Enforces verified buyer purchase check)
+router.post('/public', optionalUser, async (req, res) => {
   try {
-    const { toy_id, rating, comment, user_name, user_email } = req.body;
+    const { toy_id, rating, comment, user_name, user_email, user_phone } = req.body;
     if (!toy_id) return res.status(400).json({ error: 'Toy ID is required.' });
+
     const numRating = parseInt(rating, 10);
     if (!numRating || numRating < 1 || numRating > 5) {
       return res.status(400).json({ error: 'Rating must be between 1 and 5 stars.' });
     }
-    const cleanName = (user_name || 'Verified Parent').trim();
-    const cleanComment = (comment || '').trim();
-    const cleanEmail = (user_email || 'guest@pandanest.in').toLowerCase().trim();
 
+    const cleanComment = (comment || '').trim();
+    if (!cleanComment) {
+      return res.status(400).json({ error: 'Please write a review comment.' });
+    }
+
+    const cleanName = (user_name || req.user?.name || 'Verified Buyer').trim();
+
+    // Determine user email or phone: from JWT, body.user_email, or body.user_phone
+    let emailInput = (user_email || req.user?.email || '').trim().toLowerCase();
+    let phoneInput = (user_phone || req.user?.phone || '').trim();
+
+    // If user entered a 10-digit number into the email field:
+    if (!phoneInput && /^\d{10}$/.test(emailInput.replace(/\D/g, ''))) {
+      phoneInput = emailInput.replace(/\D/g, '');
+      emailInput = '';
+    }
+
+    if (!emailInput && !phoneInput) {
+      return res.status(400).json({
+        error: 'Please enter the email address or phone number used during checkout to verify your purchase.'
+      });
+    }
+
+    // ENFORCE PURCHASE VERIFICATION:
+    const purchased = await userHasPurchasedToy(emailInput, phoneInput, toy_id);
+    if (!purchased) {
+      return res.status(403).json({
+        error: 'Only customers who have purchased this toy can submit a review. We could not find a completed order for this email/phone with this product.'
+      });
+    }
+
+    // CHECK DUPLICATE REVIEW:
+    const alreadyReviewed = await hasUserAlreadyReviewed(emailInput, phoneInput, toy_id);
+    if (alreadyReviewed) {
+      return res.status(400).json({
+        error: 'You have already submitted a review for this toy.'
+      });
+    }
+
+    const storedIdentifier = emailInput || phoneInput;
     const { isPostgres, pool } = getDB();
+
     if (isPostgres && pool) {
       const result = await pool.query(
         `INSERT INTO reviews (toy_id, user_email, user_name, rating, comment, status)
          VALUES ($1, $2, $3, $4, $5, 'approved') RETURNING *`,
-        [parseInt(toy_id, 10) || 0, cleanEmail, cleanName, numRating, cleanComment]
+        [parseInt(toy_id, 10) || 0, storedIdentifier, cleanName, numRating, cleanComment]
       );
       return res.status(201).json(result.rows[0]);
     } else {
@@ -132,7 +222,7 @@ router.post('/public', async (req, res) => {
       const newReview = {
         id: Date.now(),
         toy_id: Number(toy_id),
-        user_email: cleanEmail,
+        user_email: storedIdentifier,
         user_name: cleanName,
         rating: numRating,
         comment: cleanComment,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StarRating } from './StarRating';
+import { ProductDescriptionRenderer } from './ProductDescriptionRenderer';
 import {
   X,
   Star,
@@ -144,7 +145,18 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
     buyNow({ ...toy, quantity });
   };
 
-  // Review submission
+  const handleOpenWriteReview = () => {
+    setReviewErrorMsg('');
+    setReviewSuccessMsg('');
+    const savedPhone = localStorage.getItem('pandanest_member_phone') || '';
+    setNewReview((prev) => ({
+      ...prev,
+      user_email: prev.user_email || savedPhone
+    }));
+    setIsWriteReviewOpen(true);
+  };
+
+  // Review submission (Only verified buyers who ordered this toy)
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     setReviewErrorMsg('');
@@ -154,6 +166,11 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
       setReviewErrorMsg('Please enter your name.');
       return;
     }
+    const identifier = (newReview.user_email || '').trim();
+    if (!identifier) {
+      setReviewErrorMsg('Please enter the email address or phone number used when ordering this toy.');
+      return;
+    }
     if (!newReview.comment.trim()) {
       setReviewErrorMsg('Please share a few words about your experience with this toy.');
       return;
@@ -161,30 +178,38 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
 
     setReviewSubmitting(true);
     try {
+      const token = localStorage.getItem('pandanest_admin_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch('/api/reviews/public', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           toy_id: toy.id,
           rating: newReview.rating,
           user_name: newReview.user_name.trim(),
-          user_email: newReview.user_email.trim() || 'guest@pandanest.in',
+          user_email: identifier,
           comment: newReview.comment.trim()
         })
       });
 
       const saved = await parseResponse(res, 'Failed to submit review.');
-      setReviewSuccessMsg('Thank you! Your verified review has been posted.');
-      setReviewsData((prev) => ({
-        reviews: [saved, ...prev.reviews],
-        totalReviews: prev.totalReviews + 1,
-        averageRating: Number((((prev.averageRating * prev.totalReviews) + newReview.rating) / (prev.totalReviews + 1)).toFixed(1))
-      }));
+      setReviewSuccessMsg('Thank you! Your verified purchase review has been published.');
+      setReviewsData((prev) => {
+        const newCount = prev.totalReviews + 1;
+        const newAvg = Number((((prev.averageRating * prev.totalReviews) + newReview.rating) / newCount).toFixed(1));
+        return {
+          reviews: [saved, ...prev.reviews],
+          totalReviews: newCount,
+          averageRating: newAvg
+        };
+      });
       setNewReview({ rating: 5, user_name: '', user_email: '', comment: '' });
       setTimeout(() => {
         setIsWriteReviewOpen(false);
         setReviewSuccessMsg('');
-      }, 1600);
+      }, 1800);
     } catch (err) {
       setReviewErrorMsg(err.message);
     } finally {
@@ -818,29 +843,36 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
             4. PRODUCT DESCRIPTION & VIDEO DEMO SECTION
             ========================================================= */}
         <div style={{ marginTop: '50px', borderTop: '1px solid #f1f5f9', paddingTop: '40px' }}>
-          <h2
-            style={{
-              fontSize: '1.45rem',
-              fontWeight: '800',
-              color: '#0f172a',
-              marginBottom: '16px',
-              fontFamily: 'var(--font-display)'
-            }}
-          >
-            The Perfect Playtime Buddy for Your Baby!!
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', flexWrap: 'wrap', gap: '10px' }}>
+            <h2
+              style={{
+                fontSize: '1.45rem',
+                fontWeight: '800',
+                color: '#0f172a',
+                margin: 0,
+                fontFamily: 'var(--font-display)'
+              }}
+            >
+              Product Details & Description
+            </h2>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#059669', background: '#ecfdf5', padding: '4px 10px', borderRadius: '6px' }}>
+                {toy?.category || 'Kids Toys'}
+              </span>
+              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#1e40af', background: '#eff6ff', padding: '4px 10px', borderRadius: '6px' }}>
+                Age: {toy?.age_group || 'All Ages'}
+              </span>
+            </div>
+          </div>
 
-          <p
-            style={{
-              fontSize: '0.98rem',
-              color: '#475569',
-              lineHeight: 1.7,
-              marginBottom: '24px',
-              maxWidth: '850px'
-            }}
-          >
-            {toy?.description || 'Crafted with premium high-density materials designed to inspire sensory development, coordination, and imaginative play.'}
-          </p>
+          <div style={{ maxWidth: '920px', marginBottom: '36px' }}>
+            <ProductDescriptionRenderer
+              description={toy?.description}
+              toyName={toy?.name}
+              ageGroup={toy?.age_group}
+              category={toy?.category}
+            />
+          </div>
 
           {/* Embedded YouTube Video Demo */}
           {toy?.video_url && getYouTubeEmbedUrl(toy.video_url) && (
@@ -1047,7 +1079,7 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
             <div style={{ textAlign: 'center' }}>
               <button
                 type="button"
-                onClick={() => setIsWriteReviewOpen(true)}
+                onClick={handleOpenWriteReview}
                 style={{
                   background: '#d97706',
                   color: '#ffffff',
@@ -1075,7 +1107,7 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
                 </p>
                 <button
                   type="button"
-                  onClick={() => setIsWriteReviewOpen(true)}
+                  onClick={handleOpenWriteReview}
                   style={{
                     background: '#15803d',
                     color: '#ffffff',
@@ -1450,10 +1482,16 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Email (Optional, for verification)</label>
+                <label className="form-label" style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span>Order Email or Mobile Number *</span>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 'normal' }}>
+                    Verified purchase required — must match the email or phone on your order.
+                  </span>
+                </label>
                 <input
-                  type="email"
-                  placeholder="e.g. priya@gmail.com"
+                  type="text"
+                  required
+                  placeholder="e.g. rahul@gmail.com or 9876543210"
                   className="form-input"
                   value={newReview.user_email}
                   onChange={(e) => setNewReview({ ...newReview, user_email: e.target.value })}
