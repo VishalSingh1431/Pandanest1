@@ -277,22 +277,27 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
 
   return (
     <div style={{ paddingBottom: '60px' }}>
-      {/* Playful Hero Banner with Embedded Video Showcase - Full Width */}
+      {/* Playful Hero Banner with Embedded Video Showcase */}
       <section
         style={{
           width: '100%',
           position: 'relative',
           background: '#ffffff',
           overflow: 'hidden',
-          lineHeight: 0
+          lineHeight: 0,
+          padding: '12px 16px 0'
         }}
       >
         <div
           style={{
             position: 'relative',
             width: '100%',
+            maxWidth: '1120px',
+            margin: '0 auto',
             aspectRatio: '2167 / 725',
-            overflow: 'hidden'
+            borderRadius: '16px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px -4px rgba(15, 23, 42, 0.08)'
           }}
           className="hero-banner-container"
         >
@@ -607,31 +612,6 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
         </div>
       )}
 
-      {/* Quick Trust & Feature Chips */}
-      <div className="container" style={{ maxWidth: '1240px', margin: '14px auto 0', padding: '0 12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={() => onNavigate && onNavigate('drawing')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', border: '1px solid #f59e0b', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '800', color: '#92400e', cursor: 'pointer' }}
-          >
-            🎨 118-Page Drawing Studio
-          </button>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ffffff', border: '1px solid #e2e8f0', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '700', color: '#047857', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <Truck size={15} color="#059669" /> Free Delivery Across India
-          </div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ffffff', border: '1px solid #e2e8f0', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '700', color: '#0f172a', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <span>🛡️</span> 100% Child Safe
-          </div>
-          <button
-            type="button"
-            onClick={() => onNavigate && onNavigate('games')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ecfdf5', border: '1px solid #6ee7b7', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '800', color: '#065f46', cursor: 'pointer' }}
-          >
-            🐼 Join Panda Club &amp; Win Coins
-          </button>
-        </div>
-      </div>
 
       {/* Main Catalog Body */}
       <main className="container" style={{ marginTop: '18px' }}>
