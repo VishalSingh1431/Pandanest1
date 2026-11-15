@@ -499,17 +499,17 @@ export function App() {
           <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
             Verified &amp; Certified:
           </span>
-          <span style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', padding: '4px 10px', borderRadius: '9999px', fontSize: '0.74rem', fontWeight: '700' }}>
-            🏛️ GSTIN: 06BBZPY5715M1ZI
+          <span style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', padding: '4px 12px', borderRadius: '9999px', fontSize: '0.74rem', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            🏛️ GSTIN: <strong>06BBZPY5715M1ZI</strong>
           </span>
-          <span style={{ background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', padding: '4px 10px', borderRadius: '9999px', fontSize: '0.74rem', fontWeight: '700' }}>
-            🛡️ BIS Child-Safe Toy Standards
+          <span style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '4px 12px', borderRadius: '9999px', fontSize: '0.74rem', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            🌿 100% Non-Toxic &amp; Child-Safe
           </span>
-          <span style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '4px 10px', borderRadius: '9999px', fontSize: '0.74rem', fontWeight: '700' }}>
-            🌿 100% Non-Toxic Materials
-          </span>
-          <span style={{ background: '#f8fafc', color: '#334155', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '9999px', fontSize: '0.74rem', fontWeight: '700' }}>
+          <span style={{ background: '#f8fafc', color: '#334155', border: '1px solid #e2e8f0', padding: '4px 12px', borderRadius: '9999px', fontSize: '0.74rem', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
             ✅ ISO Quality Checked
+          </span>
+          <span style={{ background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', padding: '4px 12px', borderRadius: '9999px', fontSize: '0.74rem', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            📦 Official Registered Business
           </span>
         </div>
 

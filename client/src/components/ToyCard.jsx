@@ -53,9 +53,9 @@ export function ToyCard({ toy, onSelectToy }) {
     >
       {/* Top Image & Interactive Floating Badges */}
       <div
+        className="toy-card-img-container"
         style={{
           position: 'relative',
-          paddingTop: '82%',
           overflow: 'hidden',
           backgroundColor: '#f8fafc',
           cursor: 'pointer'

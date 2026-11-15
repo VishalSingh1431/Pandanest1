@@ -649,6 +649,17 @@ html {
   animation: fadeInScale 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Product Card Image Container — Desktop 1:1 square, Mobile clean Portrait (4:5 / 115%) */
+.toy-card-img-container {
+  padding-top: 86%;
+}
+
+@media (max-width: 768px) {
+  .toy-card-img-container {
+    padding-top: 110% !important; /* Elegant portrait aspect ratio on mobile */
+  }
+}
+
 /* Review Bar Width Expansion */
 @keyframes barFill {
   from { width: 0%; }
