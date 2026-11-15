@@ -908,42 +908,46 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
           </div>
         </div>
 
-        {/* Filter Bar: Age Group & Sorting */}
+        {/* Filter Bar: Age Group & Sorting — Strict Single Line */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '14px',
-            marginBottom: '26px',
-            padding: '14px 20px',
+            flexWrap: 'nowrap',
+            gap: '10px',
+            marginBottom: '22px',
+            padding: '8px 14px',
             background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
             borderRadius: '16px',
             border: '1.5px solid #e2e8f0',
-            boxShadow: '0 4px 14px rgba(15, 23, 42, 0.04)'
+            boxShadow: '0 4px 14px rgba(15, 23, 42, 0.04)',
+            overflowX: 'auto',
+            scrollbarWidth: 'none'
           }}
         >
           {/* Age Group Filter (All, 0-3, 3-5, 5-8, 8-12, 12+) with Pastel BGs, Emojis & Number Count Badges */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 1, minWidth: 0 }}>
             <span
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.88rem',
+                gap: '4px',
+                fontSize: '0.8rem',
                 fontWeight: '800',
                 color: '#92400e',
                 background: '#fef3c7',
-                padding: '6px 14px',
+                padding: '4px 10px',
                 borderRadius: '9999px',
                 border: '1px solid #fde68a',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
                 boxShadow: '0 1px 3px rgba(245, 158, 11, 0.15)'
               }}
             >
-              <span>🎂</span> Age Range:
+              <span>🎂</span> Age:
             </span>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '5px', alignItems: 'center', flexWrap: 'nowrap' }}>
               {AGE_GROUPS_CONFIG.map((group) => {
                 const isSelected = selectedAge === group.label;
                 const pool = allToys.length > 0 ? allToys : toys;
@@ -957,20 +961,21 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      padding: '6px 14px',
+                      gap: '4px',
+                      padding: '4px 9px',
                       borderRadius: '9999px',
-                      fontSize: '0.85rem',
+                      fontSize: '0.78rem',
                       fontWeight: isSelected ? '800' : '700',
                       border: isSelected ? `1.5px solid ${group.color}` : `1.5px solid ${group.border}`,
                       background: isSelected ? group.activeBg : group.bg,
                       color: isSelected ? '#ffffff' : group.color,
                       boxShadow: isSelected
-                        ? '0 4px 12px rgba(0, 0, 0, 0.18)'
-                        : '0 1px 3px rgba(0, 0, 0, 0.03)',
+                        ? '0 3px 10px rgba(0, 0, 0, 0.16)'
+                        : '0 1px 2px rgba(0, 0, 0, 0.03)',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      transform: isSelected ? 'scale(1.05)' : 'scale(1)'
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     <span>{group.emoji}</span>
@@ -980,10 +985,10 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
                         background: isSelected ? 'rgba(255, 255, 255, 0.28)' : group.badgeBg,
                         color: isSelected ? '#ffffff' : group.badgeColor,
                         borderRadius: '9999px',
-                        padding: '1px 7px',
-                        fontSize: '0.74rem',
+                        padding: '1px 5px',
+                        fontSize: '0.7rem',
                         fontWeight: '800',
-                        marginLeft: '2px'
+                        marginLeft: '1px'
                       }}
                     >
                       {count}
@@ -994,24 +999,25 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             </div>
           </div>
 
-          {/* Sort Dropdown & Product Count */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
-            <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
+          {/* Sort Dropdown & Product Count — Fixed Single Line */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto', flexShrink: 0, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '700' }}>
               {toys.length} toy{toys.length !== 1 ? 's' : ''} found
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <ArrowUpDown size={14} color="#64748b" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <ArrowUpDown size={13} color="#64748b" />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 style={{
-                  padding: '6px 12px',
+                  padding: '5px 10px',
                   borderRadius: '10px',
                   border: '1.5px solid #cbd5e1',
                   background: 'white',
-                  fontSize: '0.85rem',
-                  fontWeight: '600',
-                  color: '#334155'
+                  fontSize: '0.8rem',
+                  fontWeight: '700',
+                  color: '#334155',
+                  cursor: 'pointer'
                 }}
               >
                 <option value="recommended">Featured / Recommended</option>
