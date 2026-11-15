@@ -310,11 +310,18 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
               className="hero-video-frame"
             >
               <iframe
-                src={`https://www.youtube.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=1&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=1&modestbranding=1&rel=0`}
+                src={`https://www.youtube.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=1&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
                 title="Panda Nest Showcase Video"
-                style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  display: 'block',
+                  pointerEvents: 'none',
+                  transform: 'scale(1.05)',
+                  transformOrigin: 'center center'
+                }}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
               />
             </div>
           </div>
