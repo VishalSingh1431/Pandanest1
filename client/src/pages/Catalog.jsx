@@ -309,29 +309,309 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
               top: '11.61%',
               width: '33.18%',
               height: '70.32%',
-              borderRadius: '8px',
+              borderRadius: '10px',
               overflow: 'hidden',
-              background: '#000000'
+              background: '#0a0f1d'
             }}
             className="hero-video-frame"
           >
-            <iframe
-              src={`https://www.youtube.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=1&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
-              title="Panda Nest Showcase Video"
-              style={{
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                display: 'block',
-                pointerEvents: 'none',
-                transform: 'scale(1.05)',
-                transformOrigin: 'center center'
-              }}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            />
+            {showVideo ? (
+              <iframe
+                src={`https://www.youtube.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=1&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
+                title="Panda Nest Showcase Video"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  display: 'block',
+                  pointerEvents: 'none',
+                  transform: 'scale(1.05)',
+                  transformOrigin: 'center center'
+                }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              />
+            ) : (
+              <>
+                {/* Desktop Form inside TV Screen */}
+                <div
+                  className="hero-tv-desktop-form"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    background: '#ffffff',
+                    padding: 'clamp(10px, 1.6vw, 18px)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    boxSizing: 'border-box',
+                    lineHeight: 1.4
+                  }}
+                >
+                  <div style={{ textAlign: 'center', marginBottom: 'clamp(6px, 0.9vw, 10px)', lineHeight: 1.3 }}>
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        background: '#ecfdf5',
+                        color: '#047857',
+                        padding: '3px 10px',
+                        borderRadius: '9999px',
+                        fontSize: 'clamp(0.7rem, 0.82vw, 0.8rem)',
+                        fontWeight: 800,
+                        marginBottom: '3px',
+                        lineHeight: 1.2
+                      }}
+                    >
+                      🎁 100 WELCOME POINTS
+                    </div>
+                    <h3 style={{ fontSize: 'clamp(0.85rem, 1.05vw, 1.05rem)', fontWeight: 800, color: '#0f172a', margin: '0 0 2px', lineHeight: 1.25 }}>
+                      Join Panda Club &amp; Win Rewards 🐼
+                    </h3>
+                    <p style={{ fontSize: 'clamp(0.66rem, 0.76vw, 0.76rem)', color: '#64748b', margin: 0, lineHeight: 1.3 }}>
+                      Register child's birthday for special surprise gifts!
+                    </p>
+                  </div>
+
+                  {heroError && (
+                    <div style={{ background: '#fef2f2', color: '#991b1b', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', marginBottom: '6px', textAlign: 'center', lineHeight: 1.3 }}>
+                      {heroError}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleHeroSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 0.7vw, 7px)', lineHeight: 1.3 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label style={{ fontSize: 'clamp(0.64rem, 0.72vw, 0.72rem)', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '2px', lineHeight: 1.2 }}>
+                          <Heart size={11} color="#ec4899" /> Child Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Aarav"
+                          value={heroForm.child_name}
+                          onChange={(e) => setHeroForm({ ...heroForm, child_name: e.target.value })}
+                          style={{
+                            width: '100%',
+                            padding: 'clamp(5px, 0.6vw, 7px) clamp(7px, 0.8vw, 10px)',
+                            fontSize: 'clamp(0.72rem, 0.82vw, 0.84rem)',
+                            borderRadius: '8px',
+                            border: '1.5px solid #e2e8f0',
+                            outline: 'none',
+                            background: '#f8fafc',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 'clamp(0.64rem, 0.72vw, 0.72rem)', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '2px', lineHeight: 1.2 }}>
+                          <Phone size={11} color="#059669" /> WhatsApp *
+                        </label>
+                        <input
+                          type="tel"
+                          required
+                          placeholder="10-digit number"
+                          value={heroForm.phone}
+                          onChange={(e) => setHeroForm({ ...heroForm, phone: e.target.value })}
+                          style={{
+                            width: '100%',
+                            padding: 'clamp(5px, 0.6vw, 7px) clamp(7px, 0.8vw, 10px)',
+                            fontSize: 'clamp(0.72rem, 0.82vw, 0.84rem)',
+                            borderRadius: '8px',
+                            border: '1.5px solid #e2e8f0',
+                            outline: 'none',
+                            background: '#f8fafc',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: 'clamp(0.64rem, 0.72vw, 0.72rem)', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '2px', lineHeight: 1.2 }}>
+                        <Calendar size={11} color="#8b5cf6" /> Child Date of Birth *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={heroForm.dob}
+                        onChange={(e) => setHeroForm({ ...heroForm, dob: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: 'clamp(4px, 0.5vw, 6px) clamp(7px, 0.8vw, 10px)',
+                          fontSize: 'clamp(0.72rem, 0.82vw, 0.84rem)',
+                          borderRadius: '8px',
+                          border: '1.5px solid #e2e8f0',
+                          outline: 'none',
+                          background: '#f8fafc',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={heroLoading}
+                      style={{
+                        width: '100%',
+                        padding: 'clamp(7px, 0.8vw, 10px)',
+                        fontSize: 'clamp(0.76rem, 0.86vw, 0.88rem)',
+                        fontWeight: 800,
+                        background: '#10b981',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.28)',
+                        marginTop: '2px'
+                      }}
+                    >
+                      <Award size={15} />
+                      <span>{heroLoading ? 'Unlocking Points...' : 'Unlock 100 Points & Rewards 🪙'}</span>
+                    </button>
+                  </form>
+                </div>
+
+                {/* Mobile inside TV: shows video preview */}
+                <div className="hero-tv-mobile-video" style={{ width: '100%', height: '100%', display: 'none' }}>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=1&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
+                    title="Panda Nest Showcase Video"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      border: 'none',
+                      display: 'block',
+                      pointerEvents: 'none',
+                      transform: 'scale(1.05)',
+                      transformOrigin: 'center center'
+                    }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  />
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
+
+      {/* Mobile Form Card: displayed only on mobile viewports when form is not yet submitted */}
+      {!isFormCompleted && (
+        <div className="hero-tv-mobile-form container" style={{ maxWidth: '480px', margin: '14px auto 0', padding: '0 12px', display: 'none' }}>
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '18px 20px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.06)'
+            }}
+          >
+            <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: '#ecfdf5',
+                  color: '#047857',
+                  padding: '4px 12px',
+                  borderRadius: '9999px',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  marginBottom: '6px'
+                }}
+              >
+                🎁 100 BONUS POINTS
+              </div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px', lineHeight: 1.25 }}>
+                Join Panda Club &amp; Get 100 Pts 🐼
+              </h3>
+              <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
+                Register your child's birthday to unlock 100 instant points and special celebration perks!
+              </p>
+            </div>
+
+            {heroError && (
+              <div style={{ background: '#fef2f2', color: '#991b1b', padding: '8px 12px', borderRadius: '8px', fontSize: '0.8rem', marginBottom: '10px', textAlign: 'center' }}>
+                {heroError}
+              </div>
+            )}
+
+            <form onSubmit={handleHeroSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                    <Heart size={12} color="#ec4899" /> Child Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Aarav"
+                    value={heroForm.child_name}
+                    onChange={(e) => setHeroForm({ ...heroForm, child_name: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', fontSize: '0.88rem', borderRadius: '8px', border: '1.5px solid #e2e8f0', outline: 'none', background: '#f8fafc', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                    <Phone size={12} color="#059669" /> WhatsApp *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="10-digit number"
+                    value={heroForm.phone}
+                    onChange={(e) => setHeroForm({ ...heroForm, phone: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', fontSize: '0.88rem', borderRadius: '8px', border: '1.5px solid #e2e8f0', outline: 'none', background: '#f8fafc', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                  <Calendar size={12} color="#8b5cf6" /> Child Date of Birth *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={heroForm.dob}
+                  onChange={(e) => setHeroForm({ ...heroForm, dob: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', fontSize: '0.88rem', borderRadius: '8px', border: '1.5px solid #e2e8f0', outline: 'none', background: '#f8fafc', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={heroLoading}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '0.92rem',
+                  fontWeight: 800,
+                  background: '#10b981',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.28)',
+                  marginTop: '4px'
+                }}
+              >
+                <Award size={16} />
+                <span>{heroLoading ? 'Unlocking Points...' : 'Unlock 100 Points & Rewards 🪙'}</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
 
       {/* Main Catalog Body */}
