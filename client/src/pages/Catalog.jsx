@@ -268,89 +268,87 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
 
   return (
     <div style={{ paddingBottom: '60px' }}>
-      {/* Playful Hero Banner with Embedded Video Showcase */}
+      {/* Playful Hero Banner with Embedded Video Showcase - Full Width */}
       <section
         style={{
-          background: 'linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%)',
-          padding: '16px 12px 20px',
-          position: 'relative'
+          width: '100%',
+          position: 'relative',
+          background: '#000000',
+          overflow: 'hidden',
+          lineHeight: 0
         }}
       >
-        <div className="container" style={{ maxWidth: '1240px', margin: '0 auto', padding: 0 }}>
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            aspectRatio: '2167 / 725',
+            overflow: 'hidden'
+          }}
+          className="hero-banner-container"
+        >
+          <img
+            src="/banner-spark-imaginations.png"
+            alt="Panda Nest - Toys That Spark Wild Imaginations"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
           <div
             style={{
-              position: 'relative',
-              width: '100%',
-              borderRadius: '20px',
+              position: 'absolute',
+              left: '64.19%',
+              top: '16.83%',
+              width: '33.18%',
+              height: '60.14%',
+              borderRadius: '4px',
               overflow: 'hidden',
-              boxShadow: '0 12px 30px -8px rgba(16, 185, 129, 0.22), 0 4px 14px -2px rgba(15, 23, 42, 0.08)',
-              border: '1.5px solid #d1fae5',
               background: '#000000',
-              aspectRatio: '2167 / 725'
+              boxShadow: 'inset 0 0 10px rgba(0,0,0,0.8)'
             }}
-            className="hero-banner-container"
+            className="hero-video-frame"
           >
-            <img
-              src="/banner-spark-imaginations.png"
-              alt="Panda Nest - Toys That Spark Wild Imaginations"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
-            <div
+            <iframe
+              src={`https://www.youtube.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=1&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
+              title="Panda Nest Showcase Video"
               style={{
-                position: 'absolute',
-                left: '64.19%',
-                top: '16.83%',
-                width: '33.18%',
-                height: '60.14%',
-                borderRadius: '8px',
-                overflow: 'hidden',
-                background: '#000000',
-                boxShadow: 'inset 0 0 10px rgba(0,0,0,0.8)'
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                display: 'block',
+                pointerEvents: 'none',
+                transform: 'scale(1.05)',
+                transformOrigin: 'center center'
               }}
-              className="hero-video-frame"
-            >
-              <iframe
-                src={`https://www.youtube.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=1&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
-                title="Panda Nest Showcase Video"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  display: 'block',
-                  pointerEvents: 'none',
-                  transform: 'scale(1.05)',
-                  transformOrigin: 'center center'
-                }}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              />
-            </div>
-          </div>
-
-          {/* Quick Trust & Feature Chips */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginTop: '14px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => onNavigate && onNavigate('drawing')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', border: '1px solid #f59e0b', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '800', color: '#92400e', cursor: 'pointer' }}
-            >
-              🎨 118-Page Drawing Studio
-            </button>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ffffff', border: '1px solid #e2e8f0', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '700', color: '#047857' }}>
-              <Truck size={15} color="#059669" /> Free Delivery Across India
-            </div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ffffff', border: '1px solid #e2e8f0', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '700', color: '#0f172a' }}>
-              <span>🛡️</span> 100% Child Safe
-            </div>
-            <button
-              type="button"
-              onClick={() => onNavigate && onNavigate('games')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ecfdf5', border: '1px solid #6ee7b7', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '800', color: '#065f46', cursor: 'pointer' }}
-            >
-              🐼 Join Panda Club &amp; Win Coins
-            </button>
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            />
           </div>
         </div>
       </section>
+
+      {/* Quick Trust & Feature Chips */}
+      <div className="container" style={{ maxWidth: '1240px', margin: '14px auto 0', padding: '0 12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => onNavigate && onNavigate('drawing')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', border: '1px solid #f59e0b', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '800', color: '#92400e', cursor: 'pointer' }}
+          >
+            🎨 118-Page Drawing Studio
+          </button>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ffffff', border: '1px solid #e2e8f0', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '700', color: '#047857', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <Truck size={15} color="#059669" /> Free Delivery Across India
+          </div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ffffff', border: '1px solid #e2e8f0', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '700', color: '#0f172a', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <span>🛡️</span> 100% Child Safe
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate && onNavigate('games')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ecfdf5', border: '1px solid #6ee7b7', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '800', color: '#065f46', cursor: 'pointer' }}
+          >
+            🐼 Join Panda Club &amp; Win Coins
+          </button>
+        </div>
+      </div>
 
       {/* Main Catalog Body */}
       <main className="container" style={{ marginTop: '18px' }}>
