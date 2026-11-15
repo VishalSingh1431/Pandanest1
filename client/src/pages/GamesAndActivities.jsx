@@ -191,9 +191,50 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin, onNavigate }
   const [selectedOption, setSelectedOption] = useState(null);
   const [triviaWon, setTriviaWon] = useState(false);
 
-  // --- GAME 6: TRUTH OR DARE ---
+  // --- GAME 6: TRUTH OR DARE (4-Part Alternating Wheel) ---
   const [currentPrompt, setCurrentPrompt] = useState(TRUTHS_AND_DARES[0]);
   const [promptCompleted, setPromptCompleted] = useState(false);
+  const [tdRotation, setTdRotation] = useState(0);
+  const [tdIsSpinning, setTdIsSpinning] = useState(false);
+  const [tdShowPrompt, setTdShowPrompt] = useState(false);
+  const [tdSelectedMode, setTdSelectedMode] = useState(null); // 'truth' | 'dare'
+
+  const spinTdWheel = () => {
+    if (tdIsSpinning) return;
+    setTdIsSpinning(true);
+    setTdShowPrompt(false);
+    setPromptCompleted(false);
+
+    // Pick target quadrant: 0 (Truth), 1 (Dare), 2 (Truth), 3 (Dare)
+    const targetSlice = Math.floor(Math.random() * 4);
+    const selectedType = (targetSlice === 0 || targetSlice === 2) ? 'truth' : 'dare';
+    setTdSelectedMode(selectedType);
+
+    const sliceAngles = [0, 270, 180, 90];
+    const targetBase = sliceAngles[targetSlice];
+    const jitter = (Math.random() - 0.5) * 40;
+    const extraRotations = 360 * 6;
+    const currentModulo = tdRotation % 360;
+    const diff = (targetBase - currentModulo + 360) % 360;
+    const finalRotation = tdRotation + extraRotations + diff + jitter;
+
+    setTdRotation(finalRotation);
+
+    setTimeout(() => {
+      setTdIsSpinning(false);
+      const matchingList = TRUTHS_AND_DARES.filter((item) => item.type === selectedType);
+      const randomPrompt = matchingList.length > 0
+        ? matchingList[Math.floor(Math.random() * matchingList.length)]
+        : TRUTHS_AND_DARES[Math.floor(Math.random() * TRUTHS_AND_DARES.length)];
+      setCurrentPrompt(randomPrompt);
+      setTdShowPrompt(true);
+      confetti({
+        particleCount: 75,
+        spread: 75,
+        origin: { y: 0.6 }
+      });
+    }, 3400);
+  };
 
   // --- VIDEOS ZONE ---
   const [videoList, setVideoList] = useState(TOY_VIDEOS);
@@ -2062,95 +2103,267 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin, onNavigate }
                   </p>
                 </div>
 
-                {!isAuthenticated ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  {/* Wheel Indicator Needle (12 o'clock pointing down) */}
                   <div
                     style={{
-                      padding: '40px 20px',
-                      background: 'radial-gradient(circle at 50% 50%, #f5f3ff 0%, #f8fafc 100%)',
-                      borderRadius: '18px',
-                      border: '1.5px dashed #cbd5e1'
+                      position: 'relative',
+                      width: '36px',
+                      height: '32px',
+                      marginBottom: '-16px',
+                      zIndex: 10,
+                      filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))'
                     }}
                   >
-                    <Lock size={36} color="#8b5cf6" style={{ margin: '0 auto 12px' }} />
-                    <h4 style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: '800', marginBottom: '6px' }}>
-                      Truth or Dare Locked
-                    </h4>
-                    <p style={{ color: '#64748b', fontSize: '0.88rem', maxWidth: '420px', margin: '0 auto 18px' }}>
-                      Join Panda Nest to unlock unlimited family prompts and rewards.
-                    </p>
-                    <button
-                      onClick={() => onRequireLogin && onRequireLogin()}
-                      className="btn btn-primary"
-                      style={{ padding: '10px 24px', fontWeight: '700' }}
-                    >
-                      <Unlock size={16} />
-                      <span>Log In to Unlock</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ maxWidth: '500px', margin: '0 auto' }}>
                     <div
                       style={{
-                        padding: '28px 24px',
+                        width: 0,
+                        height: 0,
+                        borderLeft: '16px solid transparent',
+                        borderRight: '16px solid transparent',
+                        borderTop: '28px solid #ef4444',
+                        margin: '0 auto'
+                      }}
+                    />
+                  </div>
+
+                  {/* Circular 4-Part Alternating Wheel */}
+                  <div
+                    style={{
+                      position: 'relative',
+                      width: '280px',
+                      height: '280px',
+                      borderRadius: '50%',
+                      boxShadow: '0 12px 32px rgba(15, 23, 42, 0.18), inset 0 0 0 6px #ffffff',
+                      border: '6px solid #0f172a',
+                      cursor: tdIsSpinning ? 'not-allowed' : 'pointer',
+                      userSelect: 'none',
+                      overflow: 'hidden'
+                    }}
+                    onClick={spinTdWheel}
+                  >
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        transform: `rotate(${tdRotation}deg)`,
+                        transition: tdIsSpinning ? 'transform 3.4s cubic-bezier(0.12, 0.85, 0.25, 1)' : 'none',
+                        position: 'relative'
+                      }}
+                    >
+                      <svg width="100%" height="100%" viewBox="0 0 300 300">
+                        <defs>
+                          <linearGradient id="grad-td-truth1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#38bdf8" />
+                            <stop offset="100%" stopColor="#0284c7" />
+                          </linearGradient>
+                          <linearGradient id="grad-td-dare1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#fb7185" />
+                            <stop offset="100%" stopColor="#e11d48" />
+                          </linearGradient>
+                          <linearGradient id="grad-td-truth2" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#34d399" />
+                            <stop offset="100%" stopColor="#059669" />
+                          </linearGradient>
+                          <linearGradient id="grad-td-dare2" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#fbbf24" />
+                            <stop offset="100%" stopColor="#d97706" />
+                          </linearGradient>
+                        </defs>
+
+                        {/* 4 Quadrants alternating */}
+                        {/* 0: Top (-45° to 45°) -> TRUTH */}
+                        <path d="M 150 150 L 46 46 A 147 147 0 0 1 254 46 Z" fill="url(#grad-td-truth1)" stroke="#ffffff" strokeWidth="3" />
+                        {/* 1: Right (45° to 135°) -> DARE */}
+                        <path d="M 150 150 L 254 46 A 147 147 0 0 1 254 254 Z" fill="url(#grad-td-dare1)" stroke="#ffffff" strokeWidth="3" />
+                        {/* 2: Bottom (135° to 225°) -> TRUTH */}
+                        <path d="M 150 150 L 254 254 A 147 147 0 0 1 46 254 Z" fill="url(#grad-td-truth2)" stroke="#ffffff" strokeWidth="3" />
+                        {/* 3: Left (225° to 315°) -> DARE */}
+                        <path d="M 150 150 L 46 254 A 147 147 0 0 1 46 46 Z" fill="url(#grad-td-dare2)" stroke="#ffffff" strokeWidth="3" />
+
+                        {/* Labels */}
+                        <g transform="translate(150, 72)">
+                          <text textAnchor="middle" fill="#ffffff" fontSize="21" fontWeight="900" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}>
+                            💭 TRUTH
+                          </text>
+                        </g>
+                        <g transform="translate(228, 154) rotate(90)">
+                          <text textAnchor="middle" fill="#ffffff" fontSize="21" fontWeight="900" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}>
+                            ⚡ DARE
+                          </text>
+                        </g>
+                        <g transform="translate(150, 238) rotate(180)">
+                          <text textAnchor="middle" fill="#ffffff" fontSize="21" fontWeight="900" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}>
+                            💭 TRUTH
+                          </text>
+                        </g>
+                        <g transform="translate(72, 154) rotate(270)">
+                          <text textAnchor="middle" fill="#ffffff" fontSize="21" fontWeight="900" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}>
+                            ⚡ DARE
+                          </text>
+                        </g>
+                      </svg>
+                    </div>
+
+                    {/* Center Panda Hub */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: '70px',
+                        height: '70px',
+                        borderRadius: '50%',
+                        background: '#ffffff',
+                        border: '4px solid #0f172a',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
+                        zIndex: 5
+                      }}
+                    >
+                      <span style={{ fontSize: '24px', lineHeight: 1 }}>🐼</span>
+                      <span style={{ fontSize: '9px', fontWeight: '900', color: '#0f172a', letterSpacing: '0.5px' }}>
+                        SPIN!
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Spin Button */}
+                  <div style={{ marginTop: '20px' }}>
+                    <button
+                      onClick={spinTdWheel}
+                      disabled={tdIsSpinning}
+                      className="btn btn-primary"
+                      style={{
+                        padding: '12px 28px',
+                        fontSize: '1rem',
+                        fontWeight: '900',
+                        background: tdIsSpinning ? '#94a3b8' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        boxShadow: '0 8px 18px rgba(16, 185, 129, 0.35)',
+                        cursor: tdIsSpinning ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      <span>{tdIsSpinning ? '🎡 Spinning Wheel...' : '🎲 SPIN THE 4-PART WHEEL!'}</span>
+                    </button>
+                  </div>
+
+                  {/* Revealed Prompt Card */}
+                  {tdShowPrompt && (
+                    <div
+                      style={{
+                        maxWidth: '520px',
+                        width: '100%',
+                        marginTop: '24px',
+                        padding: '24px 20px',
                         borderRadius: '20px',
-                        background: currentPrompt.type === 'truth' ? '#eff6ff' : '#fef3c7',
-                        border: `2px solid ${currentPrompt.type === 'truth' ? '#93c5fd' : '#fcd34d'}`,
-                        marginBottom: '20px'
+                        background: currentPrompt.type === 'truth' ? '#f0f9ff' : '#fff1f2',
+                        border: `2px solid ${currentPrompt.type === 'truth' ? '#38bdf8' : '#fb7185'}`,
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.06)'
                       }}
                     >
                       <div
                         style={{
                           display: 'inline-block',
-                          background: '#ffffff',
-                          color: currentPrompt.type === 'truth' ? '#1d4ed8' : '#b45309',
-                          border: `1.5px solid ${currentPrompt.type === 'truth' ? '#bfdbfe' : '#fde68a'}`,
+                          background: currentPrompt.type === 'truth' ? '#0284c7' : '#e11d48',
+                          color: '#ffffff',
                           borderRadius: '9999px',
-                          padding: '4px 14px',
-                          fontSize: '0.82rem',
+                          padding: '5px 16px',
+                          fontSize: '0.85rem',
                           fontWeight: '800',
                           textTransform: 'uppercase',
-                          marginBottom: '10px'
+                          marginBottom: '12px'
                         }}
                       >
-                        {currentPrompt.type === 'truth' ? '🔍 Truth Question' : '⚡ Fun Dare'}
+                        {currentPrompt.type === 'truth' ? '💭 LANDED ON TRUTH!' : '⚡ LANDED ON DARE!'}
                       </div>
-                      <h4 style={{ fontSize: '1.25rem', color: '#0f172a', lineHeight: 1.4, margin: '0 0 16px' }}>
+                      <h4 style={{ fontSize: '1.25rem', color: '#0f172a', lineHeight: 1.45, margin: '0 0 16px', fontWeight: '800' }}>
                         "{currentPrompt.text}"
                       </h4>
 
                       {promptCompleted ? (
-                        <div style={{ background: '#ecfdf5', padding: '12px', borderRadius: '12px' }}>
-                          <span style={{ color: '#047857', fontWeight: '700', fontSize: '0.9rem' }}>
+                        <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '12px', borderRadius: '12px', marginBottom: '12px' }}>
+                          <span style={{ color: '#047857', fontWeight: '800', fontSize: '0.95rem' }}>
                             🎉 Challenge Done! +10 Panda Points Awarded!
                           </span>
                         </div>
                       ) : (
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={() => {
-                            setPromptCompleted(true);
-                            awardPoints(10, 'Truth or Dare Challenge');
-                          }}
-                          style={{ padding: '10px 22px', fontWeight: '700' }}
-                        >
-                          I Completed It! (+10 PP)
-                        </button>
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                          <button
+                            className="btn btn-primary"
+                            onClick={() => {
+                              setPromptCompleted(true);
+                              awardPoints(10, 'Truth or Dare Challenge');
+                              confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+                            }}
+                            style={{ padding: '10px 22px', fontWeight: '800' }}
+                          >
+                            I Completed It! (+10 PP)
+                          </button>
+                          <button
+                            className="btn btn-secondary"
+                            onClick={spinTdWheel}
+                            style={{ padding: '10px 18px', fontWeight: '700' }}
+                          >
+                            Spin Again 🎲
+                          </button>
+                        </div>
                       )}
                     </div>
+                  )}
 
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => {
-                        const next = TRUTHS_AND_DARES[Math.floor(Math.random() * TRUTHS_AND_DARES.length)];
-                        setCurrentPrompt(next);
-                        setPromptCompleted(false);
-                      }}
-                      style={{ padding: '10px 20px', borderRadius: '12px', fontWeight: '700' }}
-                    >
-                      🎲 Spin Next Question
-                    </button>
+                  {/* Official Buy Game Book Banner */}
+                  <div
+                    style={{
+                      maxWidth: '540px',
+                      width: '100%',
+                      marginTop: '26px',
+                      background: 'linear-gradient(135deg, #fefce8 0%, #fff7ed 100%)',
+                      border: '1.5px solid #fde047',
+                      borderRadius: '16px',
+                      padding: '16px 20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '14px',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '30px' }}>📖</span>
+                      <div>
+                        <div style={{ fontSize: '0.72rem', fontWeight: '800', color: '#b45309', textTransform: 'uppercase' }}>
+                          Official Activity Book
+                        </div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a' }}>
+                          Panda 100 Family Truth &amp; Dare Cards Book
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ fontSize: '1.3rem', fontWeight: '900', color: '#059669' }}>
+                        ₹9
+                      </div>
+                      <button
+                        onClick={() => openBuyNow && openBuyNow({
+                          id: 'game-book-truth-dare',
+                          name: 'Panda 100 Family Truth & Dare Cards Book',
+                          price: 9,
+                          original_price: 99,
+                          image_url: '/drawing-book/page-001.jpg',
+                          description: '100 printable family challenges & cards'
+                        })}
+                        className="btn btn-primary btn-sm"
+                        style={{ fontWeight: '800', padding: '8px 14px' }}
+                      >
+                        Buy Book
+                      </button>
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             )}
           </div>
