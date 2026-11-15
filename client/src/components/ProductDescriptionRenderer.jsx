@@ -275,3 +275,4 @@ export function ProductDescriptionRenderer({ description, toyName, ageGroup, cat
     </div>
   );
 }
+

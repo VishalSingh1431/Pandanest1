@@ -58,6 +58,16 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
   const [toyReviewsData, setToyReviewsData] = useState({ reviews: [], averageRating: 0, totalReviews: 0 });
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [hasInteractedExitWarning, setHasInteractedExitWarning] = useState(false);
+  const [introVideo, setIntroVideo] = useState({ youtube_id: '39x-D2bO_s8' });
+
+  useEffect(() => {
+    fetch('/api/videos/intro')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.youtube_id) setIntroVideo(data);
+      })
+      .catch(() => {});
+  }, []);
 
   // Hero embedded onboarding form state
   const [heroForm, setHeroForm] = useState({
@@ -258,117 +268,79 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
 
   return (
     <div style={{ paddingBottom: '60px' }}>
-      {/* Playful Hero Banner with Form (or Member Rewards Card for logged-in users) */}
+      {/* Playful Hero Banner with Embedded Video Showcase */}
       <section
         style={{
-          background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
-          color: 'white',
-          padding: '28px 20px',
-          position: 'relative',
-          overflow: 'hidden'
+          background: 'linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%)',
+          padding: '16px 12px 20px',
+          position: 'relative'
         }}
       >
-        <div
-          className="container"
-          style={{
-            position: 'relative',
-            zIndex: 2,
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))',
-            gap: '24px',
-            alignItems: 'center'
-          }}
-        >
-          {/* Left Column: Brand & Value Pitch */}
-          <div>
-            <div className="badge badge-amber" style={{ marginBottom: '10px', padding: '4px 12px', fontSize: '0.8rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-              <Sparkles size={13} /> Official Panda Nest Storefront • pandanest.in
-            </div>
-
-            <h1 style={{ fontSize: '2.1rem', lineHeight: 1.18, marginBottom: '10px', color: 'white' }}>
-              Toys That Spark Wild Imaginations! 🚀
-            </h1>
-
-            <p style={{ fontSize: '0.96rem', opacity: 0.95, lineHeight: 1.5, marginBottom: '16px', maxWidth: '490px' }}>
-              From turbo stunt racers to giant cuddly pandas and fairytale castles, find toys crafted for boundless playtime fun.
-            </p>
-
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', background: 'rgba(255,255,255,0.2)', padding: '6px 14px', borderRadius: '18px', fontWeight: '600' }}>
-                <Truck size={15} />
-                <span>FREE Delivery Across India</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', background: 'rgba(255,255,255,0.2)', padding: '6px 14px', borderRadius: '18px', fontWeight: '600' }}>
-                <span>✨ 100% Child Safe</span>
-              </div>
+        <div className="container" style={{ maxWidth: '1240px', margin: '0 auto', padding: 0 }}>
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              borderRadius: '20px',
+              overflow: 'hidden',
+              boxShadow: '0 12px 30px -8px rgba(16, 185, 129, 0.22), 0 4px 14px -2px rgba(15, 23, 42, 0.08)',
+              border: '1.5px solid #d1fae5',
+              background: '#000000',
+              aspectRatio: '2167 / 725'
+            }}
+            className="hero-banner-container"
+          >
+            <img
+              src="/banner-spark-imaginations.png"
+              alt="Panda Nest - Toys That Spark Wild Imaginations"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                left: '64.19%',
+                top: '16.83%',
+                width: '33.18%',
+                height: '60.14%',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                background: '#000000',
+                boxShadow: 'inset 0 0 10px rgba(0,0,0,0.8)'
+              }}
+              className="hero-video-frame"
+            >
+              <iframe
+                src={`https://www.youtube.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=1&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=1&modestbranding=1&rel=0`}
+                title="Panda Nest Showcase Video"
+                style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
             </div>
           </div>
 
-          {/* Right Column: High-Converting E-Commerce Promotional Showcase */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '20px',
-              padding: '20px 24px',
-              boxShadow: '0 14px 34px -8px rgba(0, 0, 0, 0.22)',
-              color: '#0f172a',
-              maxWidth: '450px',
-              marginLeft: 'auto',
-              width: '100%'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-              <span className="badge badge-amber" style={{ fontSize: '0.78rem', fontWeight: '800' }}>
-                🎉 FESTIVE SALE ACTIVE
-              </span>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#047857' }}>
-                Use Code: PANDANEST
-              </span>
+          {/* Quick Trust & Feature Chips */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginTop: '14px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => onNavigate && onNavigate('drawing')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', border: '1px solid #f59e0b', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '800', color: '#92400e', cursor: 'pointer' }}
+            >
+              🎨 118-Page Drawing Studio
+            </button>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ffffff', border: '1px solid #e2e8f0', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '700', color: '#047857' }}>
+              <Truck size={15} color="#059669" /> Free Delivery Across India
             </div>
-
-            <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '14px', border: '1.5px solid #e2e8f0', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                <span style={{ fontSize: '1.5rem' }}>🎁</span>
-                <div>
-                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800', color: '#0f172a' }}>
-                    Flat 5% OFF on All Educational Toys
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>
-                    Extra discount applied automatically at checkout!
-                  </p>
-                </div>
-              </div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ffffff', border: '1px solid #e2e8f0', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '700', color: '#0f172a' }}>
+              <span>🛡️</span> 100% Child Safe
             </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div style={{ background: '#ecfdf5', borderRadius: '12px', padding: '10px', textAlign: 'center', border: '1px solid #a7f3d0' }}>
-                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#047857' }}>24h</div>
-                <div style={{ fontSize: '0.72rem', color: '#065f46', fontWeight: '600' }}>Express Dispatch</div>
-              </div>
-              <div style={{ background: '#fef3c7', borderRadius: '12px', padding: '10px', textAlign: 'center', border: '1px solid #fde68a' }}>
-                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#b45309' }}>100%</div>
-                <div style={{ fontSize: '0.72rem', color: '#92400e', fontWeight: '600' }}>BIS Child Safe</div>
-              </div>
-            </div>
-
-            <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => onNavigate && onNavigate('games')}
-                className="btn btn-secondary btn-sm"
-                style={{ flex: 1, textAlign: 'center', padding: '10px', fontWeight: '700', cursor: 'pointer' }}
-              >
-                🐼 Panda Club
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate && onNavigate('drawing')}
-                className="btn btn-primary btn-sm"
-                style={{ flex: 1, textAlign: 'center', padding: '10px', fontWeight: '800', cursor: 'pointer' }}
-              >
-                🎨 Drawing Studio
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate && onNavigate('games')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ecfdf5', border: '1px solid #6ee7b7', padding: '7px 16px', borderRadius: '9999px', fontSize: '0.84rem', fontWeight: '800', color: '#065f46', cursor: 'pointer' }}
+            >
+              🐼 Join Panda Club &amp; Win Coins
+            </button>
           </div>
         </div>
       </section>
