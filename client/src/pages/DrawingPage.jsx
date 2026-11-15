@@ -85,7 +85,21 @@ export function DrawingPage({ onNavigate }) {
     baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
 
     if (!pageNum) {
-      templateBoundsRef.current = { x: 0, y: 0, w: canvas.width, h: canvas.height };
+      canvas.width = 720;
+      canvas.height = 720;
+      baseCanvas.width = 720;
+      baseCanvas.height = 720;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 720, 720);
+      baseCtx.fillStyle = '#ffffff';
+      baseCtx.fillRect(0, 0, 720, 720);
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(0, 0, 720, 720);
+      baseCtx.strokeStyle = '#0f172a';
+      baseCtx.lineWidth = 6;
+      baseCtx.strokeRect(0, 0, 720, 720);
+      templateBoundsRef.current = { x: 4, y: 4, w: 712, h: 712 };
       historyRef.current = [];
       saveHistorySnapshot();
       return;
@@ -102,31 +116,35 @@ export function DrawingPage({ onNavigate }) {
     img.crossOrigin = 'anonymous';
     img.src = imgSrc;
     img.onload = () => {
+      // Fit canvas resolution strictly to image aspect ratio (no empty side spills)
+      const imgRatio = (img.height && img.width) ? img.height / img.width : 1.33;
+      const targetW = 720;
+      const targetH = Math.round(targetW * imgRatio);
+
+      canvas.width = targetW;
+      canvas.height = targetH;
+      baseCanvas.width = targetW;
+      baseCanvas.height = targetH;
+
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, targetW, targetH);
       baseCtx.fillStyle = '#ffffff';
-      baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
+      baseCtx.fillRect(0, 0, targetW, targetH);
 
-      const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
-      const drawW = Math.floor(img.width * scale);
-      const drawH = Math.floor(img.height * scale);
-      const offsetX = Math.floor((canvas.width - drawW) / 2);
-      const offsetY = Math.floor((canvas.height - drawH) / 2);
-
-      templateBoundsRef.current = { x: offsetX, y: offsetY, w: drawW, h: drawH };
+      templateBoundsRef.current = { x: 4, y: 4, w: targetW - 8, h: targetH - 8 };
 
       // Draw onto both the visible canvas and the offscreen base canvas
-      ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
-      baseCtx.drawImage(img, offsetX, offsetY, drawW, drawH);
+      ctx.drawImage(img, 0, 0, targetW, targetH);
+      baseCtx.drawImage(img, 0, 0, targetW, targetH);
 
-      // Draw subtle boundary frame so floodFill never leaks outside the coloring sheet
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(offsetX, offsetY, drawW, drawH);
+      // Solid outer boundary frame so floodFill NEVER leaks outside the coloring sheet
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(0, 0, targetW, targetH);
 
-      baseCtx.strokeStyle = '#334155';
-      baseCtx.lineWidth = 2;
-      baseCtx.strokeRect(offsetX, offsetY, drawW, drawH);
+      baseCtx.strokeStyle = '#0f172a';
+      baseCtx.lineWidth = 6;
+      baseCtx.strokeRect(0, 0, targetW, targetH);
 
       historyRef.current = [];
       saveHistorySnapshot();
@@ -813,27 +831,59 @@ export function DrawingPage({ onNavigate }) {
         </div>
       </div>
 
-      {/* The HTML5 Canvas */}
-      <div style={{ background: '#ffffff', border: '2px solid #cbd5e1', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'center' }}>
-        <canvas
-          ref={canvasRef}
-          onMouseDown={startDraw}
-          onMouseMove={draw}
-          onMouseUp={stopDraw}
-          onMouseLeave={stopDraw}
-          onTouchStart={startDraw}
-          onTouchMove={draw}
-          onTouchEnd={stopDraw}
+      {/* The HTML5 Coloring Canvas - Strict Sheet Boundary */}
+      <div
+        style={{
+          background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+          border: '2px solid #cbd5e1',
+          borderRadius: '20px',
+          padding: '20px 12px',
+          boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.03)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px'
+        }}
+      >
+        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span>📄</span> Coloring Sheet #{typeof selectedPage === 'number' ? selectedPage : 'Custom'}
+          <span style={{ fontSize: '0.72rem', background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '12px' }}>
+            Colors locked to sheet boundary
+          </span>
+        </div>
+
+        <div
           style={{
+            background: '#ffffff',
+            border: '4px solid #0f172a',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            boxShadow: '0 16px 36px -10px rgba(15, 23, 42, 0.25), 0 4px 10px rgba(0,0,0,0.08)',
+            display: 'inline-block',
+            maxWidth: '560px',
             width: '100%',
-            maxWidth: '960px',
-            height: 'auto',
-            aspectRatio: '960 / 560',
-            display: 'block',
-            cursor: tool === 'fill' ? 'pointer' : tool === 'eraser' ? 'cell' : 'crosshair',
-            touchAction: 'none'
+            lineHeight: 0
           }}
-        />
+        >
+          <canvas
+            ref={canvasRef}
+            onMouseDown={startDraw}
+            onMouseMove={draw}
+            onMouseUp={stopDraw}
+            onMouseLeave={stopDraw}
+            onTouchStart={startDraw}
+            onTouchMove={draw}
+            onTouchEnd={stopDraw}
+            style={{
+              width: '100%',
+              height: 'auto',
+              display: 'block',
+              cursor: tool === 'fill' ? 'pointer' : tool === 'eraser' ? 'cell' : 'crosshair',
+              touchAction: 'none'
+            }}
+          />
+        </div>
       </div>
 
       {/* Buy Now Recommended Toys Tray (Item 7 Requirement) */}

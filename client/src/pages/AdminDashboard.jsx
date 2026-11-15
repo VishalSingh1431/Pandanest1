@@ -30,7 +30,10 @@ import {
   Tag,
   Video,
   Ticket,
-  Star
+  Star,
+  Award,
+  Zap,
+  BookOpen
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { parseResponse } from '../utils/api';
@@ -110,6 +113,8 @@ export function AdminDashboard({ onLogout }) {
     description: '',
     stock: 15,
     featured: false,
+    is_todays_sale: false,
+    todays_sale_price: '',
     image_url_manual: '',
     video_url: '',
     existing_images: []
@@ -255,6 +260,131 @@ export function AdminDashboard({ onLogout }) {
     localStorage.setItem('pandanest_enabled_games', JSON.stringify(updated));
   };
 
+  // Game Activity Books Manager state
+  const [gameBooks, setGameBooks] = useState({});
+  const [savingGameBookKey, setSavingGameBookKey] = useState(null);
+  const [gameBookMsg, setGameBookMsg] = useState('');
+
+  // Certificates state
+  const [certificates, setCertificates] = useState([]);
+  const [certForm, setCertForm] = useState({
+    title: '',
+    issuer: '',
+    cert_number: '',
+    category: 'Safety & Compliance',
+    valid_till: '2028-12-31',
+    image_url: '',
+    description: '',
+    display_order: 1
+  });
+  const [certLoading, setCertLoading] = useState(false);
+  const [certMsg, setCertMsg] = useState('');
+  const [editingCertId, setEditingCertId] = useState(null);
+
+  const toggleTodaysSale = async (toy) => {
+    try {
+      const newStatus = !toy.is_todays_sale;
+      const res = await fetch(`/api/toys/${toy.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ is_todays_sale: newStatus })
+      });
+      if (res.ok) {
+        setToys((prev) => prev.map((t) => (t.id === toy.id ? { ...t, is_todays_sale: newStatus } : t)));
+      }
+    } catch (e) {
+      console.error('Failed toggling sale status', e);
+    }
+  };
+
+  const handleSaveGameBook = async (key, bookData) => {
+    setSavingGameBookKey(key);
+    setGameBookMsg('');
+    try {
+      const res = await fetch(`/api/game-books/${key}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(bookData)
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        setGameBooks((prev) => ({ ...prev, [key]: saved }));
+        setGameBookMsg(`Saved book for ${key} successfully!`);
+        setTimeout(() => setGameBookMsg(''), 4000);
+      }
+    } catch (err) {
+      console.error('Failed saving game book:', err);
+    } finally {
+      setSavingGameBookKey(null);
+    }
+  };
+
+  const handleSaveCert = async (e) => {
+    e.preventDefault();
+    if (!certForm.title || !certForm.issuer) return;
+    setCertLoading(true);
+    setCertMsg('');
+    try {
+      const url = editingCertId ? `/api/certificates/${editingCertId}` : '/api/certificates';
+      const method = editingCertId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(certForm)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (editingCertId) {
+          setCertificates((prev) => prev.map((c) => (c.id === editingCertId ? data : c)));
+          setCertMsg('Certificate updated successfully!');
+        } else {
+          setCertificates((prev) => [...prev, data]);
+          setCertMsg('Certificate added successfully!');
+        }
+        setCertForm({
+          title: '',
+          issuer: '',
+          cert_number: '',
+          category: 'Safety & Compliance',
+          valid_till: '2028-12-31',
+          image_url: '',
+          description: '',
+          display_order: 1
+        });
+        setEditingCertId(null);
+        setTimeout(() => setCertMsg(''), 4000);
+      }
+    } catch (err) {
+      console.error('Failed saving certificate:', err);
+    } finally {
+      setCertLoading(false);
+    }
+  };
+
+  const handleDeleteCert = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this certificate?')) return;
+    try {
+      const res = await fetch(`/api/certificates/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setCertificates((prev) => prev.filter((c) => c.id !== id));
+      }
+    } catch (err) {
+      console.error('Failed deleting certificate:', err);
+    }
+  };
+
   useEffect(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://pandanest.in';
     QRCode.toDataURL(`${origin}?page=welcome`, { width: 300, margin: 2 })
@@ -346,6 +476,24 @@ export function AdminDashboard({ onLogout }) {
         setReviews(Array.isArray(dataReviews) ? dataReviews : []);
       }
 
+      // Fetch Game Books
+      try {
+        const resBooks = await fetch('/api/game-books');
+        if (resBooks.ok) {
+          const dataBooks = await resBooks.json();
+          if (dataBooks) setGameBooks(dataBooks);
+        }
+      } catch (e) {}
+
+      // Fetch Certificates
+      try {
+        const resCerts = await fetch('/api/certificates');
+        if (resCerts.ok) {
+          const dataCerts = await resCerts.json();
+          if (Array.isArray(dataCerts)) setCertificates(dataCerts);
+        }
+      } catch (e) {}
+
       // Fetch users (if super_admin)
       if (effectiveIsSuperAdmin) {
         const resUsers = await fetch('/api/users', {
@@ -386,6 +534,8 @@ export function AdminDashboard({ onLogout }) {
         description: toy.description || '',
         stock: toy.stock !== undefined ? toy.stock : 15,
         featured: toy.featured || false,
+        is_todays_sale: toy.is_todays_sale || false,
+        todays_sale_price: toy.todays_sale_price || '',
         image_url_manual: '',
         video_url: toy.video_url || '',
         existing_images: existingImgs
@@ -402,6 +552,8 @@ export function AdminDashboard({ onLogout }) {
         description: '',
         stock: 15,
         featured: false,
+        is_todays_sale: false,
+        todays_sale_price: '',
         image_url_manual: '',
         video_url: '',
         existing_images: []
@@ -459,6 +611,8 @@ export function AdminDashboard({ onLogout }) {
       formData.append('description', toyForm.description);
       formData.append('stock', toyForm.stock);
       formData.append('featured', toyForm.featured);
+      formData.append('is_todays_sale', toyForm.is_todays_sale ? 'true' : 'false');
+      if (toyForm.todays_sale_price) formData.append('todays_sale_price', toyForm.todays_sale_price);
       formData.append('video_url', toyForm.video_url || '');
 
       // Append existing preserved images
@@ -1049,6 +1203,7 @@ export function AdminDashboard({ onLogout }) {
               badge: upcomingBdaysCount > 0 ? `${upcomingBdaysCount} B-Days 🎉` : null
             },
             { id: 'truth-dare', label: 'Panda Club & Drawing', icon: <Sparkles size={16} /> },
+            { id: 'certificates', label: `Certificates (${certificates.length})`, icon: <Award size={16} /> },
             { id: 'videos', label: `Videos & Intro (${videos.length})`, icon: <Video size={16} /> },
             { id: 'categories', label: `Categories (${categories.length})`, icon: <Tag size={16} /> },
             { id: 'coupons', label: `Coupons (${coupons.length})`, icon: <Ticket size={16} /> },
@@ -1113,6 +1268,7 @@ export function AdminDashboard({ onLogout }) {
                       <th style={{ padding: '12px 16px' }}>Age Group</th>
                       <th style={{ padding: '12px 16px' }}>Price</th>
                       <th style={{ padding: '12px 16px' }}>Stock</th>
+                      <th style={{ padding: '12px 16px' }}>Today's Sale ⚡</th>
                       <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
@@ -1159,6 +1315,28 @@ export function AdminDashboard({ onLogout }) {
                           <span style={{ fontWeight: '600', color: toy.stock > 5 ? '#10b981' : '#ef4444' }}>
                             {toy.stock} units
                           </span>
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <button
+                            type="button"
+                            onClick={() => toggleTodaysSale(toy)}
+                            className="btn-press"
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '12px',
+                              fontSize: '0.75rem',
+                              fontWeight: '800',
+                              border: toy.is_todays_sale ? '1.5px solid #f43f5e' : '1.5px solid #cbd5e1',
+                              background: toy.is_todays_sale ? '#fff1f2' : '#f8fafc',
+                              color: toy.is_todays_sale ? '#e11d48' : '#64748b',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <span>{toy.is_todays_sale ? '🔥 In Sale (Top)' : '+ Add to Sale'}</span>
+                          </button>
                         </td>
                         <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                           <button
@@ -2241,6 +2419,164 @@ export function AdminDashboard({ onLogout }) {
               </div>
             </div>
 
+            {/* Game Activity Books & Store Guides Manager (Buy with Price) */}
+            <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                  Game Activity Books Store Manager 📖🛒
+                </h3>
+                {gameBookMsg && (
+                  <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#059669', background: '#ecfdf5', padding: '4px 12px', borderRadius: '12px' }}>
+                    {gameBookMsg}
+                  </span>
+                )}
+              </div>
+              <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 20px' }}>
+                Set a buyable Book, Activity PDF, or Game Guide for each game with custom sale price, MRP, and cover image. Players can buy books directly within the game!
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+                {[
+                  { key: 'drawing', label: '🎨 Drawing Studio Book', defaultTitle: 'Panda Nest 118-Page Jumbo Activity & Coloring Book (PDF Download)' },
+                  { key: 'truthDare', label: '🎯 Truth or Dare Party Book', defaultTitle: 'Panda 100 Family Truth & Dare Party Cards Book' },
+                  { key: 'balloon', label: '🎈 Balloon Popper Activity Book', defaultTitle: 'Panda Pop & Learn Math & Colors Activity Book' },
+                  { key: 'bamboo', label: '🎍 Bamboo Catcher Maze Book', defaultTitle: 'Panda Bamboo Forest Adventure & Maze Book' },
+                  { key: 'spin', label: '🎡 Lucky Spin Wheel Game Book', defaultTitle: 'Panda Spin & Win Family Board Game Book' },
+                  { key: 'memory', label: '🃏 Memory Match Brain Book', defaultTitle: 'Panda Memory Champions Brain Booster Book' },
+                  { key: 'trivia', label: '🧠 Panda Trivia Quiz Book', defaultTitle: '500 Fun Panda Kids Trivia & Quiz Book' }
+                ].map((item) => {
+                  const current = gameBooks[item.key] || {
+                    title: item.defaultTitle,
+                    price: 9,
+                    original_price: 99,
+                    image_url: '/drawing-book/page-001.jpg',
+                    description: '',
+                    pdf_url: '',
+                    enabled: true
+                  };
+
+                  return (
+                    <div
+                      key={item.key}
+                      style={{
+                        background: '#f8fafc',
+                        border: '1.5px solid #e2e8f0',
+                        borderRadius: '14px',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.95rem' }}>
+                          {item.label}
+                        </span>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: '700', color: '#475569', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={current.enabled !== false}
+                            onChange={(e) => setGameBooks(prev => ({
+                              ...prev,
+                              [item.key]: { ...current, enabled: e.target.checked }
+                            }))}
+                            style={{ accentColor: '#10b981' }}
+                          />
+                          Available for purchase
+                        </label>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '2px' }}>
+                          Book Title
+                        </label>
+                        <input
+                          type="text"
+                          value={current.title || ''}
+                          onChange={(e) => setGameBooks(prev => ({
+                            ...prev,
+                            [item.key]: { ...current, title: e.target.value }
+                          }))}
+                          style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '2px' }}>
+                            Sale Price (₹)
+                          </label>
+                          <input
+                            type="number"
+                            value={current.price !== undefined ? current.price : 9}
+                            onChange={(e) => setGameBooks(prev => ({
+                              ...prev,
+                              [item.key]: { ...current, price: e.target.value }
+                            }))}
+                            style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: '800', color: '#059669' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '2px' }}>
+                            MRP Original Price (₹)
+                          </label>
+                          <input
+                            type="number"
+                            value={current.original_price !== undefined ? current.original_price : 99}
+                            onChange={(e) => setGameBooks(prev => ({
+                              ...prev,
+                              [item.key]: { ...current, original_price: e.target.value }
+                            }))}
+                            style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '2px' }}>
+                          Cover Image URL
+                        </label>
+                        <input
+                          type="text"
+                          value={current.image_url || ''}
+                          onChange={(e) => setGameBooks(prev => ({
+                            ...prev,
+                            [item.key]: { ...current, image_url: e.target.value }
+                          }))}
+                          style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '2px' }}>
+                          Description
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={current.description || ''}
+                          onChange={(e) => setGameBooks(prev => ({
+                            ...prev,
+                            [item.key]: { ...current, description: e.target.value }
+                          }))}
+                          style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={savingGameBookKey === item.key}
+                        onClick={() => handleSaveGameBook(item.key, current)}
+                        className="btn btn-primary btn-sm"
+                        style={{ marginTop: 'auto', fontWeight: '800' }}
+                      >
+                        {savingGameBookKey === item.key ? 'Saving Book...' : `Save ${item.label.split(' ')[0]} Book`}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Drawing Book Extra Pages Manager */}
             <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: '0 0 4px' }}>
@@ -2446,6 +2782,224 @@ export function AdminDashboard({ onLogout }) {
               </div>
             </div>
           </div>
+          </div>
+        )}
+
+        {/* Tab: Company Safety & Quality Certificates (Term & Policy Page) */}
+        {activeTab === 'certificates' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                  Safety &amp; Compliance Certificates Manager 🛡️🏛️
+                </h3>
+                {certMsg && (
+                  <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#059669', background: '#ecfdf5', padding: '4px 12px', borderRadius: '12px' }}>
+                    {certMsg}
+                  </span>
+                )}
+              </div>
+              <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 20px' }}>
+                Manage trust badges and official certifications displayed on the storefront Terms &amp; Policies page (BIS Standard IS 9873, Child-Safe Non-Toxic SGS, ISO 9001, MSME / Startup India, CE Mark).
+              </p>
+
+              {/* Add / Edit Form */}
+              <form onSubmit={handleSaveCert} style={{ background: '#f8fafc', padding: '20px', borderRadius: '14px', border: '1.5px solid #e2e8f0', marginBottom: '24px' }}>
+                <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', margin: '0 0 14px' }}>
+                  {editingCertId ? '✏️ Edit Certificate' : '➕ Add Official Certificate'}
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '3px' }}>
+                      Certificate Title *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. BIS Standard IS 9873 Safety of Toys"
+                      value={certForm.title}
+                      onChange={(e) => setCertForm({ ...certForm, title: e.target.value })}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '3px' }}>
+                      Issuing Authority / Agency *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Bureau of Indian Standards (Govt. of India)"
+                      value={certForm.issuer}
+                      onChange={(e) => setCertForm({ ...certForm, issuer: e.target.value })}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '3px' }}>
+                      Certificate Number
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. BIS-IS9873-IN-2026-8841"
+                      value={certForm.cert_number}
+                      onChange={(e) => setCertForm({ ...certForm, cert_number: e.target.value })}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '3px' }}>
+                      Category / Tag
+                    </label>
+                    <select
+                      value={certForm.category}
+                      onChange={(e) => setCertForm({ ...certForm, category: e.target.value })}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', background: '#fff' }}
+                    >
+                      <option value="Safety & Compliance">Safety & Compliance</option>
+                      <option value="Child Health & Safety">Child Health & Safety</option>
+                      <option value="Quality Assurance">Quality Assurance</option>
+                      <option value="Government Recognition">Government Recognition</option>
+                      <option value="Global Standards">Global Standards</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '3px' }}>
+                      Validity Date
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 2028-12-31 or Permanent"
+                      value={certForm.valid_till}
+                      onChange={(e) => setCertForm({ ...certForm, valid_till: e.target.value })}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '3px' }}>
+                      Image / Seal URL
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="https://... or certificate image path"
+                      value={certForm.image_url}
+                      onChange={(e) => setCertForm({ ...certForm, image_url: e.target.value })}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '3px' }}>
+                    Standard Description &amp; Testing Protocol
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Details about lab tests, EN 71 compliance, heavy element limits, etc."
+                    value={certForm.description}
+                    onChange={(e) => setCertForm({ ...certForm, description: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="submit"
+                    disabled={certLoading}
+                    className="btn btn-primary btn-sm"
+                    style={{ fontWeight: '800' }}
+                  >
+                    {certLoading ? 'Saving...' : editingCertId ? 'Update Certificate' : '+ Save Certificate'}
+                  </button>
+                  {editingCertId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingCertId(null);
+                        setCertForm({ title: '', issuer: '', cert_number: '', category: 'Safety & Compliance', valid_till: '2028-12-31', image_url: '', description: '', display_order: 1 });
+                      }}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+              </form>
+
+              {/* Table of Existing Certificates */}
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontWeight: '700' }}>
+                      <th style={{ padding: '12px 14px' }}>Preview</th>
+                      <th style={{ padding: '12px 14px' }}>Certificate &amp; Category</th>
+                      <th style={{ padding: '12px 14px' }}>Issuer</th>
+                      <th style={{ padding: '12px 14px' }}>Cert Number</th>
+                      <th style={{ padding: '12px 14px' }}>Validity</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {certificates.map((c) => (
+                      <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '12px 14px' }}>
+                          <img
+                            src={c.image_url || '/placeholder.jpg'}
+                            alt={c.title}
+                            style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                          />
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <div style={{ fontWeight: '800', color: '#0f172a' }}>{c.title}</div>
+                          <span style={{ fontSize: '0.72rem', background: '#ecfdf5', color: '#065f46', padding: '2px 8px', borderRadius: '10px', fontWeight: '700' }}>
+                            {c.category}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 14px', fontWeight: '600', color: '#334155' }}>
+                          {c.issuer}
+                        </td>
+                        <td style={{ padding: '12px 14px', fontFamily: 'monospace', fontSize: '0.8rem', color: '#64748b' }}>
+                          {c.cert_number || '—'}
+                        </td>
+                        <td style={{ padding: '12px 14px', fontSize: '0.82rem', color: '#059669', fontWeight: '700' }}>
+                          {c.valid_till || 'Active'}
+                        </td>
+                        <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingCertId(c.id);
+                              setCertForm({
+                                title: c.title,
+                                issuer: c.issuer,
+                                cert_number: c.cert_number || '',
+                                category: c.category || 'Safety & Compliance',
+                                valid_till: c.valid_till || '',
+                                image_url: c.image_url || '',
+                                description: c.description || '',
+                                display_order: c.display_order || 1
+                              });
+                            }}
+                            style={{ color: '#0284c7', marginRight: '10px', background: 'none', border: 'none', cursor: 'pointer' }}
+                            title="Edit Certificate"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCert(c.id)}
+                            style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
+                            title="Delete Certificate"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -1,10 +1,22 @@
-import React, { useState } from 'react';
-import { ShieldCheck, FileText, Truck, RotateCcw, CreditCard, Tag, Phone, Mail, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, FileText, Truck, RotateCcw, CreditCard, Tag, Phone, Mail, MapPin, Award, CheckCircle2, ExternalLink } from 'lucide-react';
 
 export function Policies({ initialTab = 'shipping' }) {
   const [activePolicy, setActivePolicy] = useState(initialTab);
+  const [certificates, setCertificates] = useState([]);
+  const [selectedCertModal, setSelectedCertModal] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/certificates')
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        if (Array.isArray(data)) setCertificates(data);
+      })
+      .catch(() => {});
+  }, []);
 
   const POLICY_TABS = [
+    { id: 'certificates', label: 'Safety & Certificates 🛡️', icon: Award },
     { id: 'shipping', label: 'Delivery & Shipping', icon: Truck },
     { id: 'returns', label: 'Return & Refund', icon: RotateCcw },
     { id: 'terms', label: 'Terms & Conditions', icon: FileText },
@@ -80,6 +92,156 @@ export function Policies({ initialTab = 'shipping' }) {
             boxShadow: 'var(--shadow-sm)'
           }}
         >
+          {/* 0. Safety & Certifications */}
+          {activePolicy === 'certificates' && (
+            <div>
+              <div className="badge badge-green" style={{ marginBottom: '12px' }}>
+                <Award size={14} /> Official Certifications &amp; Standards
+              </div>
+              <h2 style={{ fontSize: '1.9rem', color: '#0f172a', marginBottom: '8px', fontWeight: '900' }}>
+                Panda Nest – Safety &amp; Quality Certifications 🛡️
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '28px', lineHeight: 1.6 }}>
+                Every toy in the Panda Nest catalog undergoes multi-level safety inspection. We are certified by official Indian and Global safety bodies guaranteeing 100% non-toxic, child-safe, and heavy-element-free playtime for your children.
+              </p>
+
+              {/* Grid of Certificates */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                {certificates.map((cert) => (
+                  <div
+                    key={cert.id}
+                    style={{
+                      background: '#f8fafc',
+                      borderRadius: '18px',
+                      border: '1.5px solid #e2e8f0',
+                      padding: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      position: 'relative',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+                    }}
+                  >
+                    {/* Category Tag */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: '800', background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', padding: '3px 10px', borderRadius: '12px', textTransform: 'uppercase' }}>
+                        {cert.category || 'Certified Safe'}
+                      </span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.74rem', fontWeight: '800', color: '#059669' }}>
+                        <CheckCircle2 size={13} /> Verified
+                      </span>
+                    </div>
+
+                    {/* Image / Seal Preview */}
+                    {cert.image_url && (
+                      <div
+                        onClick={() => setSelectedCertModal(cert)}
+                        style={{
+                          width: '100%',
+                          height: '140px',
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          marginBottom: '14px',
+                          cursor: 'pointer',
+                          position: 'relative'
+                        }}
+                      >
+                        <img
+                          src={cert.image_url}
+                          alt={cert.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        <div style={{ position: 'absolute', bottom: '6px', right: '6px', background: 'rgba(15, 23, 42, 0.75)', color: '#ffffff', fontSize: '0.7rem', fontWeight: '700', padding: '2px 8px', borderRadius: '6px' }}>
+                          View Certificate
+                        </div>
+                      </div>
+                    )}
+
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: '0 0 6px', lineHeight: 1.35 }}>
+                      {cert.title}
+                    </h4>
+
+                    <div style={{ fontSize: '0.82rem', color: '#475569', fontWeight: '600', marginBottom: '8px' }}>
+                      🏛️ Issued By: <strong style={{ color: '#0f172a' }}>{cert.issuer}</strong>
+                    </div>
+
+                    {cert.cert_number && (
+                      <div style={{ background: '#ffffff', padding: '6px 10px', borderRadius: '8px', border: '1px dashed #cbd5e1', fontSize: '0.78rem', color: '#334155', fontFamily: 'monospace', marginBottom: '10px' }}>
+                        Cert No: <strong>{cert.cert_number}</strong>
+                      </div>
+                    )}
+
+                    <p style={{ color: '#64748b', fontSize: '0.85rem', lineHeight: 1.5, margin: '0 0 12px' }}>
+                      {cert.description}
+                    </p>
+
+                    <div style={{ marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid #e2e8f0', fontSize: '0.74rem', color: '#94a3b8', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Validity: {cert.valid_till || 'Permanent'}</span>
+                      <span style={{ color: '#10b981', fontWeight: '700' }}>Active &amp; Compliant</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Safety Pledge */}
+              <div style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)', border: '1.5px solid #a7f3d0', borderRadius: '16px', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ fontSize: '36px' }}>🛡️</div>
+                <div>
+                  <h4 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#065f46', margin: '0 0 4px' }}>
+                    The Panda Nest 100% Child Safety Pledge
+                  </h4>
+                  <p style={{ color: '#047857', fontSize: '0.88rem', margin: 0, lineHeight: 1.5 }}>
+                    Zero phthalates, zero lead paint, rounded-corner designs, and drop-tested durability. We never compromise on your child's well-being.
+                  </p>
+                </div>
+              </div>
+
+              {/* Modal for viewing certificate image */}
+              {selectedCertModal && (
+                <div
+                  onClick={() => setSelectedCertModal(null)}
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.7)',
+                    zIndex: 9999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '20px'
+                  }}
+                >
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ background: '#ffffff', borderRadius: '20px', padding: '24px', maxWidth: '640px', width: '100%', position: 'relative' }}
+                  >
+                    <button
+                      onClick={() => setSelectedCertModal(null)}
+                      style={{ position: 'absolute', top: '12px', right: '14px', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontWeight: '800' }}
+                    >
+                      ✕
+                    </button>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', margin: '0 0 4px' }}>
+                      {selectedCertModal.title}
+                    </h3>
+                    <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '0 0 14px' }}>
+                      Issued by {selectedCertModal.issuer} • Cert #{selectedCertModal.cert_number}
+                    </p>
+                    <img
+                      src={selectedCertModal.image_url}
+                      alt={selectedCertModal.title}
+                      style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', borderRadius: '12px', border: '1px solid #e2e8f0' }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 1. Delivery & Shipping */}
           {activePolicy === 'shipping' && (
             <div>

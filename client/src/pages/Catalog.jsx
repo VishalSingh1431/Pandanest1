@@ -35,19 +35,22 @@ const DEFAULT_CATEGORIES = [
   'Musical & Sensory Toys'
 ];
 
-// Updated Age Ranges matching discussion (0-3, 3-5, 5-8, 8-12, 12+)
-const AGE_GROUPS = [
-  'All',
-  '0-3 yrs',
-  '3-5 yrs',
-  '5-8 yrs',
-  '8-12 yrs',
-  '12+ yrs'
+// Distinct Age Group Filter Configurations with pastel colors & emojis
+const AGE_GROUPS_CONFIG = [
+  { label: 'All', emoji: '🌟', bg: '#ecfdf5', border: '#a7f3d0', color: '#065f46', activeBg: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', badgeBg: '#d1fae5', badgeColor: '#065f46' },
+  { label: '0-3 yrs', emoji: '🍼', bg: '#fff1f2', border: '#fecdd3', color: '#9f1239', activeBg: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)', badgeBg: '#ffe4e6', badgeColor: '#9f1239' },
+  { label: '3-5 yrs', emoji: '🧸', bg: '#fefce8', border: '#fde68a', color: '#854d0e', activeBg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', badgeBg: '#fef3c7', badgeColor: '#854d0e' },
+  { label: '5-8 yrs', emoji: '🚀', bg: '#f0f9ff', border: '#bae6fd', color: '#0369a1', activeBg: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', badgeBg: '#e0f2fe', badgeColor: '#0369a1' },
+  { label: '8-12 yrs', emoji: '🏎️', bg: '#faf5ff', border: '#e9d5ff', color: '#6b21a8', activeBg: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', badgeBg: '#f3e8ff', badgeColor: '#6b21a8' },
+  { label: '12+ yrs', emoji: '⚡', bg: '#fff7ed', border: '#fed7aa', color: '#c2410c', activeBg: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)', badgeBg: '#ffedd5', badgeColor: '#c2410c' }
 ];
+
+const AGE_GROUPS = AGE_GROUPS_CONFIG.map(g => g.label);
 
 export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavigate }) {
   const { isAuthenticated } = useAuth();
   const [toys, setToys] = useState([]);
+  const [allToys, setAllToys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -59,6 +62,35 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [hasInteractedExitWarning, setHasInteractedExitWarning] = useState(false);
   const [introVideo, setIntroVideo] = useState({ youtube_id: '39x-D2bO_s8' });
+
+  // Today's Sale live countdown timer till midnight
+  const [saleCountdown, setSaleCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  useEffect(() => {
+    const calcTime = () => {
+      const now = new Date();
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      const diff = Math.max(0, end - now);
+      setSaleCountdown({
+        hours: String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, '0'),
+        minutes: String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0'),
+        seconds: String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0')
+      });
+    };
+    calcTime();
+    const timer = setInterval(calcTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Fetch all toys once for age count badges
+  useEffect(() => {
+    fetch('/api/toys')
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        if (Array.isArray(data)) setAllToys(data);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch('/api/videos/intro')
@@ -625,6 +657,222 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
 
       {/* Main Catalog Body */}
       <main className="container" style={{ marginTop: '18px' }}>
+        {/* TODAY'S SPECIAL SALE - FLASH DEALS (Prominent Top Banner & Limited Time Countdown) */}
+        {(() => {
+          const explicitSaleToys = (allToys.length > 0 ? allToys : toys).filter(t => t.is_todays_sale);
+          const todaysSaleToys = explicitSaleToys.length > 0
+            ? explicitSaleToys
+            : (allToys.length > 0 ? allToys : toys).slice(0, 4);
+
+          if (todaysSaleToys.length === 0) return null;
+
+          return (
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #fff7ed 0%, #fff1f2 40%, #fefce8 100%)',
+                border: '2.5px solid #f43f5e',
+                borderRadius: '24px',
+                padding: '24px 20px',
+                marginBottom: '28px',
+                boxShadow: '0 16px 36px -10px rgba(244, 63, 94, 0.22), 0 4px 12px rgba(0,0,0,0.04)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              {/* Header with Title & Live Countdown Timer */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '16px',
+                  marginBottom: '20px',
+                  borderBottom: '1.5px dashed #fecdd3',
+                  paddingBottom: '16px'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#e11d48', color: '#ffffff', padding: '4px 12px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: '900', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    <Zap size={14} fill="#ffffff" /> TODAY'S SPECIAL SALE
+                  </div>
+                  <h2 style={{ fontSize: 'clamp(1.25rem, 2vw, 1.7rem)', fontWeight: '900', color: '#881337', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>Limited Time Flash Deals</span>
+                    <span>🔥</span>
+                  </h2>
+                  <p style={{ color: '#9f1239', fontSize: '0.88rem', margin: '4px 0 0', fontWeight: '600' }}>
+                    Curated daily discounts by Panda Nest! Grab yours before time runs out.
+                  </p>
+                </div>
+
+                {/* Digital Countdown Timer */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '2px solid #fda4af',
+                    borderRadius: '16px',
+                    padding: '8px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    boxShadow: '0 4px 12px rgba(225, 29, 72, 0.12)'
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#e11d48', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      ⏳ Deals Expire In
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                      <span style={{ background: '#881337', color: '#ffffff', padding: '3px 7px', borderRadius: '6px', fontWeight: '900', fontSize: '0.95rem', fontFamily: 'monospace' }}>
+                        {saleCountdown.hours}h
+                      </span>
+                      <span style={{ fontWeight: '900', color: '#e11d48' }}>:</span>
+                      <span style={{ background: '#881337', color: '#ffffff', padding: '3px 7px', borderRadius: '6px', fontWeight: '900', fontSize: '0.95rem', fontFamily: 'monospace' }}>
+                        {saleCountdown.minutes}m
+                      </span>
+                      <span style={{ fontWeight: '900', color: '#e11d48' }}>:</span>
+                      <span style={{ background: '#e11d48', color: '#ffffff', padding: '3px 7px', borderRadius: '6px', fontWeight: '900', fontSize: '0.95rem', fontFamily: 'monospace' }}>
+                        {saleCountdown.seconds}s
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Deals Grid */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                  gap: '16px'
+                }}
+              >
+                {todaysSaleToys.map((toy) => {
+                  const salePrice = toy.todays_sale_price || toy.price;
+                  const origPrice = toy.original_price || Math.round(toy.price * 1.35);
+                  const discountPct = Math.max(15, Math.round(((origPrice - salePrice) / origPrice) * 100));
+
+                  return (
+                    <div
+                      key={toy.id}
+                      onClick={() => handleSelectToy(toy)}
+                      style={{
+                        background: '#ffffff',
+                        borderRadius: '18px',
+                        border: '1.5px solid #fecdd3',
+                        padding: '14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        position: 'relative',
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                        boxShadow: '0 4px 14px rgba(244, 63, 94, 0.08)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-4px)';
+                        e.currentTarget.style.boxShadow = '0 12px 24px rgba(244, 63, 94, 0.18)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 14px rgba(244, 63, 94, 0.08)';
+                      }}
+                    >
+                      {/* Top Flash Tag */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '10px',
+                          left: '10px',
+                          background: 'linear-gradient(135deg, #e11d48, #be123c)',
+                          color: '#ffffff',
+                          fontSize: '0.7rem',
+                          fontWeight: '900',
+                          padding: '3px 8px',
+                          borderRadius: '12px',
+                          zIndex: 2,
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.18)'
+                        }}
+                      >
+                        🔥 {discountPct}% OFF
+                      </div>
+
+                      {/* Product Image */}
+                      <div style={{ width: '100%', height: '145px', borderRadius: '12px', overflow: 'hidden', background: '#f8fafc', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img
+                          src={toy.image_url || '/placeholder.jpg'}
+                          alt={toy.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'contain', transition: 'transform 0.3s ease' }}
+                        />
+                      </div>
+
+                      {/* Title & Age */}
+                      <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#be123c', textTransform: 'uppercase' }}>
+                        {toy.age_group || 'All Ages'}
+                      </span>
+                      <h4
+                        style={{
+                          fontSize: '0.92rem',
+                          fontWeight: '800',
+                          color: '#0f172a',
+                          margin: '2px 0 6px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {toy.name}
+                      </h4>
+
+                      {/* Price Section */}
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: 'auto', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '1.25rem', fontWeight: '900', color: '#e11d48' }}>
+                          ₹{salePrice}
+                        </span>
+                        <span style={{ fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                          ₹{origPrice}
+                        </span>
+                      </div>
+
+                      {/* Limited Stock Urgency */}
+                      <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#d97706', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span>⚡</span> Only few left at this price!
+                      </div>
+
+                      {/* Quick Action Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToCart({ ...toy, price: salePrice });
+                        }}
+                        className="btn-press"
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          borderRadius: '10px',
+                          border: 'none',
+                          background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
+                          color: '#ffffff',
+                          fontSize: '0.82rem',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          boxShadow: '0 3px 8px rgba(225, 29, 72, 0.3)'
+                        }}
+                      >
+                        <ShoppingBag size={14} /> Claim Deal
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Category Filter Pills */}
         <div style={{ marginBottom: '18px' }}>
           <div
@@ -676,7 +924,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             boxShadow: '0 4px 14px rgba(15, 23, 42, 0.04)'
           }}
         >
-          {/* Age Group Filter (0-3, 3-5, 5-8, 8-12, 12+) */}
+          {/* Age Group Filter (All, 0-3, 3-5, 5-8, 8-12, 12+) with Pastel BGs, Emojis & Number Count Badges */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <span
               style={{
@@ -696,30 +944,50 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
               <span>🎂</span> Age Range:
             </span>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-              {AGE_GROUPS.map((age) => {
-                const isSelected = selectedAge === age;
+              {AGE_GROUPS_CONFIG.map((group) => {
+                const isSelected = selectedAge === group.label;
+                const pool = allToys.length > 0 ? allToys : toys;
+                const count = group.label === 'All' ? pool.length : pool.filter(t => t.age_group === group.label).length;
+
                 return (
                   <button
-                    key={age}
+                    key={group.label}
                     className="btn-press"
-                    onClick={() => setSelectedAge(age)}
+                    onClick={() => setSelectedAge(group.label)}
                     style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
                       padding: '6px 14px',
                       borderRadius: '9999px',
                       fontSize: '0.85rem',
                       fontWeight: isSelected ? '800' : '700',
-                      border: isSelected ? '1.5px solid #059669' : '1.5px solid #cbd5e1',
-                      background: isSelected ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#ffffff',
-                      color: isSelected ? '#ffffff' : '#334155',
+                      border: isSelected ? `1.5px solid ${group.color}` : `1.5px solid ${group.border}`,
+                      background: isSelected ? group.activeBg : group.bg,
+                      color: isSelected ? '#ffffff' : group.color,
                       boxShadow: isSelected
-                        ? '0 4px 12px rgba(16, 185, 129, 0.35)'
-                        : '0 1px 3px rgba(0, 0, 0, 0.04)',
+                        ? '0 4px 12px rgba(0, 0, 0, 0.18)'
+                        : '0 1px 3px rgba(0, 0, 0, 0.03)',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
-                      transform: isSelected ? 'scale(1.04)' : 'scale(1)'
+                      transform: isSelected ? 'scale(1.05)' : 'scale(1)'
                     }}
                   >
-                    {age}
+                    <span>{group.emoji}</span>
+                    <span>{group.label}</span>
+                    <span
+                      style={{
+                        background: isSelected ? 'rgba(255, 255, 255, 0.28)' : group.badgeBg,
+                        color: isSelected ? '#ffffff' : group.badgeColor,
+                        borderRadius: '9999px',
+                        padding: '1px 7px',
+                        fontSize: '0.74rem',
+                        fontWeight: '800',
+                        marginLeft: '2px'
+                      }}
+                    >
+                      {count}
+                    </span>
                   </button>
                 );
               })}

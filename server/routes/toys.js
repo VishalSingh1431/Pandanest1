@@ -22,7 +22,7 @@ const upload = multer({
 // GET /api/toys - Public catalog with search & filters
 router.get('/', async (req, res) => {
   try {
-    const { category, age, search, sort } = req.query;
+    const { category, age, search, sort, todays_sale } = req.query;
     const { isPostgres, pool } = getDB();
     let toys = [];
 
@@ -38,6 +38,10 @@ router.get('/', async (req, res) => {
       if (age && age !== 'All') {
         params.push(age);
         query += ` AND age_group = $${params.length}`;
+      }
+
+      if (todays_sale === 'true') {
+        query += ' AND is_todays_sale = true';
       }
 
       if (search) {
@@ -123,6 +127,10 @@ router.get('/', async (req, res) => {
         toys = toys.filter(t => t.age_group === age);
       }
 
+      if (todays_sale === 'true') {
+        toys = toys.filter(t => !!t.is_todays_sale);
+      }
+
       if (search) {
         const s = search.toLowerCase();
         toys = toys.filter(t => t.name.toLowerCase().includes(s) || (t.description && t.description.toLowerCase().includes(s)));
@@ -192,7 +200,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/toys - Admin: Create new toy (Supports multiple images + video_url)
 router.post('/', authenticateAdmin, upload.array('images', 15), async (req, res) => {
   try {
-    const { name, category, price, original_price, age_group, description, stock, featured, image_url_manual, images_manual, video_url } = req.body;
+    const { name, category, price, original_price, age_group, description, stock, featured, image_url_manual, images_manual, video_url, is_todays_sale, todays_sale_price } = req.body;
 
     if (!name || !category || !price || !age_group) {
       return res.status(400).json({ error: 'Name, Category, Price, and Age Group are required.' });
@@ -236,13 +244,15 @@ router.post('/', authenticateAdmin, upload.array('images', 15), async (req, res)
     const numOriginalPrice = original_price ? parseFloat(original_price) : null;
     const numStock = stock ? parseInt(stock, 10) : 10;
     const isFeatured = featured === 'true' || featured === true;
+    const isSale = is_todays_sale === 'true' || is_todays_sale === true;
+    const numSalePrice = todays_sale_price ? parseFloat(todays_sale_price) : null;
 
     if (isPostgres && pool) {
       const result = await pool.query(
-        `INSERT INTO toys (name, category, price, original_price, age_group, description, image_url, images, video_url, stock, featured)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        `INSERT INTO toys (name, category, price, original_price, age_group, description, image_url, images, video_url, stock, featured, is_todays_sale, todays_sale_price)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          RETURNING *`,
-        [name.trim(), category.trim(), numPrice, numOriginalPrice, age_group.trim(), description || '', finalImageUrl, allImages, cleanVideoUrl || null, numStock, isFeatured]
+        [name.trim(), category.trim(), numPrice, numOriginalPrice, age_group.trim(), description || '', finalImageUrl, allImages, cleanVideoUrl || null, numStock, isFeatured, isSale, numSalePrice]
       );
       return res.status(201).json(result.rows[0]);
     } else {
@@ -260,6 +270,8 @@ router.post('/', authenticateAdmin, upload.array('images', 15), async (req, res)
         video_url: cleanVideoUrl || null,
         stock: numStock,
         featured: isFeatured,
+        is_todays_sale: isSale,
+        todays_sale_price: numSalePrice,
         created_at: new Date().toISOString()
       };
       store.toys.unshift(newToy);
@@ -277,7 +289,7 @@ router.post('/', authenticateAdmin, upload.array('images', 15), async (req, res)
 router.put('/:id', authenticateAdmin, upload.array('images', 15), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, category, price, original_price, age_group, description, stock, featured, image_url, existing_images, video_url } = req.body;
+    const { name, category, price, original_price, age_group, description, stock, featured, image_url, existing_images, video_url, is_todays_sale, todays_sale_price } = req.body;
 
     const uploadedUrls = [];
     if (req.files && req.files.length > 0) {
@@ -310,6 +322,8 @@ router.put('/:id', authenticateAdmin, upload.array('images', 15), async (req, re
     const numOriginalPrice = original_price ? parseFloat(original_price) : null;
     const numStock = stock !== undefined ? parseInt(stock, 10) : null;
     const isFeatured = featured !== undefined ? (featured === 'true' || featured === true) : undefined;
+    const isSale = is_todays_sale !== undefined ? (is_todays_sale === 'true' || is_todays_sale === true) : undefined;
+    const numSalePrice = todays_sale_price !== undefined ? (todays_sale_price ? parseFloat(todays_sale_price) : null) : undefined;
 
     if (isPostgres && pool) {
       const result = await pool.query(
@@ -324,10 +338,12 @@ router.put('/:id', authenticateAdmin, upload.array('images', 15), async (req, re
              images = COALESCE($8, images),
              video_url = COALESCE($9, video_url),
              stock = COALESCE($10, stock),
-             featured = COALESCE($11, featured)
-         WHERE id = $12
+             featured = COALESCE($11, featured),
+             is_todays_sale = COALESCE($12, is_todays_sale),
+             todays_sale_price = COALESCE($13, todays_sale_price)
+         WHERE id = $14
          RETURNING *`,
-        [name, category, numPrice, numOriginalPrice, age_group, description, finalImageUrl, allImages.length > 0 ? allImages : null, cleanVideoUrl, numStock, isFeatured, id]
+        [name, category, numPrice, numOriginalPrice, age_group, description, finalImageUrl, allImages.length > 0 ? allImages : null, cleanVideoUrl, numStock, isFeatured, isSale, numSalePrice, id]
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Toy not found.' });
@@ -353,7 +369,9 @@ router.put('/:id', authenticateAdmin, upload.array('images', 15), async (req, re
         images: allImages.length > 0 ? allImages : (existing.images || [existing.image_url]),
         video_url: cleanVideoUrl !== null ? cleanVideoUrl : existing.video_url,
         stock: stock !== undefined ? numStock : existing.stock,
-        featured: featured !== undefined ? isFeatured : existing.featured
+        featured: featured !== undefined ? isFeatured : existing.featured,
+        is_todays_sale: isSale !== undefined ? isSale : existing.is_todays_sale,
+        todays_sale_price: numSalePrice !== undefined ? numSalePrice : existing.todays_sale_price
       };
       store.toys[index] = updated;
       writeLocalStore(store);

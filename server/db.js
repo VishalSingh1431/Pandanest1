@@ -572,6 +572,36 @@ async function initPostgresSchema() {
     await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS child_name VARCHAR(150);');
     await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS dob DATE;');
     await pool.query('ALTER TABLE videos ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT \'Cartoons\';');
+    await pool.query('ALTER TABLE toys ADD COLUMN IF NOT EXISTS is_todays_sale BOOLEAN DEFAULT false;');
+    await pool.query('ALTER TABLE toys ADD COLUMN IF NOT EXISTS todays_sale_price NUMERIC(10,2);');
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS game_books (
+        id SERIAL PRIMARY KEY,
+        game_key VARCHAR(50) UNIQUE NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        price NUMERIC(10,2) NOT NULL DEFAULT 9,
+        original_price NUMERIC(10,2) NOT NULL DEFAULT 99,
+        image_url TEXT,
+        description TEXT,
+        pdf_url TEXT,
+        enabled BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS certificates (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        issuer VARCHAR(255) NOT NULL,
+        cert_number VARCHAR(100),
+        category VARCHAR(100) DEFAULT 'Safety & Compliance',
+        valid_till VARCHAR(100),
+        image_url TEXT,
+        description TEXT,
+        display_order INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
   } catch (e) {
     // Columns might already exist — safe to ignore
   }

@@ -12,6 +12,8 @@ import categoryRoutes from './routes/categories.js';
 import videoRoutes from './routes/videos.js';
 import couponRoutes from './routes/coupons.js';
 import reviewRoutes from './routes/reviews.js';
+import gameBookRoutes from './routes/gameBooks.js';
+import certificateRoutes from './routes/certificates.js';
 
 dotenv.config();
 
@@ -88,6 +90,8 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/game-books', gameBookRoutes);
+app.use('/api/certificates', certificateRoutes);
 
 // 404 handler
 app.use((req, res) => {
