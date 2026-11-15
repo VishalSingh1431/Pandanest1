@@ -353,28 +353,29 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
                     boxShadow: 'none'
                   }}
                 >
-                  <div style={{ textAlign: 'center', marginBottom: 'clamp(6px, 0.9vw, 10px)', lineHeight: 1.3 }}>
+                  <div style={{ textAlign: 'center', marginBottom: 'clamp(8px, 1.2vw, 14px)', lineHeight: 1.3 }}>
                     <div
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '5px',
+                        gap: '6px',
                         background: '#ecfdf5',
                         color: '#047857',
-                        padding: '3px 10px',
+                        padding: '5px 14px',
                         borderRadius: '9999px',
-                        fontSize: 'clamp(0.7rem, 0.82vw, 0.8rem)',
+                        fontSize: 'clamp(0.85rem, 1.05vw, 1rem)',
                         fontWeight: 800,
-                        marginBottom: '3px',
-                        lineHeight: 1.2
+                        marginBottom: '6px',
+                        lineHeight: 1.2,
+                        letterSpacing: '0.2px'
                       }}
                     >
                       🎁 100 WELCOME POINTS
                     </div>
-                    <h3 style={{ fontSize: 'clamp(0.85rem, 1.05vw, 1.05rem)', fontWeight: 800, color: '#0f172a', margin: '0 0 2px', lineHeight: 1.25 }}>
+                    <h3 style={{ fontSize: 'clamp(1.2rem, 1.6vw, 1.6rem)', fontWeight: 900, color: '#0f172a', margin: '0 0 4px', lineHeight: 1.2 }}>
                       Join Panda Club &amp; Win Rewards 🐼
                     </h3>
-                    <p style={{ fontSize: 'clamp(0.66rem, 0.76vw, 0.76rem)', color: '#64748b', margin: 0, lineHeight: 1.3 }}>
+                    <p style={{ fontSize: 'clamp(0.82rem, 1vw, 0.95rem)', color: '#475569', margin: 0, lineHeight: 1.35, fontWeight: 500 }}>
                       Register child's birthday for special surprise gifts!
                     </p>
                   </div>
@@ -516,7 +517,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
               boxShadow: '0 8px 24px rgba(0, 0, 0, 0.06)'
             }}
           >
-            <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '14px' }}>
               <div
                 style={{
                   display: 'inline-flex',
@@ -524,20 +525,20 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
                   gap: '6px',
                   background: '#ecfdf5',
                   color: '#047857',
-                  padding: '4px 12px',
+                  padding: '5px 14px',
                   borderRadius: '9999px',
-                  fontSize: '0.78rem',
+                  fontSize: '0.9rem',
                   fontWeight: 800,
                   marginBottom: '6px'
                 }}
               >
-                🎁 100 BONUS POINTS
+                🎁 100 WELCOME POINTS
               </div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px', lineHeight: 1.25 }}>
-                Join Panda Club &amp; Get 100 Pts 🐼
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', margin: '0 0 4px', lineHeight: 1.25 }}>
+                Join Panda Club &amp; Win Rewards 🐼
               </h3>
-              <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
-                Register your child's birthday to unlock 100 instant points and special celebration perks!
+              <p style={{ fontSize: '0.9rem', color: '#475569', margin: 0, lineHeight: 1.4, fontWeight: 500 }}>
+                Register child's birthday for special surprise gifts!
               </p>
             </div>
 
