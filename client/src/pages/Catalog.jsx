@@ -305,13 +305,16 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
           <div
             style={{
               position: 'absolute',
-              left: '64.19%',
-              top: '11.61%',
-              width: '33.18%',
-              height: '70.32%',
-              borderRadius: '10px',
+              left: showVideo ? '64.19%' : '63.4%',
+              top: showVideo ? '11.61%' : '9.6%',
+              width: showVideo ? '33.18%' : '34.6%',
+              height: showVideo ? '70.32%' : '73.8%',
+              borderRadius: showVideo ? '10px' : 'clamp(14px, 1.2vw, 24px)',
               overflow: 'hidden',
-              background: '#0a0f1d'
+              background: showVideo ? '#000000' : '#ffffff',
+              boxShadow: 'none',
+              border: 'none',
+              outline: 'none'
             }}
             className="hero-video-frame"
           >
@@ -332,19 +335,22 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
               />
             ) : (
               <>
-                {/* Desktop Form inside TV Screen */}
+                {/* Desktop Form inside TV Screen - Expands seamlessly to eliminate any black border */}
                 <div
                   className="hero-tv-desktop-form"
                   style={{
                     width: '100%',
                     height: '100%',
                     background: '#ffffff',
-                    padding: 'clamp(10px, 1.6vw, 18px)',
+                    padding: 'clamp(12px, 1.8vw, 22px)',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'center',
                     boxSizing: 'border-box',
-                    lineHeight: 1.4
+                    lineHeight: 1.4,
+                    border: 'none',
+                    outline: 'none',
+                    boxShadow: 'none'
                   }}
                 >
                   <div style={{ textAlign: 'center', marginBottom: 'clamp(6px, 0.9vw, 10px)', lineHeight: 1.3 }}>
