@@ -915,19 +915,18 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'nowrap',
-            gap: '10px',
+            gap: '12px',
             marginBottom: '22px',
-            padding: '8px 14px',
+            padding: '7px 14px',
             background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
             borderRadius: '16px',
             border: '1.5px solid #e2e8f0',
             boxShadow: '0 4px 14px rgba(15, 23, 42, 0.04)',
-            overflowX: 'auto',
-            scrollbarWidth: 'none'
+            overflow: 'hidden'
           }}
         >
-          {/* Age Group Filter (All, 0-3, 3-5, 5-8, 8-12, 12+) with Pastel BGs, Emojis & Number Count Badges */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 1, minWidth: 0 }}>
+          {/* Left: Age Group Filter with Smooth Scroll if viewport is narrow */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 1, minWidth: 0, overflow: 'hidden' }}>
             <span
               style={{
                 display: 'inline-flex',
@@ -947,7 +946,17 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             >
               <span>🎂</span> Age:
             </span>
-            <div style={{ display: 'flex', gap: '5px', alignItems: 'center', flexWrap: 'nowrap' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: '5px',
+                alignItems: 'center',
+                flexWrap: 'nowrap',
+                overflowX: 'auto',
+                scrollbarWidth: 'none',
+                WebkitOverflowScrolling: 'touch'
+              }}
+            >
               {AGE_GROUPS_CONFIG.map((group) => {
                 const isSelected = selectedAge === group.label;
                 const pool = allToys.length > 0 ? allToys : toys;
@@ -999,8 +1008,8 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             </div>
           </div>
 
-          {/* Sort Dropdown & Product Count — Fixed Single Line */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto', flexShrink: 0, whiteSpace: 'nowrap' }}>
+          {/* Right: Sort Dropdown & Product Count — Strictly Pinned on the Same Line */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, whiteSpace: 'nowrap' }}>
             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '700' }}>
               {toys.length} toy{toys.length !== 1 ? 's' : ''} found
             </span>
