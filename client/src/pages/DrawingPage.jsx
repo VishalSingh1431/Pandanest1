@@ -194,11 +194,14 @@ export function DrawingPage({ onNavigate }) {
   const handleBuyFullBookPdf = () => {
     openBuyNow({
       id: 'drawing-book-118-pdf',
+      is_book: true,
+      game_key: 'drawing',
       name: 'Panda Nest 118-Page Jumbo Activity & Coloring Book (PDF Download)',
       price: 9,
       original_price: 99,
       image_url: '/drawing-book/page-001.jpg',
-      description: '118 High-Resolution Printable Animals, Vehicles, Dinosaurs & Fantasy coloring pages. Instant download upon checkout.'
+      description: '118 High-Resolution Printable Animals, Vehicles, Dinosaurs & Fantasy coloring pages. Instant download upon checkout.',
+      quantity: 1
     });
   };
 
@@ -863,7 +866,8 @@ export function DrawingPage({ onNavigate }) {
             display: 'inline-block',
             maxWidth: '560px',
             width: '100%',
-            lineHeight: 0
+            lineHeight: 0,
+            touchAction: 'none'
           }}
         >
           <canvas

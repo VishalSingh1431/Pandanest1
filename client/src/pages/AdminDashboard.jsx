@@ -1179,18 +1179,20 @@ export function AdminDashboard({ onLogout }) {
             </div>
             {(() => {
               const todayStr = new Date().toISOString().split('T')[0];
-              const todayOrders = orders.filter(o => {
+              const todayPaidOrders = orders.filter(o => {
+                const isPaid = o.payment_status === 'paid' || ['Confirmed', 'Dispatched', 'Delivered'].includes(o.status);
+                if (!isPaid) return false;
                 const dateStr = o.created_at ? new Date(o.created_at).toISOString().split('T')[0] : '';
                 return dateStr === todayStr;
               });
-              const todayRev = todayOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+              const todayRev = todayPaidOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
               return (
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
                   <div style={{ fontSize: '1.8rem', fontWeight: '900', color: '#065f46' }}>
                     ₹{todayRev.toLocaleString('en-IN')}
                   </div>
                   <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#047857' }}>
-                    ({todayOrders.length} order{todayOrders.length === 1 ? '' : 's'})
+                    ({todayPaidOrders.length} paid order{todayPaidOrders.length === 1 ? '' : 's'})
                   </span>
                 </div>
               );

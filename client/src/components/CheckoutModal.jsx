@@ -30,6 +30,7 @@ export function CheckoutModal() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [orderSuccess, setOrderSuccess] = useState(null);
 
   // Auto-fill city & state from 6-digit Indian Postal Pincode
@@ -190,6 +191,7 @@ export function CheckoutModal() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setNotice('');
 
     if (!formData.customer_name || !formData.phone || !formData.address || !formData.city || !formData.pincode) {
       setError('Please fill out all delivery address fields.');
@@ -316,7 +318,7 @@ export function CheckoutModal() {
         modal: {
           ondismiss: function () {
             setLoading(false);
-            setError('Payment cancelled. Your cart and details have been saved.');
+            setNotice('Payment window closed. Your cart and details have been safely saved here.');
           }
         }
       };
@@ -338,6 +340,7 @@ export function CheckoutModal() {
   const handleClose = () => {
     setOrderSuccess(null);
     setError('');
+    setNotice('');
     closeCheckout();
   };
 
@@ -445,6 +448,25 @@ export function CheckoutModal() {
               </p>
             </div>
 
+            {notice && (
+              <div
+                style={{
+                  background: '#fef3c7',
+                  color: '#92400e',
+                  border: '1px solid #fde68a',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  fontSize: '0.85rem',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <span>ℹ️</span> {notice}
+              </div>
+            )}
+
             {error && (
               <div
                 style={{
@@ -460,7 +482,7 @@ export function CheckoutModal() {
               </div>
             )}
 
-            {/* Order Items Preview */}
+            {/* Order Items Preview with Thumbnails */}
             <div
               style={{
                 background: '#f8fafc',
@@ -468,19 +490,30 @@ export function CheckoutModal() {
                 borderRadius: '12px',
                 padding: '12px',
                 marginBottom: '16px',
-                maxHeight: '130px',
+                maxHeight: '150px',
                 overflowY: 'auto'
               }}
             >
               <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' }}>
                 Items ({itemsToCheckout.length}):
               </div>
-              {itemsToCheckout.map((item) => (
-                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '4px' }}>
-                  <span style={{ color: '#334155' }}>
-                    {item.name} <span style={{ color: '#94a3b8' }}>x {item.quantity}</span>
-                  </span>
-                  <span style={{ fontWeight: '600', color: '#0f172a' }}>
+              {itemsToCheckout.map((item, idx) => (
+                <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', fontSize: '0.875rem', marginBottom: '8px', paddingBottom: '6px', borderBottom: idx < itemsToCheckout.length - 1 ? '1px dashed #e2e8f0' : 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                    <img
+                      src={item.image_url || '/logo.jpeg'}
+                      alt={item.name}
+                      style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'contain', background: '#ffffff', border: '1px solid #cbd5e1', flexShrink: 0 }}
+                      onError={(e) => { e.currentTarget.src = '/logo.jpeg'; }}
+                    />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ color: '#0f172a', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.84rem' }}>
+                        {item.name}
+                      </div>
+                      <span style={{ color: '#64748b', fontSize: '0.74rem' }}>Qty: {item.quantity}</span>
+                    </div>
+                  </div>
+                  <span style={{ fontWeight: '700', color: '#047857', flexShrink: 0, fontSize: '0.9rem' }}>
                     ₹{(Number(item.price) * item.quantity).toLocaleString('en-IN')}
                   </span>
                 </div>

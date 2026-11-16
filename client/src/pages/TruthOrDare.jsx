@@ -68,7 +68,7 @@ export function TruthOrDare({ onGoToCatalog }) {
       .then(data => {
         if (data && data.title) setGameBook(data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const pickRandomPrompt = (type) => {
@@ -156,18 +156,21 @@ export function TruthOrDare({ onGoToCatalog }) {
             window.dispatchEvent(new Event('pandanest-points-updated'));
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   };
 
   const handleBuyBook = () => {
     openBuyNow({
       id: 'game-book-truth-dare',
+      is_book: true,
+      game_key: 'truthDare',
       name: gameBook.title,
       price: gameBook.price,
       original_price: gameBook.original_price,
       image_url: gameBook.image_url,
-      description: gameBook.description
+      description: gameBook.description,
+      quantity: 1
     });
   };
 

@@ -908,25 +908,10 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
           </div>
         </div>
 
-        {/* Filter Bar: Age Group & Sorting — Strict Single Line */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'nowrap',
-            gap: '12px',
-            marginBottom: '22px',
-            padding: '7px 14px',
-            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-            borderRadius: '16px',
-            border: '1.5px solid #e2e8f0',
-            boxShadow: '0 4px 14px rgba(15, 23, 42, 0.04)',
-            overflow: 'hidden'
-          }}
-        >
-          {/* Left: Age Group Filter with Smooth Scroll if viewport is narrow */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 1, minWidth: 0, overflow: 'hidden' }}>
+        {/* Filter Bar: Age Group & Sorting — Strict Single Line on Desktop, Responsive on Mobile */}
+        <div className="catalog-filter-bar">
+          {/* Left: Age Group Filter with Smooth Horizontal Scroll */}
+          <div className="catalog-filter-bar-left" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 1, minWidth: 0, overflow: 'hidden' }}>
             <span
               style={{
                 display: 'inline-flex',
@@ -1008,8 +993,8 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             </div>
           </div>
 
-          {/* Right: Sort Dropdown & Product Count — Strictly Pinned on the Same Line */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, whiteSpace: 'nowrap' }}>
+          {/* Right: Sort Dropdown & Product Count */}
+          <div className="catalog-filter-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, whiteSpace: 'nowrap' }}>
             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '700' }}>
               {toys.length} toy{toys.length !== 1 ? 's' : ''} found
             </span>

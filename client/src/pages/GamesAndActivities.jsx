@@ -2350,11 +2350,14 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin, onNavigate }
                       <button
                         onClick={() => openBuyNow && openBuyNow({
                           id: 'game-book-truth-dare',
+                          is_book: true,
+                          game_key: 'truthDare',
                           name: 'Panda 100 Family Truth & Dare Cards Book',
                           price: 9,
                           original_price: 99,
                           image_url: '/drawing-book/page-001.jpg',
-                          description: '100 printable family challenges & cards'
+                          description: '100 printable family challenges & cards',
+                          quantity: 1
                         })}
                         className="btn btn-primary btn-sm"
                         style={{ fontWeight: '800', padding: '8px 14px' }}

@@ -704,28 +704,65 @@ export function UserProfile({ onGoToCatalog, onGoToAdmin }) {
                                 {new Date(order.created_at).toLocaleDateString()}
                               </span>
                             </div>
-                            <span
-                              style={{
-                                background:
-                                  order.status === 'Delivered'
-                                    ? '#ecfdf5'
-                                    : order.status === 'Dispatched'
-                                    ? '#eff6ff'
-                                    : '#fef3c7',
-                                color:
-                                  order.status === 'Delivered'
-                                    ? '#047857'
-                                    : order.status === 'Dispatched'
-                                    ? '#1d4ed8'
-                                    : '#b45309',
-                                padding: '4px 12px',
-                                borderRadius: '9999px',
-                                fontSize: '0.8rem',
-                                fontWeight: '700'
-                              }}
-                            >
-                              ● {order.status || 'Processing'}
-                            </span>
+                            {(() => {
+                              const isPaid = order.payment_status === 'paid' || ['Confirmed', 'Dispatched', 'Delivered'].includes(order.status);
+                              if (isPaid) {
+                                return (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span
+                                      style={{
+                                        background: '#ecfdf5',
+                                        color: '#065f46',
+                                        border: '1px solid #a7f3d0',
+                                        padding: '3px 10px',
+                                        borderRadius: '9999px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '800'
+                                      }}
+                                    >
+                                      💳 Paid Online
+                                    </span>
+                                    <span
+                                      style={{
+                                        background:
+                                          order.status === 'Delivered'
+                                            ? '#ecfdf5'
+                                            : order.status === 'Dispatched'
+                                            ? '#eff6ff'
+                                            : '#f0fdf4',
+                                        color:
+                                          order.status === 'Delivered'
+                                            ? '#047857'
+                                            : order.status === 'Dispatched'
+                                            ? '#1d4ed8'
+                                            : '#15803d',
+                                        padding: '3px 10px',
+                                        borderRadius: '9999px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '700'
+                                      }}
+                                    >
+                                      ● {order.status || 'Confirmed'}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return (
+                                <span
+                                  style={{
+                                    background: '#fffbeb',
+                                    color: '#92400e',
+                                    border: '1px solid #fde68a',
+                                    padding: '3px 10px',
+                                    borderRadius: '9999px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '700'
+                                  }}
+                                >
+                                  ⏳ Payment Incomplete / Abandoned
+                                </span>
+                              );
+                            })()}
                           </div>
 
                           <div style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '12px' }}>

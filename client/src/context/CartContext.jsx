@@ -87,7 +87,8 @@ export function CartProvider({ children }) {
           setCheckoutItem(null);
         },
         checkoutItem,
-        buyNow
+        buyNow,
+        openBuyNow: buyNow
       }}
     >
       {children}

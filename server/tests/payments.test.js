@@ -142,6 +142,32 @@ describe('Razorpay Security & Payment Integrity Unit Tests', () => {
         });
       }, /Only 2 units of "Low Stock Drone" are available/);
     });
+
+    it('should identify activity books even if is_book flag is omitted from client', () => {
+      const bookItemsWithoutFlag = [
+        { id: 'drawing-book-118-pdf', quantity: 1 },
+        { id: 'game-book-truth-dare', quantity: 2 }
+      ];
+
+      const result = calculateOrderTotal({
+        items: bookItemsWithoutFlag,
+        coupon: null,
+        points_used: 0,
+        user_balance: 0,
+        dbToys: mockDbToys,
+        dbBooks: [
+          { game_key: 'drawing', price: 9.00, title: 'Coloring Book' },
+          { game_key: 'truthDare', price: 19.00, title: 'Truth Dare Cards' }
+        ]
+      });
+
+      // 1 * 9 + 2 * 19 = 47
+      assert.equal(result.subtotal, 47);
+      assert.equal(result.finalTotal, 47);
+      assert.equal(result.amountInPaise, 4700);
+      assert.equal(result.verifiedItems[0].is_book, true);
+      assert.equal(result.verifiedItems[1].is_book, true);
+    });
   });
 
   describe('2. Coupon & Discount Security Constraints', () => {

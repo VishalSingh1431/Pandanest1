@@ -297,17 +297,57 @@ router.patch('/:id/status', authenticateAdmin, async (req, res) => {
     const { isPostgres, pool } = getDB();
 
     if (isPostgres && pool) {
+      // Fetch current order to check previous status
+      const curRes = await pool.query('SELECT * FROM orders WHERE id = $1', [id]);
+      if (curRes.rows.length === 0) return res.status(404).json({ error: 'Order not found.' });
+      const previousOrder = curRes.rows[0];
+
       const result = await pool.query(
         'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
         [status, id]
       );
-      if (result.rows.length === 0) return res.status(404).json({ error: 'Order not found.' });
-      return res.json(result.rows[0]);
+      const updatedOrder = result.rows[0];
+
+      // Restock inventory if an order is cancelled
+      if (status === 'Cancelled' && previousOrder.status !== 'Cancelled') {
+        let items = [];
+        try {
+          items = typeof previousOrder.items === 'string' ? JSON.parse(previousOrder.items) : (previousOrder.items || []);
+        } catch {
+          items = [];
+        }
+        for (const it of items) {
+          if (it.id && !it.is_book) {
+            await pool.query(
+              'UPDATE toys SET stock = COALESCE(stock, 0) + $1 WHERE id = $2',
+              [parseInt(it.quantity || 1, 10), parseInt(it.id, 10)]
+            );
+          }
+        }
+      }
+
+      return res.json(updatedOrder);
     } else {
       const store = readLocalStore();
-      const order = store.orders.find(o => String(o.id) === String(id));
+      const order = (store.orders || []).find(o => String(o.id) === String(id));
       if (!order) return res.status(404).json({ error: 'Order not found.' });
+
+      const prevStatus = order.status;
       order.status = status;
+
+      // Restock inventory if cancelled in local store
+      if (status === 'Cancelled' && prevStatus !== 'Cancelled') {
+        const items = order.items || [];
+        for (const it of items) {
+          if (it.id && !it.is_book) {
+            const toy = (store.toys || []).find(t => String(t.id) === String(it.id));
+            if (toy) {
+              toy.stock = (toy.stock || 0) + parseInt(it.quantity || 1, 10);
+            }
+          }
+        }
+      }
+
       writeLocalStore(store);
       return res.json(order);
     }

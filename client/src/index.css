@@ -722,6 +722,43 @@ html {
 }
 
 /* =========================================================
+   Responsive Catalog Filter Bar (1 Line on Desktop, 2 Clean Rows on Mobile)
+   ========================================================= */
+.catalog-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding: 7px 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+@media (max-width: 768px) {
+  .catalog-filter-bar {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    padding: 10px 12px !important;
+  }
+  .catalog-filter-bar-left {
+    width: 100% !important;
+    flex-shrink: 0 !important;
+  }
+  .catalog-filter-bar-right {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    border-top: 1px dashed #e2e8f0;
+    padding-top: 8px;
+    margin-top: 2px;
+  }
+}
+
+/* =========================================================
    Top Announcement Infinite Marquee
    ========================================================= */
 @keyframes marqueeScroll {

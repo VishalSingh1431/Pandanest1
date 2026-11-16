@@ -66,9 +66,18 @@ export function calculateOrderTotal({
   for (const item of items) {
     const qty = Math.max(1, parseInt(item.quantity || 1, 10));
 
-    if (item.is_book || item.game_key) {
-      // Activity book lookup
-      const book = dbBooks.find(b => b.game_key === item.game_key);
+    const isActivityBook = Boolean(
+      item.is_book ||
+      item.game_key ||
+      String(item.id || '').startsWith('game-book') ||
+      String(item.id || '').startsWith('drawing-book') ||
+      String(item.id || '').includes('book_')
+    );
+
+    if (isActivityBook) {
+      // Activity book lookup with smart key resolution
+      const resolvedGameKey = item.game_key || (String(item.id || '').includes('drawing') ? 'drawing' : 'truthDare');
+      const book = dbBooks.find(b => b.game_key === resolvedGameKey || b.game_key === item.game_key);
       const unitPrice = book ? parseFloat(book.price) : 9.00;
       subtotal += unitPrice * qty;
       verifiedItems.push({
@@ -76,6 +85,7 @@ export function calculateOrderTotal({
         price: unitPrice,
         quantity: qty,
         is_book: true,
+        game_key: resolvedGameKey,
         name: book?.title || item.name || 'Activity Book'
       });
     } else {
