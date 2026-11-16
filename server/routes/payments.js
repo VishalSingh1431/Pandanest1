@@ -11,7 +11,7 @@ const router = express.Router();
 // Strict rate limiters for payment creation & verification to prevent brute force / DoS
 const paymentCreateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // 30 orders per 15 min per IP
+  max: 40, // 40 orders per 15 min per IP
   message: { error: 'Too many order requests created. Please try again after a few minutes.' }
 });
 
@@ -49,10 +49,17 @@ export function getRazorpayClient() {
 }
 
 /**
- * Pure calculation logic: recalculates order totals strictly on the server side
- * Prevents client-side price modification attacks.
+ * Recalculates order totals strictly on the server side.
+ * Validates stock, prevents client-side price tampering, applies verified coupons & points.
  */
-export function calculateOrderTotal({ items, coupon, points_used = 0, user_balance = 0, dbToys = [], dbBooks = [] }) {
+export function calculateOrderTotal({
+  items,
+  coupon,
+  points_used = 0,
+  user_balance = 0,
+  dbToys = [],
+  dbBooks = []
+}) {
   let subtotal = 0;
   const verifiedItems = [];
 
@@ -68,6 +75,7 @@ export function calculateOrderTotal({ items, coupon, points_used = 0, user_balan
         ...item,
         price: unitPrice,
         quantity: qty,
+        is_book: true,
         name: book?.title || item.name || 'Activity Book'
       });
     } else {
@@ -75,6 +83,16 @@ export function calculateOrderTotal({ items, coupon, points_used = 0, user_balan
       const toy = dbToys.find(t => String(t.id) === String(item.id));
       if (!toy) {
         throw new Error(`Toy with ID "${item.id}" is not available in our catalog.`);
+      }
+
+      // Check stock availability
+      const availableStock = parseInt(toy.stock !== undefined && toy.stock !== null ? toy.stock : 10, 10);
+      if (availableStock < qty) {
+        throw new Error(
+          availableStock <= 0
+            ? `"${toy.name}" is currently out of stock.`
+            : `Only ${availableStock} units of "${toy.name}" are available in stock (you requested ${qty}).`
+        );
       }
 
       // Check for flash sale pricing
@@ -166,6 +184,182 @@ export function verifyRazorpaySignature({ orderId, paymentId, signature, secret 
   }
 }
 
+/**
+ * Centralized, Strictly Idempotent Post-Payment Fulfilment
+ * Called by BOTH /api/payments/verify AND /api/payments/webhook
+ * Ensures that stock, panda points, coupon used_count, and emails are NEVER duplicated or missed.
+ */
+export async function fulfillPaidOrder({
+  razorpay_order_id,
+  razorpay_payment_id,
+  razorpay_signature = null,
+  source = 'verify'
+}) {
+  const { isPostgres, pool } = getDB();
+
+  if (isPostgres && pool) {
+    // Check if this payment_id was already consumed on a different order (Replay Attack Guard)
+    const replayCheck = await pool.query(
+      'SELECT id, order_number FROM orders WHERE razorpay_payment_id = $1 AND razorpay_order_id != $2',
+      [razorpay_payment_id, razorpay_order_id]
+    );
+    if (replayCheck.rows.length > 0) {
+      throw new Error(`Duplicate payment detected. Payment ID ${razorpay_payment_id} already used on order ${replayCheck.rows[0].order_number}`);
+    }
+
+    // Atomic update: only update if not already marked paid (Idempotency Guard)
+    const updateRes = await pool.query(
+      `UPDATE orders
+       SET payment_status = 'paid',
+           status = 'Confirmed',
+           razorpay_payment_id = $1,
+           razorpay_signature = COALESCE($2, razorpay_signature),
+           payment_verified_at = CURRENT_TIMESTAMP
+       WHERE razorpay_order_id = $3 AND payment_status != 'paid'
+       RETURNING *`,
+      [razorpay_payment_id, razorpay_signature, razorpay_order_id]
+    );
+
+    if (updateRes.rows.length === 0) {
+      // Order was already fulfilled by concurrent request/webhook
+      const existingRes = await pool.query(
+        'SELECT * FROM orders WHERE razorpay_order_id = $1',
+        [razorpay_order_id]
+      );
+      return {
+        alreadyFulfilled: true,
+        order: existingRes.rows[0] || null
+      };
+    }
+
+    const order = updateRes.rows[0];
+
+    // Parse items safely
+    let items = [];
+    try {
+      items = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || []);
+    } catch {
+      items = [];
+    }
+
+    // 1. Decrement inventory stock
+    for (const it of items) {
+      if (it.id && !it.is_book) {
+        await pool.query(
+          'UPDATE toys SET stock = GREATEST(0, COALESCE(stock, 10) - $1) WHERE id = $2',
+          [parseInt(it.quantity || 1, 10), parseInt(it.id, 10)]
+        );
+      }
+    }
+
+    // 2. Deduct user's Panda points in database
+    const pointsToDeduct = parseInt(order.points_used || 0, 10);
+    if (pointsToDeduct > 0 && order.user_email) {
+      await pool.query(
+        'UPDATE users SET panda_points = GREATEST(0, COALESCE(panda_points, 0) - $1) WHERE LOWER(email) = $2',
+        [pointsToDeduct, order.user_email.toLowerCase().trim()]
+      );
+    }
+
+    // 3. Increment applied coupon usage count
+    if (order.coupon_code) {
+      await pool.query(
+        'UPDATE coupons SET used_count = COALESCE(used_count, 0) + 1 WHERE UPPER(code) = $1',
+        [order.coupon_code.trim().toUpperCase()]
+      );
+    }
+
+    // 4. Dispatch order confirmation email
+    sendOrderEmails({
+      order,
+      items,
+      customerName: order.customer_name,
+      customerEmail: order.user_email,
+      phone: order.phone,
+      address: order.address,
+      city: order.city,
+      pincode: order.pincode,
+      totalAmount: order.total_amount,
+      paymentMethod: `Razorpay (${source === 'webhook' ? 'Webhook Confirmed' : 'Online Paid'})`
+    }).catch(e => console.warn(`Order email notification notice (${source}):`, e.message));
+
+    return { alreadyFulfilled: false, order };
+  } else {
+    // High-performance Local Store fallback
+    const store = readLocalStore();
+    if (!store.orders) store.orders = [];
+
+    // Replay attack check in local store
+    const duplicate = store.orders.find(
+      o => o.razorpay_payment_id === razorpay_payment_id && o.razorpay_order_id !== razorpay_order_id
+    );
+    if (duplicate) {
+      throw new Error(`Duplicate payment detected on order ${duplicate.order_number}`);
+    }
+
+    const order = store.orders.find(o => o.razorpay_order_id === razorpay_order_id);
+    if (!order) {
+      throw new Error(`Order with Razorpay Order ID "${razorpay_order_id}" not found.`);
+    }
+
+    if (order.payment_status === 'paid') {
+      return { alreadyFulfilled: true, order };
+    }
+
+    order.payment_status = 'paid';
+    order.status = 'Confirmed';
+    order.razorpay_payment_id = razorpay_payment_id;
+    if (razorpay_signature) order.razorpay_signature = razorpay_signature;
+    order.payment_verified_at = new Date().toISOString();
+
+    // 1. Decrement toy stock
+    const items = order.items || [];
+    for (const it of items) {
+      if (it.id && !it.is_book) {
+        const toy = (store.toys || []).find(t => String(t.id) === String(it.id));
+        if (toy) {
+          toy.stock = Math.max(0, (toy.stock || 10) - parseInt(it.quantity || 1, 10));
+        }
+      }
+    }
+
+    // 2. Deduct Panda points
+    const pointsUsed = parseInt(order.points_used || 0, 10);
+    if (pointsUsed > 0 && order.user_email) {
+      const user = (store.users || []).find(u => u.email.toLowerCase() === order.user_email.toLowerCase());
+      if (user) {
+        user.panda_points = Math.max(0, (user.panda_points || 0) - pointsUsed);
+      }
+    }
+
+    // 3. Increment coupon count
+    if (order.coupon_code) {
+      const coupon = (store.coupons || []).find(c => c.code.toUpperCase() === order.coupon_code.toUpperCase());
+      if (coupon) {
+        coupon.used_count = (coupon.used_count || 0) + 1;
+      }
+    }
+
+    writeLocalStore(store);
+
+    // 4. Send email
+    sendOrderEmails({
+      order,
+      items,
+      customerName: order.customer_name,
+      customerEmail: order.user_email,
+      phone: order.phone,
+      address: order.address,
+      city: order.city,
+      pincode: order.pincode,
+      totalAmount: order.total_amount,
+      paymentMethod: `Razorpay (${source === 'webhook' ? 'Webhook Confirmed' : 'Online Paid'})`
+    }).catch(e => console.warn(`Order email notice (${source}):`, e.message));
+
+    return { alreadyFulfilled: false, order };
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. POST /api/payments/create-order — Creates Razorpay Order with Zero-Trust Amount
 // ─────────────────────────────────────────────────────────────────────────────
@@ -243,7 +437,7 @@ router.post('/create-order', paymentCreateLimiter, optionalUser, async (req, res
       }
     }
 
-    // 2. Strict Zero Client Trust Calculation
+    // 2. Strict Zero Client Trust Calculation & Stock Validation
     const pricing = calculateOrderTotal({
       items,
       coupon: dbCoupon,
@@ -272,18 +466,21 @@ router.post('/create-order', paymentCreateLimiter, optionalUser, async (req, res
         order_number: orderNumber,
         customer_name: customer_name.trim(),
         customer_phone: cleanPhone,
-        customer_email: userEmail || ''
+        customer_email: userEmail || '',
+        points_used: String(pricing.pointsUsed),
+        coupon_code: pricing.appliedCouponCode || ''
       }
     });
 
-    // 4. Save pending order in database
+    // 4. Save pending order in database with all discount & tracking metadata
     if (isPostgres && pool) {
       await pool.query(
         `INSERT INTO orders (
           order_number, customer_name, phone, address, city, pincode,
           payment_method, payment_status, razorpay_order_id, currency,
-          total_amount, status, items, user_email
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+          total_amount, points_used, coupon_code, coupon_discount,
+          status, items, user_email
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
         [
           orderNumber,
           customer_name.trim(),
@@ -296,6 +493,9 @@ router.post('/create-order', paymentCreateLimiter, optionalUser, async (req, res
           rzpOrder.id,
           'INR',
           pricing.finalTotal,
+          pricing.pointsUsed,
+          pricing.appliedCouponCode,
+          pricing.couponDiscount,
           'Pending',
           JSON.stringify(pricing.verifiedItems),
           userEmail
@@ -317,6 +517,9 @@ router.post('/create-order', paymentCreateLimiter, optionalUser, async (req, res
         razorpay_order_id: rzpOrder.id,
         currency: 'INR',
         total_amount: pricing.finalTotal,
+        points_used: pricing.pointsUsed,
+        coupon_code: pricing.appliedCouponCode,
+        coupon_discount: pricing.couponDiscount,
         status: 'Pending',
         items: pricing.verifiedItems,
         user_email: userEmail,
@@ -379,21 +582,7 @@ router.post('/verify', paymentVerifyLimiter, optionalUser, async (req, res) => {
       });
     }
 
-    const { isPostgres, pool } = getDB();
-
-    // 2. Replay attack check: Ensure this razorpay_payment_id hasn't been used on any other order
-    if (isPostgres && pool) {
-      const dupCheck = await pool.query(
-        'SELECT id, order_number, payment_status FROM orders WHERE razorpay_payment_id = $1 AND razorpay_order_id != $2',
-        [razorpay_payment_id, razorpay_order_id]
-      );
-      if (dupCheck.rows.length > 0) {
-        console.warn(`🚨 Replay attack blocked: payment ${razorpay_payment_id} already consumed on order ${dupCheck.rows[0].order_number}`);
-        return res.status(409).json({ error: 'Duplicate payment detected. This payment has already been credited.' });
-      }
-    }
-
-    // 3. Confirm payment status with Razorpay API
+    // 2. Confirm payment status, amount, and order_id directly with Razorpay API
     const razorpay = getRazorpayClient();
     if (!razorpay) {
       return res.status(500).json({ error: 'Razorpay client is unavailable.' });
@@ -406,94 +595,28 @@ router.post('/verify', paymentVerifyLimiter, optionalUser, async (req, res) => {
       });
     }
 
-    // 4. Update order to Confirmed & Paid
-    let confirmedOrder = null;
-
-    if (isPostgres && pool) {
-      const updateRes = await pool.query(
-        `UPDATE orders
-         SET payment_status = 'paid',
-             status = 'Confirmed',
-             razorpay_payment_id = $1,
-             razorpay_signature = $2,
-             payment_verified_at = CURRENT_TIMESTAMP
-         WHERE razorpay_order_id = $3
-         RETURNING *`,
-        [razorpay_payment_id, razorpay_signature, razorpay_order_id]
-      );
-
-      confirmedOrder = updateRes.rows[0];
-
-      if (confirmedOrder) {
-        // Parse items
-        let orderItems = [];
-        try {
-          orderItems = typeof confirmedOrder.items === 'string'
-            ? JSON.parse(confirmedOrder.items)
-            : (confirmedOrder.items || []);
-        } catch (_) {
-          orderItems = [];
-        }
-
-        // Decrement inventory stock
-        for (const it of orderItems) {
-          if (it.id && !it.is_book) {
-            await pool.query(
-              'UPDATE toys SET stock = GREATEST(0, COALESCE(stock, 10) - $1) WHERE id = $2',
-              [it.quantity || 1, it.id]
-            );
-          }
-        }
-
-        // Deduct panda points if user redeemed any
-        if (confirmedOrder.user_email) {
-          // Send order confirmation email
-          sendOrderEmails({
-            order: confirmedOrder,
-            items: orderItems,
-            customerName: confirmedOrder.customer_name,
-            customerEmail: confirmedOrder.user_email,
-            phone: confirmedOrder.phone,
-            address: confirmedOrder.address,
-            city: confirmedOrder.city,
-            pincode: confirmedOrder.pincode,
-            totalAmount: confirmedOrder.total_amount,
-            paymentMethod: 'Razorpay (Online Paid)'
-          }).catch(e => console.warn('Payment verified email notification notice:', e.message));
-        }
-      }
-    } else {
-      const store = readLocalStore();
-      const order = (store.orders || []).find(o => o.razorpay_order_id === razorpay_order_id);
-      if (order) {
-        order.payment_status = 'paid';
-        order.status = 'Confirmed';
-        order.razorpay_payment_id = razorpay_payment_id;
-        order.razorpay_signature = razorpay_signature;
-        order.payment_verified_at = new Date().toISOString();
-        writeLocalStore(store);
-        confirmedOrder = order;
-
-        sendOrderEmails({
-          order: confirmedOrder,
-          items: order.items || [],
-          customerName: order.customer_name,
-          customerEmail: order.user_email,
-          phone: order.phone,
-          address: order.address,
-          city: order.city,
-          pincode: order.pincode,
-          totalAmount: order.total_amount,
-          paymentMethod: 'Razorpay (Online Paid)'
-        }).catch(e => console.warn('Payment email notice:', e.message));
-      }
+    // Verify order_id matches
+    if (rzpPayment.order_id && rzpPayment.order_id !== razorpay_order_id) {
+      return res.status(400).json({
+        error: 'Razorpay payment does not correspond to this order ID.'
+      });
     }
+
+    // 3. Centralized Idempotent Fulfilment
+    const result = await fulfillPaidOrder({
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      source: 'verify'
+    });
 
     return res.json({
       success: true,
-      message: 'Payment verified and order confirmed successfully! 🎉',
-      order: confirmedOrder,
-      order_number: confirmedOrder?.order_number || order_number
+      message: result.alreadyFulfilled
+        ? 'Payment already verified previously! 🎉'
+        : 'Payment verified and order confirmed successfully! 🎉',
+      order: result.order,
+      order_number: result.order?.order_number || order_number
     });
   } catch (err) {
     console.error('Verify payment error:', err);
@@ -504,45 +627,58 @@ router.post('/verify', paymentVerifyLimiter, optionalUser, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. POST /api/payments/webhook — Asynchronous Server-to-Server Fallback
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/webhook', async (req, res) => {
   try {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
     const signature = req.headers['x-razorpay-signature'];
 
-    if (webhookSecret && signature) {
-      const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-      const expected = crypto
-        .createHmac('sha256', webhookSecret)
-        .update(body)
-        .digest('hex');
-
-      if (expected !== signature) {
-        console.warn('⚠️ Webhook signature mismatch rejected');
-        return res.status(400).json({ error: 'Invalid webhook signature.' });
-      }
+    // Strict Webhook Authentication Guard: reject if secret or signature is missing
+    if (!webhookSecret) {
+      console.warn('⚠️ Webhook received but RAZORPAY_WEBHOOK_SECRET is not configured on server.');
+      return res.status(500).json({ error: 'Webhook secret is not configured on server.' });
     }
 
-    const payload = typeof req.body === 'object' ? req.body : JSON.parse(req.body || '{}');
+    if (!signature) {
+      console.warn('🚨 Unauthorized webhook attempt: missing x-razorpay-signature header.');
+      return res.status(400).json({ error: 'Missing x-razorpay-signature header.' });
+    }
+
+    // Use raw byte buffer preserved by express.json({ verify })
+    const rawPayload = req.rawBody ? req.rawBody.toString('utf8') : (typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+
+    const expectedSignature = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(rawPayload)
+      .digest('hex');
+
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+    const clientBuf = Buffer.from(signature, 'utf8');
+
+    if (expectedBuf.length !== clientBuf.length || !crypto.timingSafeEqual(expectedBuf, clientBuf)) {
+      console.warn('🚨 Webhook cryptographic signature mismatch rejected.');
+      return res.status(400).json({ error: 'Invalid webhook signature.' });
+    }
+
+    const payload = typeof req.body === 'object' && !Buffer.isBuffer(req.body)
+      ? req.body
+      : JSON.parse(rawPayload || '{}');
+
     const event = payload.event;
 
+    // Handle payment capture and order paid events
     if (event === 'payment.captured' || event === 'order.paid') {
       const paymentEntity = payload.payload?.payment?.entity;
       const rzpOrderId = paymentEntity?.order_id;
       const rzpPaymentId = paymentEntity?.id;
 
       if (rzpOrderId && rzpPaymentId) {
-        const { isPostgres, pool } = getDB();
-        if (isPostgres && pool) {
-          await pool.query(
-            `UPDATE orders
-             SET payment_status = 'paid',
-                 status = 'Confirmed',
-                 razorpay_payment_id = $1,
-                 payment_verified_at = CURRENT_TIMESTAMP
-             WHERE razorpay_order_id = $2 AND payment_status != 'paid'`,
-            [rzpPaymentId, rzpOrderId]
-          );
-        }
+        // Trigger centralized post-payment fulfillment
+        await fulfillPaidOrder({
+          razorpay_order_id: rzpOrderId,
+          razorpay_payment_id: rzpPaymentId,
+          razorpay_signature: null,
+          source: 'webhook'
+        });
       }
     }
 

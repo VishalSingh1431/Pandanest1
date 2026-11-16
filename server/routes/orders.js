@@ -100,7 +100,7 @@ router.get('/stats', authenticateAdmin, async (req, res) => {
     let leadsCount = 0;
 
     if (isPostgres && pool) {
-      const ordersRes = await pool.query('SELECT total_amount, status FROM orders');
+      const ordersRes = await pool.query('SELECT total_amount, status, payment_status, created_at FROM orders');
       orders = ordersRes.rows;
       const toysRes = await pool.query('SELECT COUNT(*) as count FROM toys');
       toysCount = parseInt(toysRes.rows[0].count, 10);
@@ -113,12 +113,16 @@ router.get('/stats', authenticateAdmin, async (req, res) => {
       leadsCount = (store.leads || []).length;
     }
 
+    // Strictly count verified paid revenue (exclude abandoned / unpaid checkouts)
+    const paidOrders = orders.filter(o => o.payment_status === 'paid' || ['Confirmed', 'Dispatched', 'Delivered'].includes(o.status));
     const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
-    const pendingOrders = orders.filter(o => o.status === 'Pending').length;
+    const paidOrdersCount = paidOrders.length;
+    const totalRevenue = paidOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+    const pendingOrders = orders.filter(o => o.status === 'Pending' && o.payment_status !== 'paid').length;
 
     res.json({
       totalOrders,
+      paidOrdersCount,
       totalRevenue,
       pendingOrders,
       totalToys: toysCount,

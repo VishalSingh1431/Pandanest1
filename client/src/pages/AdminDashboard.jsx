@@ -33,7 +33,13 @@ import {
   Star,
   Award,
   Zap,
-  BookOpen
+  BookOpen,
+  Copy,
+  ExternalLink,
+  CreditCard,
+  Search,
+  FileText,
+  Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { parseResponse } from '../utils/api';
@@ -100,6 +106,19 @@ export function AdminDashboard({ onLogout }) {
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0, totalToys: 0, totalLeads: 0, pendingOrders: 0 });
   const [loading, setLoading] = useState(false);
   const [upcomingBdaysCount, setUpcomingBdaysCount] = useState(0);
+
+  // Orders & Payment Audit state
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [orderPaymentFilter, setOrderPaymentFilter] = useState('all'); // 'all', 'paid', 'pending'
+  const [selectedOrderForAudit, setSelectedOrderForAudit] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
+
+  const handleCopy = (text, idKey) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedId(idKey);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   // Toy Modal state
   const [isToyModalOpen, setIsToyModalOpen] = useState(false);
@@ -1451,38 +1470,166 @@ export function AdminDashboard({ onLogout }) {
           </div>
         )}
 
-        {/* Tab 3: Orders Management */}
+        {/* Tab 3: Customer Orders & Live Razorpay Payments Management */}
         {activeTab === 'orders' && (
           <div>
-            <div style={{ marginBottom: '16px' }}>
-              <h2 style={{ fontSize: '1.3rem', color: '#0f172a' }}>Customer Orders</h2>
-              <p style={{ color: '#64748b', fontSize: '0.85rem' }}>
-                Track delivery statuses and addresses for toys purchased online.
-              </p>
+            {/* Header & Metric Overview */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '14px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CreditCard size={22} color="#059669" />
+                  <h2 style={{ fontSize: '1.4rem', color: '#0f172a', margin: 0 }}>Customer Orders &amp; Razorpay Payments</h2>
+                </div>
+                <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 0' }}>
+                  Real-time transaction tracking, verified live revenue, payment audit trails, and delivery dispatch.
+                </p>
+              </div>
+
+              {/* Quick Summary Pill Bar */}
+              {(() => {
+                const paidOrders = orders.filter(o => o.payment_status === 'paid' || ['Confirmed', 'Dispatched', 'Delivered'].includes(o.status));
+                const totalPaidRevenue = paidOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+                const pendingOrders = orders.filter(o => o.payment_status !== 'paid' && o.status === 'Pending');
+
+                return (
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ background: '#ecfdf5', border: '1.5px solid #a7f3d0', padding: '6px 14px', borderRadius: '12px' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#065f46', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>Verified Paid Revenue</span>
+                      <strong style={{ fontSize: '1.05rem', color: '#047857' }}>₹{totalPaidRevenue.toLocaleString('en-IN')}</strong>
+                    </div>
+                    <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', padding: '6px 14px', borderRadius: '12px' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>Paid Orders</span>
+                      <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>{paidOrders.length}</strong>
+                    </div>
+                    <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', padding: '6px 14px', borderRadius: '12px' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#92400e', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>Pending / Incomplete</span>
+                      <strong style={{ fontSize: '1.05rem', color: '#b45309' }}>{pendingOrders.length}</strong>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
-            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+            {/* Controls Bar: Search & Status Filters */}
+            <div
+              style={{
+                background: 'white',
+                padding: '14px 18px',
+                borderRadius: '16px',
+                border: '1px solid #e2e8f0',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+            >
+              {/* Search Bar */}
+              <div style={{ position: 'relative', flex: '1', minWidth: '260px' }}>
+                <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                <input
+                  type="text"
+                  placeholder="Search by Order #, Payment ID (pay_...), Customer, or Phone..."
+                  value={orderSearchQuery}
+                  onChange={(e) => setOrderSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 36px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '0.85rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Status Filter Buttons */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {(() => {
+                  const paidCount = orders.filter(o => o.payment_status === 'paid' || ['Confirmed', 'Dispatched', 'Delivered'].includes(o.status)).length;
+                  const pendingCount = orders.filter(o => o.payment_status !== 'paid' && o.status === 'Pending').length;
+
+                  return [
+                    { id: 'all', label: `All Orders (${orders.length})` },
+                    { id: 'paid', label: `💳 Paid Online (${paidCount})` },
+                    { id: 'pending', label: `⏳ Pending / Abandoned (${pendingCount})` }
+                  ].map(f => {
+                    const isSelected = orderPaymentFilter === f.id;
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setOrderPaymentFilter(f.id)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '20px',
+                          fontSize: '0.8rem',
+                          fontWeight: '700',
+                          border: isSelected ? '1.5px solid #10b981' : '1.5px solid #e2e8f0',
+                          background: isSelected ? '#10b981' : '#f8fafc',
+                          color: isSelected ? '#ffffff' : '#475569',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {f.label}
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+
+            {/* Orders Table */}
+            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
                   <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontWeight: '700' }}>
-                      <th style={{ padding: '12px 16px' }}>Order #</th>
-                      <th style={{ padding: '12px 16px' }}>Customer</th>
-                      <th style={{ padding: '12px 16px' }}>Delivery Address</th>
-                      <th style={{ padding: '12px 16px' }}>Items</th>
-                      <th style={{ padding: '12px 16px' }}>Total & Mode</th>
-                      <th style={{ padding: '12px 16px' }}>Status</th>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontWeight: '700', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      <th style={{ padding: '12px 14px' }}>Order &amp; Date</th>
+                      <th style={{ padding: '12px 14px' }}>Customer Info</th>
+                      <th style={{ padding: '12px 14px' }}>Delivery Address</th>
+                      <th style={{ padding: '12px 14px' }}>Items</th>
+                      <th style={{ padding: '12px 14px' }}>Payment Audit (Razorpay)</th>
+                      <th style={{ padding: '12px 14px' }}>Amount &amp; Discounts</th>
+                      <th style={{ padding: '12px 14px' }}>Delivery Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {orders.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                          No orders placed yet. Add toys to cart and checkout to create one!
-                        </td>
-                      </tr>
-                    ) : (
-                      orders.map((order) => {
+                    {(() => {
+                      const query = orderSearchQuery.toLowerCase().trim();
+                      const filteredOrders = orders.filter(order => {
+                        // Payment filter
+                        const isPaid = order.payment_status === 'paid' || ['Confirmed', 'Dispatched', 'Delivered'].includes(order.status);
+                        if (orderPaymentFilter === 'paid' && !isPaid) return false;
+                        if (orderPaymentFilter === 'pending' && isPaid) return false;
+
+                        // Search query
+                        if (query) {
+                          const orderNum = (order.order_number || '').toLowerCase();
+                          const custName = (order.customer_name || '').toLowerCase();
+                          const custPhone = (order.phone || '').toLowerCase();
+                          const payId = (order.razorpay_payment_id || '').toLowerCase();
+                          const rzpOrderId = (order.razorpay_order_id || '').toLowerCase();
+                          return orderNum.includes(query) || custName.includes(query) || custPhone.includes(query) || payId.includes(query) || rzpOrderId.includes(query);
+                        }
+                        return true;
+                      });
+
+                      if (filteredOrders.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={7} style={{ textAlign: 'center', padding: '48px 20px', color: '#94a3b8' }}>
+                              <div style={{ fontSize: '36px', marginBottom: '8px' }}>📦</div>
+                              <p style={{ margin: 0, fontWeight: '600' }}>No orders found matching the filter or search criteria.</p>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return filteredOrders.map((order) => {
                         let parsedItems = [];
                         try {
                           parsedItems = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
@@ -1490,48 +1637,192 @@ export function AdminDashboard({ onLogout }) {
                           parsedItems = [];
                         }
 
+                        const isPaid = order.payment_status === 'paid' || ['Confirmed', 'Dispatched', 'Delivered'].includes(order.status);
+                        const orderDate = order.created_at ? new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+                        const verifiedDate = order.payment_verified_at ? new Date(order.payment_verified_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+
                         return (
-                          <tr key={order.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '12px 16px', fontWeight: '700', color: '#10b981' }}>
-                              {order.order_number}
+                          <tr key={order.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s ease' }}>
+                            {/* Column 1: Order # & Date */}
+                            <td style={{ padding: '12px 14px', verticalAlign: 'top' }}>
+                              <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.92rem' }}>
+                                {order.order_number}
+                              </div>
+                              <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
+                                {orderDate}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedOrderForAudit(order)}
+                                style={{
+                                  background: '#f1f5f9',
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '6px',
+                                  padding: '2px 8px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: '700',
+                                  color: '#0284c7',
+                                  cursor: 'pointer',
+                                  marginTop: '6px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px'
+                                }}
+                              >
+                                <FileText size={11} /> View Audit
+                              </button>
                             </td>
-                            <td style={{ padding: '12px 16px' }}>
-                              <div style={{ fontWeight: '600', color: '#0f172a' }}>{order.customer_name}</div>
-                              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{order.phone}</div>
+
+                            {/* Column 2: Customer */}
+                            <td style={{ padding: '12px 14px', verticalAlign: 'top' }}>
+                              <div style={{ fontWeight: '700', color: '#0f172a' }}>{order.customer_name}</div>
+                              <div style={{ fontSize: '0.78rem', color: '#059669', fontWeight: '600', marginTop: '2px' }}>
+                                📞 {order.phone}
+                              </div>
+                              {order.user_email && (
+                                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '1px', wordBreak: 'break-all' }}>
+                                  ✉️ {order.user_email}
+                                </div>
+                              )}
                             </td>
-                            <td style={{ padding: '12px 16px', maxWidth: '240px' }}>
-                              <div style={{ fontSize: '0.85rem', color: '#334155' }}>{order.address}</div>
-                              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{order.city} - {order.pincode}</div>
-                            </td>
-                            <td style={{ padding: '12px 16px' }}>
-                              <div style={{ fontSize: '0.85rem', color: '#0f172a' }}>
-                                {parsedItems.map(i => `${i.name} (x${i.quantity})`).join(', ')}
+
+                            {/* Column 3: Delivery Address */}
+                            <td style={{ padding: '12px 14px', verticalAlign: 'top', maxWidth: '200px' }}>
+                              <div style={{ fontSize: '0.8rem', color: '#334155', lineHeight: '1.3' }}>
+                                {order.address}
+                              </div>
+                              <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: '600', marginTop: '3px' }}>
+                                {order.city} - {order.pincode}
                               </div>
                             </td>
-                            <td style={{ padding: '12px 16px' }}>
-                              <div style={{ fontWeight: '800', color: '#047857' }}>
+
+                            {/* Column 4: Items */}
+                            <td style={{ padding: '12px 14px', verticalAlign: 'top', maxWidth: '220px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                {parsedItems.map((i, idx) => (
+                                  <div key={idx} style={{ fontSize: '0.78rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span style={{ background: '#ecfdf5', color: '#065f46', padding: '1px 5px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: '800' }}>
+                                      {i.quantity}x
+                                    </span>
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {i.name}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+
+                            {/* Column 5: Payment Audit (Razorpay) */}
+                            <td style={{ padding: '12px 14px', verticalAlign: 'top', minWidth: '180px' }}>
+                              {isPaid ? (
+                                <div>
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      background: '#ecfdf5',
+                                      color: '#065f46',
+                                      border: '1px solid #a7f3d0',
+                                      padding: '2px 8px',
+                                      borderRadius: '12px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: '800'
+                                    }}
+                                  >
+                                    <CheckCircle size={11} color="#059669" /> PAID ONLINE 💳
+                                  </span>
+
+                                  {order.razorpay_payment_id && (
+                                    <div style={{ marginTop: '5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      <code style={{ fontSize: '0.72rem', background: '#f1f5f9', padding: '2px 5px', borderRadius: '4px', color: '#334155' }}>
+                                        {order.razorpay_payment_id}
+                                      </code>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCopy(order.razorpay_payment_id, order.razorpay_payment_id)}
+                                        title="Copy Payment ID"
+                                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px', color: '#64748b' }}
+                                      >
+                                        {copiedId === order.razorpay_payment_id ? <Check size={12} color="#059669" /> : <Copy size={12} />}
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {verifiedDate && (
+                                    <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px' }}>
+                                      Verified: {verifiedDate}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div>
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      background: '#fffbeb',
+                                      color: '#92400e',
+                                      border: '1px solid #fde68a',
+                                      padding: '2px 8px',
+                                      borderRadius: '12px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: '800'
+                                    }}
+                                  >
+                                    <Clock size={11} color="#d97706" /> PAYMENT PENDING ⏳
+                                  </span>
+                                  <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '3px' }}>
+                                    Checkout started, waiting for completion
+                                  </div>
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Column 6: Amount & Discounts */}
+                            <td style={{ padding: '12px 14px', verticalAlign: 'top' }}>
+                              <div style={{ fontWeight: '900', color: isPaid ? '#047857' : '#94a3b8', fontSize: '0.95rem' }}>
                                 ₹{Number(order.total_amount).toLocaleString('en-IN')}
                               </div>
-                              <span className="badge badge-amber" style={{ fontSize: '0.65rem' }}>
-                                {order.payment_method}
-                              </span>
+
+                              {/* Coupon badge if applied */}
+                              {order.coupon_code && (
+                                <div style={{ fontSize: '0.7rem', color: '#be123c', fontWeight: '700', marginTop: '2px' }}>
+                                  🏷️ {order.coupon_code} (-₹{Number(order.coupon_discount || 0)})
+                                </div>
+                              )}
+
+                              {/* Points badge if redeemed */}
+                              {order.points_used > 0 && (
+                                <div style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: '700', marginTop: '1px' }}>
+                                  🪙 {order.points_used} pts (-₹{Math.floor(order.points_used / 10)})
+                                </div>
+                              )}
                             </td>
-                            <td style={{ padding: '12px 16px' }}>
+
+                            {/* Column 7: Delivery Status Dropdown */}
+                            <td style={{ padding: '12px 14px', verticalAlign: 'top' }}>
                               <select
                                 value={order.status}
                                 onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
                                 style={{
-                                  padding: '4px 8px',
+                                  padding: '5px 8px',
                                   borderRadius: '8px',
-                                  fontSize: '0.8rem',
-                                  fontWeight: '600',
+                                  fontSize: '0.78rem',
+                                  fontWeight: '700',
                                   border: '1px solid #cbd5e1',
                                   background:
                                     order.status === 'Delivered' ? '#ecfdf5' :
-                                    order.status === 'Pending' ? '#fffbeb' : '#f1f5f9',
+                                    order.status === 'Confirmed' ? '#f0fdf4' :
+                                    order.status === 'Dispatched' ? '#eff6ff' :
+                                    order.status === 'Pending' ? '#fffbeb' : '#fef2f2',
                                   color:
                                     order.status === 'Delivered' ? '#059669' :
-                                    order.status === 'Pending' ? '#b45309' : '#334155'
+                                    order.status === 'Confirmed' ? '#15803d' :
+                                    order.status === 'Dispatched' ? '#1d4ed8' :
+                                    order.status === 'Pending' ? '#b45309' : '#b91c1c',
+                                  cursor: 'pointer'
                                 }}
                               >
                                 <option value="Pending">Pending</option>
@@ -1543,12 +1834,168 @@ export function AdminDashboard({ onLogout }) {
                             </td>
                           </tr>
                         );
-                      })
-                    )}
+                      });
+                    })()}
                   </tbody>
                 </table>
               </div>
             </div>
+
+            {/* Modal: Complete Payment & Order Audit Trail */}
+            {selectedOrderForAudit && (
+              <div
+                className="modal-overlay"
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'rgba(15, 23, 42, 0.65)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 9999,
+                  padding: '16px'
+                }}
+                onClick={() => setSelectedOrderForAudit(null)}
+              >
+                <div
+                  style={{
+                    background: 'white',
+                    borderRadius: '20px',
+                    maxWidth: '600px',
+                    width: '100%',
+                    padding: '24px',
+                    maxHeight: '90vh',
+                    overflowY: 'auto',
+                    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.25)',
+                    position: 'relative'
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrderForAudit(null)}
+                    style={{
+                      position: 'absolute',
+                      top: '16px',
+                      right: '16px',
+                      background: '#f1f5f9',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '32px',
+                      height: '32px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    ✕
+                  </button>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                    <ShieldCheck size={24} color="#059669" />
+                    <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a' }}>
+                      Payment &amp; Order Audit: {selectedOrderForAudit.order_number}
+                    </h3>
+                  </div>
+
+                  <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.85rem' }}>
+                      <div>
+                        <span style={{ color: '#64748b', fontSize: '0.74rem', textTransform: 'uppercase', fontWeight: '700' }}>Customer</span>
+                        <div style={{ fontWeight: '700', color: '#0f172a' }}>{selectedOrderForAudit.customer_name}</div>
+                        <div style={{ color: '#059669' }}>{selectedOrderForAudit.phone}</div>
+                        <div style={{ color: '#64748b', fontSize: '0.78rem' }}>{selectedOrderForAudit.user_email || 'No email provided'}</div>
+                      </div>
+                      <div>
+                        <span style={{ color: '#64748b', fontSize: '0.74rem', textTransform: 'uppercase', fontWeight: '700' }}>Delivery Destination</span>
+                        <div style={{ color: '#334155' }}>{selectedOrderForAudit.address}</div>
+                        <div style={{ fontWeight: '700', color: '#0f172a' }}>{selectedOrderForAudit.city} - {selectedOrderForAudit.pincode}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cryptographic Payment Audit Box */}
+                  <div style={{ background: '#ecfdf5', border: '1.5px solid #a7f3d0', borderRadius: '14px', padding: '14px', marginBottom: '16px' }}>
+                    <div style={{ fontWeight: '800', color: '#065f46', fontSize: '0.88rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <CreditCard size={16} /> Razorpay Cryptographic Audit Trail
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#047857' }}>Payment Status:</span>
+                        <strong style={{ color: selectedOrderForAudit.payment_status === 'paid' ? '#047857' : '#b45309', textTransform: 'uppercase' }}>
+                          {selectedOrderForAudit.payment_status || 'Pending'}
+                        </strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#047857' }}>Razorpay Order ID:</span>
+                        <code style={{ background: 'white', padding: '1px 6px', borderRadius: '4px' }}>
+                          {selectedOrderForAudit.razorpay_order_id || 'N/A'}
+                        </code>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#047857' }}>Razorpay Payment ID:</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <code style={{ background: 'white', padding: '1px 6px', borderRadius: '4px' }}>
+                            {selectedOrderForAudit.razorpay_payment_id || 'Not Yet Paid'}
+                          </code>
+                          {selectedOrderForAudit.razorpay_payment_id && (
+                            <button
+                              type="button"
+                              onClick={() => handleCopy(selectedOrderForAudit.razorpay_payment_id, 'modal-pay')}
+                              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#059669' }}
+                            >
+                              {copiedId === 'modal-pay' ? <Check size={12} /> : <Copy size={12} />}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#047857' }}>Verified Timestamp:</span>
+                        <span>{selectedOrderForAudit.payment_verified_at ? new Date(selectedOrderForAudit.payment_verified_at).toLocaleString('en-IN') : 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Financial Breakdown */}
+                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '14px', padding: '14px', marginBottom: '16px' }}>
+                    <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.88rem', marginBottom: '8px' }}>
+                      Financial Breakdown
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.84rem' }}>
+                      {selectedOrderForAudit.coupon_code && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#be123c' }}>
+                          <span>Coupon ({selectedOrderForAudit.coupon_code}):</span>
+                          <span>-₹{Number(selectedOrderForAudit.coupon_discount || 0)}</span>
+                        </div>
+                      )}
+                      {selectedOrderForAudit.points_used > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b45309' }}>
+                          <span>Panda Points ({selectedOrderForAudit.points_used} coins):</span>
+                          <span>-₹{Math.floor(selectedOrderForAudit.points_used / 10)}</span>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '900', color: '#047857', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px', fontSize: '1.05rem' }}>
+                        <span>Total Paid:</span>
+                        <span>₹{Number(selectedOrderForAudit.total_amount).toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrderForAudit(null)}
+                    className="btn btn-secondary"
+                    style={{ width: '100%', padding: '10px' }}
+                  >
+                    Close Audit View
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

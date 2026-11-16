@@ -513,6 +513,9 @@ async function initPostgresSchema() {
       razorpay_signature VARCHAR(255),
       currency VARCHAR(10) DEFAULT 'INR',
       payment_verified_at TIMESTAMP,
+      points_used INT DEFAULT 0,
+      coupon_code VARCHAR(50),
+      coupon_discount NUMERIC(10, 2) DEFAULT 0,
       total_amount NUMERIC(10, 2) NOT NULL,
       status VARCHAR(50) DEFAULT 'Pending',
       items JSONB NOT NULL,
@@ -579,6 +582,9 @@ async function initPostgresSchema() {
     await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_signature VARCHAR(255);');
     await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT \'INR\';');
     await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_verified_at TIMESTAMP;');
+    await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS points_used INT DEFAULT 0;');
+    await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code VARCHAR(50);');
+    await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_discount NUMERIC(10, 2) DEFAULT 0;');
     await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_razorpay_payment_id ON orders(razorpay_payment_id) WHERE razorpay_payment_id IS NOT NULL;');
     await pool.query('ALTER TABLE toys ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT \'{}\';');
     await pool.query('ALTER TABLE toys ADD COLUMN IF NOT EXISTS video_url TEXT;');

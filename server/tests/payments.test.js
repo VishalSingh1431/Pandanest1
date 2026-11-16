@@ -111,6 +111,37 @@ describe('Razorpay Security & Payment Integrity Unit Tests', () => {
         });
       }, /not available in our catalog/);
     });
+
+    it('should reject out-of-stock items and overselling', () => {
+      const outOfStockToys = [
+        { id: 201, name: 'Zero Stock Robot', price: 799.00, stock: 0 },
+        { id: 202, name: 'Low Stock Drone', price: 1299.00, stock: 2 }
+      ];
+
+      // Test 1: item with stock 0
+      assert.throws(() => {
+        calculateOrderTotal({
+          items: [{ id: 201, quantity: 1 }],
+          coupon: null,
+          points_used: 0,
+          user_balance: 0,
+          dbToys: outOfStockToys,
+          dbBooks: mockDbBooks
+        });
+      }, /out of stock/);
+
+      // Test 2: requesting 5 units when only 2 available
+      assert.throws(() => {
+        calculateOrderTotal({
+          items: [{ id: 202, quantity: 5 }],
+          coupon: null,
+          points_used: 0,
+          user_balance: 0,
+          dbToys: outOfStockToys,
+          dbBooks: mockDbBooks
+        });
+      }, /Only 2 units of "Low Stock Drone" are available/);
+    });
   });
 
   describe('2. Coupon & Discount Security Constraints', () => {
@@ -274,3 +305,4 @@ describe('Razorpay Security & Payment Integrity Unit Tests', () => {
     });
   });
 });
+
