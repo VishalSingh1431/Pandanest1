@@ -403,7 +403,7 @@ export function writeLocalStore(data) {
         // Fallback for Windows cross-file locks: try copy & unlink
         fs.copyFile(tempFile, LOCAL_STORE_FILE, (copyErr) => {
           if (copyErr) console.error('⚠️  Failed to persist local store to disk:', copyErr);
-          fs.unlink(tempFile, () => {});
+          fs.unlink(tempFile, () => { });
         });
       }
     });
@@ -506,7 +506,13 @@ async function initPostgresSchema() {
       address TEXT NOT NULL,
       city VARCHAR(100) NOT NULL,
       pincode VARCHAR(20) NOT NULL,
-      payment_method VARCHAR(50) DEFAULT 'COD',
+      payment_method VARCHAR(50) DEFAULT 'Online',
+      payment_status VARCHAR(50) DEFAULT 'pending',
+      razorpay_order_id VARCHAR(100),
+      razorpay_payment_id VARCHAR(100) UNIQUE,
+      razorpay_signature VARCHAR(255),
+      currency VARCHAR(10) DEFAULT 'INR',
+      payment_verified_at TIMESTAMP,
       total_amount NUMERIC(10, 2) NOT NULL,
       status VARCHAR(50) DEFAULT 'Pending',
       items JSONB NOT NULL,
@@ -567,6 +573,13 @@ async function initPostgresSchema() {
     await pool.query('ALTER TABLE leads ALTER COLUMN parent_name DROP NOT NULL;');
     await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS panda_points INT DEFAULT 100;');
     await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_email VARCHAR(255);');
+    await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT \'pending\';');
+    await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_order_id VARCHAR(100);');
+    await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_payment_id VARCHAR(100);');
+    await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_signature VARCHAR(255);');
+    await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT \'INR\';');
+    await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_verified_at TIMESTAMP;');
+    await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_razorpay_payment_id ON orders(razorpay_payment_id) WHERE razorpay_payment_id IS NOT NULL;');
     await pool.query('ALTER TABLE toys ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT \'{}\';');
     await pool.query('ALTER TABLE toys ADD COLUMN IF NOT EXISTS video_url TEXT;');
     await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS child_name VARCHAR(150);');

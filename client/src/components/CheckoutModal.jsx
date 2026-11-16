@@ -171,6 +171,22 @@ export function CheckoutModal() {
     }
   };
 
+  // Helper to ensure Razorpay SDK script is loaded
+  const ensureRazorpayLoaded = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -180,52 +196,141 @@ export function CheckoutModal() {
       return;
     }
 
+    const cleanPhone = String(formData.phone || '').replace(/\D/g, '').slice(-10);
+    if (cleanPhone.length !== 10) {
+      setError('Please enter a valid 10-digit Indian mobile number.');
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // 1. Ensure Razorpay Checkout SDK is ready
+      const isRzpLoaded = await ensureRazorpayLoaded();
+      if (!isRzpLoaded || !window.Razorpay) {
+        throw new Error('Razorpay payment gateway failed to load. Please check your internet connection.');
+      }
+
       const token = localStorage.getItem('pandanest_admin_token');
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('/api/orders', {
+      // 2. Initialize order on server (Strict Zero-Client-Trust Amount recalculation)
+      const res = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          ...formData,
+          customer_name: formData.customer_name.trim(),
+          phone: cleanPhone,
+          email: formData.email.trim(),
+          address: formData.address.trim(),
+          city: formData.city.trim(),
+          pincode: formData.pincode.trim(),
           items: itemsToCheckout,
-          total_amount: finalPayable,
-          // Correctly calculated points: 1 rupee discount = 10 panda points (capped at 300 points)
+          coupon_code: appliedCoupon?.code || '',
           points_used: pointsDiscount > 0 ? Math.min(pointsDiscount * 10, MAX_REDEEM_POINTS) : 0
         })
       });
 
-      const data = await parseResponse(res, 'Failed to place order.');
+      const orderData = await res.json();
 
-      // Points are now deducted server-side in the order route
-      // Update local display optimistically for immediate UI feedback
-      if (pointsDiscount > 0) {
-        const pointsUsed = pointsDiscount * 10;
-        const remaining = Math.max(0, availablePoints - pointsUsed);
-        setAvailablePoints(remaining);
-        // Keep localStorage in sync for guests
-        localStorage.setItem('pandanest_panda_points', String(remaining));
-        window.dispatchEvent(new Event('pandanest-points-updated'));
+      if (!res.ok) {
+        if (orderData.code === 'RAZORPAY_NOT_CONFIGURED') {
+          throw new Error('Payment gateway not configured. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in server/.env');
+        }
+        throw new Error(orderData.error || 'Failed to initialize payment order.');
       }
 
-      // Celebrate with confetti!
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 }
+      // 3. Launch Razorpay Checkout Popup
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount, // in paise
+        currency: orderData.currency || 'INR',
+        name: 'Panda Nest',
+        description: `Order #${orderData.order_number} (${itemsToCheckout.length} items)`,
+        image: '/logo.jpeg',
+        order_id: orderData.order_id,
+        prefill: {
+          name: formData.customer_name.trim(),
+          contact: cleanPhone,
+          email: formData.email.trim()
+        },
+        theme: {
+          color: '#10b981' // Panda Nest Brand Green
+        },
+        handler: async function (response) {
+          // Response contains: razorpay_payment_id, razorpay_order_id, razorpay_signature
+          try {
+            setLoading(true);
+
+            // 4. Verify payment cryptographically with timing-safe HMAC-SHA256 on server
+            const verifyRes = await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                order_number: orderData.order_number
+              })
+            });
+
+            const verifyData = await verifyRes.json();
+            if (!verifyRes.ok || !verifyData.success) {
+              throw new Error(verifyData.error || 'Cryptographic payment verification failed.');
+            }
+
+            // Points deduction UI feedback
+            if (pointsDiscount > 0) {
+              const pointsUsed = pointsDiscount * 10;
+              const remaining = Math.max(0, availablePoints - pointsUsed);
+              setAvailablePoints(remaining);
+              localStorage.setItem('pandanest_panda_points', String(remaining));
+              window.dispatchEvent(new Event('pandanest-points-updated'));
+            }
+
+            // Confetti celebration
+            confetti({
+              particleCount: 100,
+              spread: 80,
+              origin: { y: 0.6 }
+            });
+
+            setOrderSuccess(verifyData.order || {
+              order_number: orderData.order_number,
+              customer_name: formData.customer_name,
+              total_amount: orderData.total_amount,
+              payment_method: 'Razorpay (Paid Online)'
+            });
+
+            if (!checkoutItem) {
+              clearCart();
+            }
+          } catch (verifyErr) {
+            console.error('Payment verification error:', verifyErr);
+            setError(verifyErr.message || 'Payment was received but verification failed. Please contact support.');
+          } finally {
+            setLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setLoading(false);
+            setError('Payment cancelled. Your cart and details have been saved.');
+          }
+        }
+      };
+
+      const rzpInstance = new window.Razorpay(options);
+      rzpInstance.on('payment.failed', function (failResp) {
+        setLoading(false);
+        const reason = failResp.error?.description || 'Payment could not be completed.';
+        setError(`Payment Failed: ${reason}`);
       });
 
-      setOrderSuccess(data.order);
-      if (!checkoutItem) {
-        clearCart();
-      }
+      rzpInstance.open();
     } catch (err) {
-      setError(err.message);
-    } finally {
+      setError(err.message || 'Payment initialization failed.');
       setLoading(false);
     }
   };
@@ -647,7 +752,7 @@ export function CheckoutModal() {
                 className="btn btn-primary"
                 style={{ width: '100%', padding: '14px', fontSize: '1.05rem', marginTop: '10px' }}
               >
-                {loading ? 'Confirming Order...' : `Place Order (₹${finalPayable.toLocaleString('en-IN')})`}
+                {loading ? 'Opening Secure Payment...' : `🔒 Pay & Place Order (₹${finalPayable.toLocaleString('en-IN')})`}
               </button>
             </form>
           </div>

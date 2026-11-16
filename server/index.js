@@ -14,6 +14,7 @@ import couponRoutes from './routes/coupons.js';
 import reviewRoutes from './routes/reviews.js';
 import gameBookRoutes from './routes/gameBooks.js';
 import certificateRoutes from './routes/certificates.js';
+import paymentRoutes from './routes/payments.js';
 
 dotenv.config();
 
@@ -26,6 +27,9 @@ if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASS) {
 }
 if (!process.env.GOOGLE_CLIENT_ID) {
   console.warn('⚠️  GOOGLE_CLIENT_ID not set — Google Sign-In will be disabled.');
+}
+if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+  console.warn('⚠️  Razorpay credentials (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET) not set in server/.env — real payments require live keys.');
 }
 
 const app = express();
@@ -92,6 +96,7 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/game-books', gameBookRoutes);
 app.use('/api/certificates', certificateRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // 404 handler
 app.use((req, res) => {
