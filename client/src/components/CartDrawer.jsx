@@ -127,7 +127,8 @@ export function CartDrawer() {
                       >
                         <button
                           onClick={() => updateQuantity(item.id, -1)}
-                          style={{ padding: '4px 8px', color: '#475569' }}
+                          style={{ padding: '4px 8px', color: '#475569', cursor: 'pointer' }}
+                          title="Decrease quantity"
                         >
                           <Minus size={13} />
                         </button>
@@ -136,11 +137,23 @@ export function CartDrawer() {
                         </span>
                         <button
                           onClick={() => updateQuantity(item.id, 1)}
-                          style={{ padding: '4px 8px', color: '#475569' }}
+                          disabled={typeof item.stock === 'number' && item.quantity >= item.stock}
+                          style={{
+                            padding: '4px 8px',
+                            color: (typeof item.stock === 'number' && item.quantity >= item.stock) ? '#cbd5e1' : '#475569',
+                            cursor: (typeof item.stock === 'number' && item.quantity >= item.stock) ? 'not-allowed' : 'pointer'
+                          }}
+                          title={typeof item.stock === 'number' && item.quantity >= item.stock ? 'Maximum stock reached' : 'Increase quantity'}
                         >
                           <Plus size={13} />
                         </button>
                       </div>
+
+                      {typeof item.stock === 'number' && item.stock <= 5 && (
+                        <span style={{ fontSize: '0.72rem', color: '#e11d48', fontWeight: '700' }}>
+                          (Only {item.stock} left)
+                        </span>
+                      )}
 
                       <span style={{ fontSize: '0.8rem', color: '#64748b', marginLeft: 'auto', fontWeight: '600' }}>
                         Subtotal: ₹{(Number(item.price) * item.quantity).toLocaleString('en-IN')}

@@ -201,8 +201,16 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
         const urlParams = new URLSearchParams(window.location.search);
         const prodId = urlParams.get('product') || urlParams.get('toy');
         if (prodId) {
-          const match = data.find((t) => String(t.id) === String(prodId));
-          if (match) setSelectedToyModal(match);
+          const match = data.find((t) => String(t.id) === String(prodId)) || allToys.find((t) => String(t.id) === String(prodId));
+          if (match) {
+            setSelectedToyModal(match);
+          } else {
+            // Direct fetch fallback if current filter excluded this toy
+            fetch(`/api/toys/${prodId}`)
+              .then(r => r.ok ? r.json() : null)
+              .then(directToy => { if (directToy) setSelectedToyModal(directToy); })
+              .catch(() => {});
+          }
         }
       }
     } catch (err) {
@@ -226,16 +234,23 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
     const handlePopState = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const prodId = urlParams.get('product') || urlParams.get('toy');
-      if (prodId && toys.length > 0) {
-        const match = toys.find((t) => String(t.id) === String(prodId));
-        if (match) setSelectedToyModal(match);
+      if (prodId) {
+        const match = toys.find((t) => String(t.id) === String(prodId)) || allToys.find((t) => String(t.id) === String(prodId));
+        if (match) {
+          setSelectedToyModal(match);
+        } else {
+          fetch(`/api/toys/${prodId}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(directToy => { if (directToy) setSelectedToyModal(directToy); })
+            .catch(() => {});
+        }
       } else {
         setSelectedToyModal(null);
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [toys]);
+  }, [toys, allToys]);
 
   useEffect(() => {
     fetchToys();

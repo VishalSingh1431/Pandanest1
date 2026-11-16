@@ -80,8 +80,10 @@ export function UserProfile({ onGoToCatalog, onGoToAdmin }) {
         });
         if (res.ok) {
           const data = await res.json();
-          if (typeof data.points === 'number') {
-            setPoints(data.points);
+          const userPoints = typeof data.panda_points === 'number' ? data.panda_points : (typeof data.points === 'number' ? data.points : null);
+          if (userPoints !== null) {
+            setPoints(userPoints);
+            localStorage.setItem('pandanest_panda_points', String(userPoints));
           }
         }
       } catch (err) {

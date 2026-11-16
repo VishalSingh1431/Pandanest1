@@ -83,7 +83,34 @@ export function AuthProvider({ children }) {
     localStorage.setItem('pandanest_admin_profile', JSON.stringify(userObj));
     setToken(data.token);
     setAdmin(userObj);
+    syncGuestPointsIfAny(data.token);
     return data;
+  };
+
+  // Helper to sync unauthenticated guest game points upon login
+  const syncGuestPointsIfAny = async (userToken) => {
+    try {
+      const guestPoints = parseInt(localStorage.getItem('pandanest_panda_points') || '0', 10);
+      if (guestPoints > 0 && userToken) {
+        const res = await fetch('/api/users/sync-guest-points', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${userToken}`
+          },
+          body: JSON.stringify({ guest_points: guestPoints })
+        });
+        if (res.ok) {
+          const syncData = await res.json();
+          if (syncData.panda_points !== undefined) {
+            localStorage.setItem('pandanest_panda_points', String(syncData.panda_points));
+            window.dispatchEvent(new Event('pandanest-points-updated'));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Guest points sync notice:', e);
+    }
   };
 
   // Method 1: Google Login / Signup (via ID token or email profile)
@@ -111,6 +138,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('pandanest_admin_profile', JSON.stringify(userObj));
     setToken(data.token);
     setAdmin(userObj);
+    syncGuestPointsIfAny(data.token);
     return data;
   };
 
@@ -128,6 +156,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('pandanest_admin_profile', JSON.stringify(userObj));
     setToken(data.token);
     setAdmin(userObj);
+    syncGuestPointsIfAny(data.token);
     return data;
   };
 

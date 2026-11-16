@@ -19,15 +19,20 @@ async function userHasPurchasedToy(userEmail, userPhone, toyId) {
     if (normalizedEmail && cleanPhone) {
       query = `SELECT items FROM orders
                WHERE (LOWER(user_email) = $1 OR RIGHT(REGEXP_REPLACE(phone, '[^0-9]', '', 'g'), 10) = $2)
-                 AND status != 'Cancelled'`;
+                 AND status != 'Cancelled'
+                 AND (payment_status = 'paid' OR status IN ('Confirmed', 'Dispatched', 'Delivered'))`;
       params = [normalizedEmail, cleanPhone];
     } else if (normalizedEmail) {
       query = `SELECT items FROM orders
-               WHERE LOWER(user_email) = $1 AND status != 'Cancelled'`;
+               WHERE LOWER(user_email) = $1
+                 AND status != 'Cancelled'
+                 AND (payment_status = 'paid' OR status IN ('Confirmed', 'Dispatched', 'Delivered'))`;
       params = [normalizedEmail];
     } else if (cleanPhone) {
       query = `SELECT items FROM orders
-               WHERE RIGHT(REGEXP_REPLACE(phone, '[^0-9]', '', 'g'), 10) = $1 AND status != 'Cancelled'`;
+               WHERE RIGHT(REGEXP_REPLACE(phone, '[^0-9]', '', 'g'), 10) = $1
+                 AND status != 'Cancelled'
+                 AND (payment_status = 'paid' OR status IN ('Confirmed', 'Dispatched', 'Delivered'))`;
       params = [cleanPhone];
     } else {
       return false;
@@ -45,6 +50,8 @@ async function userHasPurchasedToy(userEmail, userPhone, toyId) {
     const store = readLocalStore();
     const orders = (store.orders || []).filter(o => {
       if (o.status === 'Cancelled') return false;
+      const isPaidOrFulfilled = o.payment_status === 'paid' || ['Confirmed', 'Dispatched', 'Delivered'].includes(o.status);
+      if (!isPaidOrFulfilled) return false;
       const oEmail = (o.user_email || '').toLowerCase().trim();
       const oPhone = String(o.phone || '').replace(/\D/g, '').slice(-10);
       const emailMatch = normalizedEmail && oEmail === normalizedEmail;

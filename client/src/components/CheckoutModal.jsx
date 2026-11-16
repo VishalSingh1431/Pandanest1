@@ -199,8 +199,14 @@ export function CheckoutModal() {
     }
 
     const cleanPhone = String(formData.phone || '').replace(/\D/g, '').slice(-10);
-    if (cleanPhone.length !== 10) {
-      setError('Please enter a valid 10-digit Indian mobile number.');
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      setError('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
+      return;
+    }
+
+    const cleanPin = String(formData.pincode || '').replace(/\D/g, '');
+    if (cleanPin.length !== 6) {
+      setError('Please enter a valid 6-digit Indian postal PIN code.');
       return;
     }
 

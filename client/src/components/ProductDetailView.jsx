@@ -65,6 +65,10 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
     ? Math.round(((originalPrice - price) / originalPrice) * 100)
     : null;
 
+  // Stock calculations
+  const isOutOfStock = typeof toy?.stock === 'number' && toy.stock <= 0;
+  const maxStock = typeof toy?.stock === 'number' && toy.stock > 0 ? Math.min(toy.stock, 10) : 10;
+
   // Format currency
   const formatRs = (val) => {
     return 'Rs. ' + Number(val).toLocaleString('en-IN') + '.00';
@@ -695,6 +699,7 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
               >
                 <button
                   type="button"
+                  disabled={isOutOfStock}
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   style={{
                     width: '36px',
@@ -704,7 +709,8 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
                     justifyContent: 'center',
                     fontSize: '1.2rem',
                     fontWeight: '700',
-                    color: '#374151'
+                    color: isOutOfStock ? '#cbd5e1' : '#374151',
+                    cursor: isOutOfStock ? 'not-allowed' : 'pointer'
                   }}
                 >
                   −
@@ -715,14 +721,15 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
                     textAlign: 'center',
                     fontWeight: '700',
                     fontSize: '0.95rem',
-                    color: '#111827'
+                    color: isOutOfStock ? '#9ca3af' : '#111827'
                   }}
                 >
-                  {quantity}
+                  {isOutOfStock ? 0 : quantity}
                 </div>
                 <button
                   type="button"
-                  onClick={() => setQuantity((q) => Math.min(10, q + 1))}
+                  disabled={isOutOfStock || quantity >= maxStock}
+                  onClick={() => setQuantity((q) => Math.min(maxStock, q + 1))}
                   style={{
                     width: '36px',
                     height: '100%',
@@ -731,22 +738,24 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
                     justifyContent: 'center',
                     fontSize: '1.2rem',
                     fontWeight: '700',
-                    color: '#374151'
+                    color: (isOutOfStock || quantity >= maxStock) ? '#cbd5e1' : '#374151',
+                    cursor: (isOutOfStock || quantity >= maxStock) ? 'not-allowed' : 'pointer'
                   }}
                 >
                   +
                 </button>
               </div>
 
-              {/* Main Green ADD TO CART Button (Matches Screenshot 1) */}
+              {/* Main Green ADD TO CART Button */}
               <button
                 type="button"
                 className="btn-press"
+                disabled={isOutOfStock}
                 onClick={handleAddToCart}
                 style={{
                   flex: 1,
                   height: '48px',
-                  background: '#15803d',
+                  background: isOutOfStock ? '#94a3b8' : '#15803d',
                   color: '#ffffff',
                   fontWeight: '800',
                   fontSize: '0.95rem',
@@ -757,15 +766,15 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  boxShadow: '0 4px 14px rgba(21, 128, 61, 0.25)',
-                  cursor: 'pointer',
+                  boxShadow: isOutOfStock ? 'none' : '0 4px 14px rgba(21, 128, 61, 0.25)',
+                  cursor: isOutOfStock ? 'not-allowed' : 'pointer',
                   transition: 'all 0.15s ease'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = '#14532d')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '#15803d')}
+                onMouseEnter={(e) => { if (!isOutOfStock) e.currentTarget.style.background = '#14532d'; }}
+                onMouseLeave={(e) => { if (!isOutOfStock) e.currentTarget.style.background = '#15803d'; }}
               >
                 <ShoppingBag size={18} />
-                <span>ADD TO CART</span>
+                <span>{isOutOfStock ? 'OUT OF STOCK' : 'ADD TO CART'}</span>
               </button>
             </div>
 
@@ -773,12 +782,13 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
             <button
               type="button"
               className="btn-press"
+              disabled={isOutOfStock}
               onClick={handleBuyNow}
               style={{
                 width: '100%',
                 height: '46px',
-                background: '#2563eb',
-                color: '#ffffff',
+                background: isOutOfStock ? '#cbd5e1' : '#2563eb',
+                color: isOutOfStock ? '#64748b' : '#ffffff',
                 fontWeight: '800',
                 fontSize: '0.92rem',
                 letterSpacing: '0.04em',
@@ -789,13 +799,13 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
                 justifyContent: 'center',
                 gap: '8px',
                 marginBottom: '24px',
-                cursor: 'pointer'
+                cursor: isOutOfStock ? 'not-allowed' : 'pointer'
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#1d4ed8')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '#2563eb')}
+              onMouseEnter={(e) => { if (!isOutOfStock) e.currentTarget.style.background = '#1d4ed8'; }}
+              onMouseLeave={(e) => { if (!isOutOfStock) e.currentTarget.style.background = '#2563eb'; }}
             >
               <Zap size={18} />
-              <span>BUY IT NOW (EXPRESS CHECKOUT)</span>
+              <span>{isOutOfStock ? 'SOLD OUT / RESTOCKING SOON' : 'BUY IT NOW (EXPRESS CHECKOUT)'}</span>
             </button>
 
             {/* Delivery & Trust Highlights (Exact Match From Screenshot 1) */}
@@ -967,6 +977,9 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
                         src={rel.image_url}
                         alt={rel.name}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1559454403-b8fb88521f11?w=800&auto=format&fit=crop&q=80';
+                        }}
                       />
                     </div>
                     <div style={{ fontSize: '0.92rem', fontWeight: '700', color: '#111827', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1240,18 +1253,34 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
               >
                 <button
                   type="button"
+                  disabled={isOutOfStock}
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  style={{ width: '32px', height: '100%', fontSize: '1.1rem', fontWeight: '700', color: '#374151' }}
+                  style={{
+                    width: '32px',
+                    height: '100%',
+                    fontSize: '1.1rem',
+                    fontWeight: '700',
+                    color: isOutOfStock ? '#cbd5e1' : '#374151',
+                    cursor: isOutOfStock ? 'not-allowed' : 'pointer'
+                  }}
                 >
                   −
                 </button>
-                <div style={{ flex: 1, textAlign: 'center', fontWeight: '700', fontSize: '0.9rem' }}>
-                  {quantity}
+                <div style={{ flex: 1, textAlign: 'center', fontWeight: '700', fontSize: '0.9rem', color: isOutOfStock ? '#9ca3af' : '#111827' }}>
+                  {isOutOfStock ? 0 : quantity}
                 </div>
                 <button
                   type="button"
-                  onClick={() => setQuantity((q) => Math.min(10, q + 1))}
-                  style={{ width: '32px', height: '100%', fontSize: '1.1rem', fontWeight: '700', color: '#374151' }}
+                  disabled={isOutOfStock || quantity >= maxStock}
+                  onClick={() => setQuantity((q) => Math.min(maxStock, q + 1))}
+                  style={{
+                    width: '32px',
+                    height: '100%',
+                    fontSize: '1.1rem',
+                    fontWeight: '700',
+                    color: (isOutOfStock || quantity >= maxStock) ? '#cbd5e1' : '#374151',
+                    cursor: (isOutOfStock || quantity >= maxStock) ? 'not-allowed' : 'pointer'
+                  }}
                 >
                   +
                 </button>
@@ -1259,23 +1288,24 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
 
               <button
                 type="button"
+                disabled={isOutOfStock}
                 onClick={handleAddToCart}
                 style={{
                   height: '42px',
                   padding: '0 24px',
-                  background: '#2563eb',
+                  background: isOutOfStock ? '#94a3b8' : '#2563eb',
                   color: '#ffffff',
                   fontWeight: '700',
                   fontSize: '0.9rem',
                   borderRadius: '6px',
-                  cursor: 'pointer',
+                  cursor: isOutOfStock ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px'
                 }}
               >
                 <ShoppingBag size={16} />
-                <span>Add to Cart</span>
+                <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
               </button>
             </div>
           </div>
@@ -1364,6 +1394,9 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
             alt={toy?.name}
             style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '12px' }}
             onClick={(e) => e.stopPropagation()}
+            onError={(e) => {
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1559454403-b8fb88521f11?w=800&auto=format&fit=crop&q=80';
+            }}
           />
         </div>
       )}

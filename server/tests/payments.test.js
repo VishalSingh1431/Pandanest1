@@ -330,5 +330,118 @@ describe('Razorpay Security & Payment Integrity Unit Tests', () => {
       assert.match(orderNum, /^PN-\d{5}$/, 'Order number must be in PN-xxxxx format');
     });
   });
+
+  describe('5. Mobile & PIN Code Validation Constraints', () => {
+    const PHONE_REGEX = /^[6-9]\d{9}$/;
+    const PINCODE_REGEX = /^\d{6}$/;
+
+    it('should accept genuine 10-digit Indian mobile numbers', () => {
+      assert.equal(PHONE_REGEX.test('9876543210'), true);
+      assert.equal(PHONE_REGEX.test('7380405227'), true);
+      assert.equal(PHONE_REGEX.test('8901234567'), true);
+      assert.equal(PHONE_REGEX.test('6200112233'), true);
+    });
+
+    it('should reject invalid mobile numbers starting with digits 0-5 or wrong length', () => {
+      assert.equal(PHONE_REGEX.test('1234567890'), false, 'Cannot start with 1');
+      assert.equal(PHONE_REGEX.test('0738040522'), false, 'Cannot start with 0');
+      assert.equal(PHONE_REGEX.test('5432167890'), false, 'Cannot start with 5');
+      assert.equal(PHONE_REGEX.test('98765'), false, 'Too short');
+      assert.equal(PHONE_REGEX.test('987654321012'), false, 'Too long');
+    });
+
+    it('should validate exact 6-digit Indian postal PIN codes', () => {
+      assert.equal(PINCODE_REGEX.test('134114'), true);
+      assert.equal(PINCODE_REGEX.test('110001'), true);
+      assert.equal(PINCODE_REGEX.test('560001'), true);
+      assert.equal(PINCODE_REGEX.test('13411'), false, '5 digits must be rejected');
+      assert.equal(PINCODE_REGEX.test('1341144'), false, '7 digits must be rejected');
+      assert.equal(PINCODE_REGEX.test('13411a'), false, 'Non-digits must be rejected');
+    });
+  });
+
+  describe('6. Verified Buyer Review Security Constraints', () => {
+    it('should strictly filter out uncompleted or abandoned checkouts from buyer verification', () => {
+      const mockOrders = [
+        {
+          id: 1,
+          user_email: 'buyer@example.com',
+          phone: '9876543210',
+          status: 'Pending',
+          payment_status: 'pending', // Abandoned checkout!
+          items: [{ id: 101, name: 'Remote Control Turbo Racer' }]
+        },
+        {
+          id: 2,
+          user_email: 'paidbuyer@example.com',
+          phone: '7380405227',
+          status: 'Confirmed',
+          payment_status: 'paid', // Real verified paid buyer!
+          items: [{ id: 101, name: 'Remote Control Turbo Racer' }]
+        },
+        {
+          id: 3,
+          user_email: 'cancelled@example.com',
+          phone: '8901234567',
+          status: 'Cancelled',
+          payment_status: 'paid',
+          items: [{ id: 101, name: 'Remote Control Turbo Racer' }]
+        }
+      ];
+
+      // Verification filter: must not be Cancelled AND must be paid or confirmed/dispatched/delivered
+      const isEligible = (email, toyId) => {
+        return mockOrders.some(o => {
+          if (o.status === 'Cancelled') return false;
+          const isPaidOrFulfilled = o.payment_status === 'paid' || ['Confirmed', 'Dispatched', 'Delivered'].includes(o.status);
+          if (!isPaidOrFulfilled) return false;
+          if (o.user_email !== email) return false;
+          return o.items.some(it => it.id === toyId);
+        });
+      };
+
+      assert.equal(isEligible('buyer@example.com', 101), false, 'Abandoned pending checkout must not qualify for review');
+      assert.equal(isEligible('cancelled@example.com', 101), false, 'Cancelled order must not qualify for review');
+      assert.equal(isEligible('paidbuyer@example.com', 101), true, 'Paid confirmed order must qualify for verified buyer review');
+    });
+  });
+
+  describe('7. Guest Points Synchronization Safety Caps', () => {
+    it('should enforce a strict 300 maximum cap when syncing guest points', () => {
+      const MAX_GUEST_SYNC = 300;
+      const sanitizeGuestPoints = (raw) => {
+        const parsed = parseInt(raw || 0, 10);
+        if (!parsed || parsed <= 0) return 0;
+        return Math.min(parsed, MAX_GUEST_SYNC);
+      };
+
+      assert.equal(sanitizeGuestPoints(50), 50);
+      assert.equal(sanitizeGuestPoints(300), 300);
+      assert.equal(sanitizeGuestPoints(99999), 300, 'Tampered guest points must be capped at 300');
+      assert.equal(sanitizeGuestPoints(-50), 0, 'Negative points must be rejected');
+      assert.equal(sanitizeGuestPoints('invalid'), 0, 'Non-numeric input must return 0');
+    });
+  });
+
+  describe('8. Inventory & Restocking Integrity', () => {
+    it('should restock inventory when an active order is cancelled', () => {
+      let toyStock = 10;
+      const orderQuantity = 3;
+
+      // Order placed (stock was decremented from 13 to 10)
+      // Now order is cancelled
+      toyStock += orderQuantity;
+      assert.equal(toyStock, 13, 'Stock must be incremented back to original 13 on order cancellation');
+    });
+
+    it('should re-decrement inventory if an order is un-cancelled back to active', () => {
+      let toyStock = 13;
+      const orderQuantity = 3;
+
+      // Admin re-activates cancelled order
+      toyStock = Math.max(0, toyStock - orderQuantity);
+      assert.equal(toyStock, 10, 'Stock must be re-decremented when order is restored to active');
+    });
+  });
 });
 

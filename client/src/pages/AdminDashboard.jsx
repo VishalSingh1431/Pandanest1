@@ -721,6 +721,26 @@ export function AdminDashboard({ onLogout }) {
     }
   };
 
+  const handleDeleteOrder = async (orderId, orderNum) => {
+    if (!window.confirm(`Are you sure you want to delete order ${orderNum}? If active, inventory will be restocked.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      await parseResponse(res, 'Failed to delete order');
+      if (selectedOrderForAudit?.id === orderId) {
+        setSelectedOrderForAudit(null);
+      }
+      fetchData();
+    } catch (err) {
+      alert(err.message);
+      console.error('Delete order error:', err);
+    }
+  };
+
   // User & Promotion Handlers (Super Admin Only)
   const handleOpenPromoteModal = (prefill = null) => {
     setPromoteError('');
@@ -1987,14 +2007,32 @@ export function AdminDashboard({ onLogout }) {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setSelectedOrderForAudit(null)}
-                    className="btn btn-secondary"
-                    style={{ width: '100%', padding: '10px' }}
-                  >
-                    Close Audit View
-                  </button>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteOrder(selectedOrderForAudit.id, selectedOrderForAudit.order_number)}
+                      style={{
+                        padding: '10px 16px',
+                        background: '#fef2f2',
+                        color: '#dc2626',
+                        border: '1px solid #fecdd3',
+                        borderRadius: '10px',
+                        fontWeight: '700',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Delete Order
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedOrderForAudit(null)}
+                      className="btn btn-secondary"
+                      style={{ flex: 1, padding: '10px' }}
+                    >
+                      Close Audit View
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

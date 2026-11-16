@@ -116,6 +116,75 @@ router.post('/add-points', authenticateUser, async (req, res) => {
   }
 });
 
+// POST /api/users/sync-guest-points — Authenticated user: Merge points earned as guest before login
+router.post('/sync-guest-points', authenticateUser, async (req, res) => {
+  try {
+    const userEmail = (req.user?.email || '').toLowerCase().trim();
+    if (!userEmail) {
+      return res.status(400).json({ error: 'Valid user email required.' });
+    }
+
+    const { guest_points, guestPoints } = req.body;
+    const rawPoints = parseInt(guest_points || guestPoints || 0, 10);
+    if (!rawPoints || rawPoints <= 0) {
+      return res.json({ success: true, message: 'No guest points to sync.', synced: 0 });
+    }
+
+    // Limit guest points sync to max 300 to prevent inflation abuse
+    const MAX_GUEST_SYNC = 300;
+    const pointsToSync = Math.min(rawPoints, MAX_GUEST_SYNC);
+
+    const { isPostgres, pool } = getDB();
+    let updatedPoints = 0;
+
+    if (isPostgres && pool) {
+      await pool.query(
+        `INSERT INTO users (email, name, panda_points, role)
+         VALUES ($1, $2, 100, $3)
+         ON CONFLICT (email) DO NOTHING`,
+        [userEmail, req.user?.name || userEmail.split('@')[0], req.user?.role || 'user']
+      );
+
+      const result = await pool.query(
+        `UPDATE users
+         SET panda_points = COALESCE(panda_points, 0) + $1
+         WHERE LOWER(email) = $2
+         RETURNING panda_points`,
+        [pointsToSync, userEmail]
+      );
+      updatedPoints = result.rows[0]?.panda_points ?? 0;
+    } else {
+      const store = readLocalStore();
+      store.users = store.users || [];
+      let user = store.users.find(u => (u.email || '').toLowerCase().trim() === userEmail);
+      if (!user) {
+        user = {
+          id: Date.now(),
+          email: userEmail,
+          name: req.user?.name || userEmail.split('@')[0],
+          panda_points: 100,
+          role: req.user?.role || 'user',
+          created_at: new Date().toISOString()
+        };
+        store.users.push(user);
+      }
+      user.panda_points = (user.panda_points || 0) + pointsToSync;
+      updatedPoints = user.panda_points;
+      writeLocalStore(store);
+    }
+
+    res.json({
+      success: true,
+      synced: pointsToSync,
+      panda_points: updatedPoints,
+      message: `Successfully synced ${pointsToSync} guest Panda Points!`
+    });
+  } catch (err) {
+    console.error('Sync guest points error:', err);
+    res.status(500).json({ error: 'Failed to sync guest points.' });
+  }
+});
+
 // GET /api/users - Super Admin: View all team members, admins, and role stats
 router.get('/', authenticateSuperAdmin, async (req, res) => {
   try {

@@ -324,6 +324,22 @@ router.patch('/:id/status', authenticateAdmin, async (req, res) => {
             );
           }
         }
+      } else if (previousOrder.status === 'Cancelled' && status !== 'Cancelled') {
+        // Re-decrement inventory if order is restored from Cancelled
+        let items = [];
+        try {
+          items = typeof previousOrder.items === 'string' ? JSON.parse(previousOrder.items) : (previousOrder.items || []);
+        } catch {
+          items = [];
+        }
+        for (const it of items) {
+          if (it.id && !it.is_book) {
+            await pool.query(
+              'UPDATE toys SET stock = GREATEST(0, COALESCE(stock, 0) - $1) WHERE id = $2',
+              [parseInt(it.quantity || 1, 10), parseInt(it.id, 10)]
+            );
+          }
+        }
       }
 
       return res.json(updatedOrder);
@@ -346,6 +362,17 @@ router.patch('/:id/status', authenticateAdmin, async (req, res) => {
             }
           }
         }
+      } else if (prevStatus === 'Cancelled' && status !== 'Cancelled') {
+        // Re-decrement stock if restored from Cancelled
+        const items = order.items || [];
+        for (const it of items) {
+          if (it.id && !it.is_book) {
+            const toy = (store.toys || []).find(t => String(t.id) === String(it.id));
+            if (toy) {
+              toy.stock = Math.max(0, (toy.stock || 0) - parseInt(it.quantity || 1, 10));
+            }
+          }
+        }
       }
 
       writeLocalStore(store);
@@ -354,6 +381,70 @@ router.patch('/:id/status', authenticateAdmin, async (req, res) => {
   } catch (err) {
     console.error('Update order status error:', err);
     res.status(500).json({ error: 'Failed to update order status.' });
+  }
+});
+
+// DELETE /api/orders/:id — Admin: Delete an order record (e.g. spam/test orders)
+router.delete('/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isPostgres, pool } = getDB();
+
+    if (isPostgres && pool) {
+      const orderRes = await pool.query('SELECT * FROM orders WHERE id = $1', [id]);
+      if (orderRes.rows.length === 0) {
+        return res.status(404).json({ error: 'Order not found.' });
+      }
+      const order = orderRes.rows[0];
+
+      // If active order was deleted, restock items
+      if (order.status !== 'Cancelled') {
+        let items = [];
+        try {
+          items = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || []);
+        } catch {
+          items = [];
+        }
+        for (const it of items) {
+          if (it.id && !it.is_book) {
+            await pool.query(
+              'UPDATE toys SET stock = COALESCE(stock, 0) + $1 WHERE id = $2',
+              [parseInt(it.quantity || 1, 10), parseInt(it.id, 10)]
+            );
+          }
+        }
+      }
+
+      await pool.query('DELETE FROM orders WHERE id = $1', [id]);
+      return res.json({ success: true, message: `Order ${order.order_number} deleted.` });
+    } else {
+      const store = readLocalStore();
+      const orderIdx = (store.orders || []).findIndex(o => String(o.id) === String(id));
+      if (orderIdx === -1) {
+        return res.status(404).json({ error: 'Order not found.' });
+      }
+
+      const order = store.orders[orderIdx];
+      // Restock if active
+      if (order.status !== 'Cancelled') {
+        const items = order.items || [];
+        for (const it of items) {
+          if (it.id && !it.is_book) {
+            const toy = (store.toys || []).find(t => String(t.id) === String(it.id));
+            if (toy) {
+              toy.stock = (toy.stock || 0) + parseInt(it.quantity || 1, 10);
+            }
+          }
+        }
+      }
+
+      store.orders.splice(orderIdx, 1);
+      writeLocalStore(store);
+      return res.json({ success: true, message: `Order ${order.order_number} deleted.` });
+    }
+  } catch (err) {
+    console.error('Delete order error:', err);
+    res.status(500).json({ error: 'Failed to delete order.' });
   }
 });
 

@@ -432,56 +432,82 @@ export function ToyCard({ toy, onSelectToy }) {
                 style={{
                   fontSize: '0.68rem',
                   fontWeight: '700',
-                  color: Number(toy.stock) <= 5 ? '#e11d48' : '#059669',
-                  background: Number(toy.stock) <= 5 ? '#ffe4e6' : '#ecfdf5',
+                  color: Number(toy.stock) <= 0 ? '#991b1b' : (Number(toy.stock) <= 5 ? '#e11d48' : '#059669'),
+                  background: Number(toy.stock) <= 0 ? '#fee2e2' : (Number(toy.stock) <= 5 ? '#ffe4e6' : '#ecfdf5'),
                   padding: '2px 6px',
                   borderRadius: '5px'
                 }}
               >
-                {Number(toy.stock) <= 5 ? `Only ${toy.stock} left` : 'In Stock'}
+                {Number(toy.stock) <= 0 ? 'Out of Stock' : (Number(toy.stock) <= 5 ? `Only ${toy.stock} left` : 'In Stock')}
               </span>
             )}
           </div>
 
           {/* Action Buttons */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px' }}>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm btn-press"
-              onClick={handleAddToCart}
-              style={{
-                padding: '8px 10px',
-                fontSize: '0.82rem',
-                fontWeight: '700',
-                justifyContent: 'center',
-                borderRadius: '12px',
-                background: addedAnim ? '#ecfdf5' : '#f8fafc',
-                borderColor: addedAnim ? '#10b981' : '#e2e8f0',
-                color: addedAnim ? '#059669' : '#0f172a',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <ShoppingBag size={14} />
-              <span>{addedAnim ? 'Added!' : 'Add to Cart'}</span>
-            </button>
+          {toy.stock !== undefined && Number(toy.stock) <= 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '7px' }}>
+              <button
+                type="button"
+                disabled
+                style={{
+                  width: '100%',
+                  padding: '9px 10px',
+                  fontSize: '0.82rem',
+                  fontWeight: '700',
+                  borderRadius: '12px',
+                  background: '#f1f5f9',
+                  color: '#94a3b8',
+                  border: '1px solid #e2e8f0',
+                  cursor: 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                Sold Out / Restocking Soon
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm btn-press"
+                onClick={handleAddToCart}
+                style={{
+                  padding: '8px 10px',
+                  fontSize: '0.82rem',
+                  fontWeight: '700',
+                  justifyContent: 'center',
+                  borderRadius: '12px',
+                  background: addedAnim ? '#ecfdf5' : '#f8fafc',
+                  borderColor: addedAnim ? '#10b981' : '#e2e8f0',
+                  color: addedAnim ? '#059669' : '#0f172a',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <ShoppingBag size={14} />
+                <span>{addedAnim ? 'Added!' : 'Add to Cart'}</span>
+              </button>
 
-            <button
-              type="button"
-              className="btn btn-primary btn-sm btn-press"
-              onClick={handleBuyNow}
-              style={{
-                padding: '8px 10px',
-                fontSize: '0.82rem',
-                fontWeight: '800',
-                justifyContent: 'center',
-                borderRadius: '12px',
-                boxShadow: '0 4px 10px rgba(16, 185, 129, 0.28)'
-              }}
-            >
-              <Zap size={14} />
-              <span>Buy Now</span>
-            </button>
-          </div>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm btn-press"
+                onClick={handleBuyNow}
+                style={{
+                  padding: '8px 10px',
+                  fontSize: '0.82rem',
+                  fontWeight: '800',
+                  justifyContent: 'center',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 10px rgba(16, 185, 129, 0.28)'
+                }}
+              >
+                <Zap size={14} />
+                <span>Buy Now</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

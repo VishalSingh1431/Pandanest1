@@ -23,14 +23,18 @@ export function CartProvider({ children }) {
   const addToCart = (toy, quantity = 1) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === toy.id);
+      const maxStock = typeof toy.stock === 'number' && toy.stock >= 0 ? toy.stock : 99;
+      if (maxStock <= 0) return prev; // Ignore out of stock toys
+      const addQty = Math.max(1, parseInt(quantity || 1, 10));
+
       if (existing) {
         return prev.map(item =>
           item.id === toy.id
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { ...item, quantity: Math.min(item.quantity + addQty, maxStock), stock: maxStock }
             : item
         );
       }
-      return [...prev, { ...toy, quantity }];
+      return [...prev, { ...toy, quantity: Math.min(addQty, maxStock), stock: maxStock }];
     });
   };
 
@@ -43,8 +47,11 @@ export function CartProvider({ children }) {
       prev
         .map(item => {
           if (item.id === toyId) {
+            const maxStock = typeof item.stock === 'number' && item.stock >= 0 ? item.stock : 99;
             const newQty = item.quantity + delta;
-            return newQty > 0 ? { ...item, quantity: newQty } : null;
+            if (newQty <= 0) return null;
+            if (delta > 0 && item.quantity >= maxStock) return item; // capped at maxStock
+            return { ...item, quantity: Math.min(newQty, maxStock) };
           }
           return item;
         })
