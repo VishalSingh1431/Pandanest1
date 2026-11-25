@@ -167,6 +167,30 @@ router.put('/:gameKey', authenticateAdmin, async (req, res) => {
       }
     }
 
+    const store = readLocalStore();
+    if (!store.game_books) {
+      store.game_books = { ...DEFAULT_GAME_BOOKS };
+    }
+
+    store.game_books[gameKey] = {
+      game_key: gameKey,
+      title: title || store.game_books[gameKey]?.title || 'Activity Book',
+      price: numPrice,
+      original_price: numOriginal,
+      image_url: image_url || store.game_books[gameKey]?.image_url || '/drawing-book/page-001.jpg',
+      description: description || store.game_books[gameKey]?.description || '',
+      pdf_url: pdf_url || store.game_books[gameKey]?.pdf_url || '',
+      enabled: isEnabled
+    };
+
+    writeLocalStore(store);
+    res.json(store.game_books[gameKey]);
+  } catch (err) {
+    console.error('Error updating game book:', err);
+    res.status(500).json({ error: 'Failed to update game book' });
+  }
+});
+
 // POST /api/game-books - Create a new digital product / book
 router.post('/', authenticateAdmin, async (req, res) => {
   try {
