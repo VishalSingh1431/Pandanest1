@@ -6,6 +6,7 @@ import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { AbandonedCartToast } from './components/AbandonedCartToast';
 import { WhatsAppButton } from './components/WhatsAppButton';
+import { JoinWhatsAppGroup } from './components/JoinWhatsAppGroup';
 import { Catalog } from './pages/Catalog';
 import { useAuth } from './context/AuthContext';
 import { Phone, Mail, MapPin, Heart, Truck, ShieldCheck } from 'lucide-react';
@@ -283,11 +284,15 @@ export function App() {
         style={{
           background: '#ffffff',
           color: '#475569',
-          padding: '48px 0 24px',
+          padding: '40px 0 24px',
           borderTop: '3px solid #10b981',
           boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.02)'
         }}
       >
+        <div className="container" style={{ marginBottom: '32px' }}>
+          <JoinWhatsAppGroup />
+        </div>
+
         <div
           className="container"
           style={{
@@ -396,20 +401,12 @@ export function App() {
                 About Panda Nest
               </button>
               <button
-                onClick={() => navigate('track')}
+                onClick={() => navigate('downloads')}
                 style={{ color: '#047857', textAlign: 'left', cursor: 'pointer', fontWeight: '700', transition: 'all 0.15s ease' }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#047857'; e.currentTarget.style.paddingLeft = '0px'; }}
               >
-                📦 Track Order
-              </button>
-              <button
-                onClick={() => navigate('downloads')}
-                style={{ color: '#334155', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s ease' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}
-              >
-                📚 My Digital Downloads
+                📚 Digital Activity Books &amp; PDFs
               </button>
               <button
                 onClick={() => navigate(isAuthenticated ? (isAdmin ? 'admin-dashboard' : 'profile') : 'admin-login')}

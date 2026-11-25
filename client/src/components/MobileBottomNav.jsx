@@ -72,7 +72,7 @@ export function MobileBottomNav({ currentRoute, navigate }) {
       </button>
 
       <button
-        onClick={() => navigate('track')}
+        onClick={() => navigate('downloads')}
         style={{
           flex: 1,
           display: 'flex',
@@ -80,8 +80,8 @@ export function MobileBottomNav({ currentRoute, navigate }) {
           alignItems: 'center',
           justifyContent: 'center',
           gap: '3px',
-          color: currentRoute === 'track' ? '#059669' : '#64748b',
-          fontWeight: currentRoute === 'track' ? '800' : '600',
+          color: currentRoute === 'downloads' ? '#059669' : '#64748b',
+          fontWeight: currentRoute === 'downloads' ? '800' : '600',
           fontSize: '0.7rem',
           cursor: 'pointer',
           padding: '4px 0',
@@ -89,8 +89,8 @@ export function MobileBottomNav({ currentRoute, navigate }) {
           border: 'none'
         }}
       >
-        <Truck size={19} color={currentRoute === 'track' ? '#059669' : '#64748b'} />
-        <span>Track</span>
+        <span style={{ fontSize: '1.1rem' }}>📚</span>
+        <span>E-Books</span>
       </button>
 
       <button

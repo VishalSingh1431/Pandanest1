@@ -2628,10 +2628,14 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin, onNavigate }
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
                             boxShadow: isSelected ? '0 8px 20px rgba(16, 185, 129, 0.15)' : '0 2px 8px rgba(0,0,0,0.03)',
-                            position: 'relative'
+                            position: 'relative',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            height: '100%',
+                            boxSizing: 'border-box'
                           }}
                         >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', gap: '8px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '8px', flexWrap: 'wrap' }}>
                             <span
                               style={{
                                 background: '#f1f5f9',
@@ -2661,16 +2665,49 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin, onNavigate }
                             </span>
                           </div>
 
-                          <h4 style={{ fontSize: '1rem', color: '#0f172a', margin: '0 0 6px', fontWeight: '800', lineHeight: 1.3 }}>
+                          <h4
+                            title={vid.title}
+                            style={{
+                              fontSize: '1rem',
+                              color: '#0f172a',
+                              margin: '0 0 8px',
+                              fontWeight: '800',
+                              lineHeight: 1.35,
+                              minHeight: '2.7em',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden'
+                            }}
+                          >
                             {vid.title}
                           </h4>
-                          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 14px', lineHeight: 1.4 }}>
+
+                          <p
+                            title={vid.description}
+                            style={{
+                              fontSize: '0.82rem',
+                              color: '#64748b',
+                              margin: '0 0 16px',
+                              lineHeight: 1.45,
+                              display: '-webkit-box',
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              flex: 1
+                            }}
+                          >
                             {vid.description}
                           </p>
 
                           <button
                             className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
-                            style={{ width: '100%', justifyContent: 'center', fontWeight: '800' }}
+                            style={{
+                              width: '100%',
+                              justifyContent: 'center',
+                              fontWeight: '800',
+                              marginTop: 'auto'
+                            }}
                           >
                             {isSelected ? '▶️ Currently Playing' : 'Watch Video'}
                           </button>

@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { parseResponse } from '../utils/api';
 import { ToyCard } from '../components/ToyCard';
 import { ProductDetailView } from '../components/ProductDetailView';
+import { DigitalBooksCatalog } from '../components/DigitalBooksCatalog';
 import { JoinWhatsAppGroup } from '../components/JoinWhatsAppGroup';
 import {
   Sparkles,
@@ -369,7 +370,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             {showVideo ? (
               <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
                 <iframe
-                  src={`https://www.youtube-nocookie.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=1&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
+                  src={`https://www.youtube-nocookie.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=1&volume=0&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
                   title="Panda Nest Showcase Video"
                   style={{
                     width: '100%',
@@ -536,7 +537,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
                 {/* Mobile inside TV: shows video preview */}
                 <div className="hero-tv-mobile-video" style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'none' }}>
                   <iframe
-                    src={`https://www.youtube-nocookie.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=1&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
+                    src={`https://www.youtube-nocookie.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=1&volume=0&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
                     title="Panda Nest Showcase Video"
                     style={{
                       width: '100%',
@@ -889,9 +890,6 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
           );
         })()}
 
-        {/* VIP WhatsApp Community Banner */}
-        <JoinWhatsAppGroup style={{ marginBottom: '28px' }} />
-
         {/* Category Filter Pills */}
         <div style={{ marginBottom: '18px' }}>
           <div
@@ -1076,6 +1074,9 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             ))}
           </div>
         )}
+
+        {/* Digital Products (PDF Books / Activity Sheets) Showcase */}
+        <DigitalBooksCatalog onNavigate={onNavigate} />
       </main>
 
       {/* Product Detail Page View (Matches Panda World PDP) */}

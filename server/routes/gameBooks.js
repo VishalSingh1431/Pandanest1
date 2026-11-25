@@ -167,27 +167,171 @@ router.put('/:gameKey', authenticateAdmin, async (req, res) => {
       }
     }
 
+// POST /api/game-books - Create a new digital product / book
+router.post('/', authenticateAdmin, async (req, res) => {
+  try {
+    const { game_key, title, price, original_price, image_url, description, pdf_url, sample_pages, category, enabled } = req.body;
+    const key = (game_key || title || 'digital-book')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '') + '-' + Date.now().toString().slice(-4);
+
+    const numPrice = price !== undefined ? parseFloat(price) : 9;
+    const numOriginal = original_price !== undefined ? parseFloat(original_price) : 99;
+    const isEnabled = enabled !== undefined ? Boolean(enabled) : true;
+
+    const { isPostgres, pool } = getDB();
+
+    if (isPostgres && pool) {
+      try {
+        const result = await pool.query(
+          `INSERT INTO game_books (game_key, title, price, original_price, image_url, description, pdf_url, enabled)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           RETURNING *`,
+          [key, title || 'Panda Nest Activity Book', numPrice, numOriginal, image_url || '', description || '', pdf_url || '', isEnabled]
+        );
+        return res.status(201).json(result.rows[0]);
+      } catch (e) {
+        console.warn('Postgres game_books insert error:', e.message);
+      }
+    }
+
     const store = readLocalStore();
     if (!store.game_books) {
       store.game_books = { ...DEFAULT_GAME_BOOKS };
     }
 
-    store.game_books[gameKey] = {
-      game_key: gameKey,
-      title: title || store.game_books[gameKey]?.title || 'Activity Book',
+    store.game_books[key] = {
+      game_key: key,
+      title: title || 'Panda Nest Activity Book',
       price: numPrice,
       original_price: numOriginal,
-      image_url: image_url || store.game_books[gameKey]?.image_url || '/drawing-book/page-001.jpg',
-      description: description || store.game_books[gameKey]?.description || '',
-      pdf_url: pdf_url || store.game_books[gameKey]?.pdf_url || '',
-      enabled: isEnabled
+      image_url: image_url || '/drawing-book/page-001.jpg',
+      description: description || '',
+      pdf_url: pdf_url || '',
+      category: category || 'Activity & Coloring',
+      sample_pages: sample_pages || [],
+      enabled: isEnabled,
+      created_at: new Date().toISOString()
     };
 
     writeLocalStore(store);
-    res.json(store.game_books[gameKey]);
+    res.status(201).json(store.game_books[key]);
   } catch (err) {
-    console.error('Error updating game book:', err);
-    res.status(500).json({ error: 'Failed to update game book' });
+    console.error('Error creating digital book:', err);
+    res.status(500).json({ error: 'Failed to create digital product' });
+  }
+});
+
+// DELETE /api/game-books/:gameKey - Delete a digital product
+router.delete('/:gameKey', authenticateAdmin, async (req, res) => {
+  try {
+    const { gameKey } = req.params;
+    const { isPostgres, pool } = getDB();
+
+    if (isPostgres && pool) {
+      try {
+        await pool.query('DELETE FROM game_books WHERE game_key = $1', [gameKey]);
+      } catch (e) {
+        console.warn('Postgres delete game_book:', e.message);
+      }
+    }
+
+    const store = readLocalStore();
+    if (store.game_books && store.game_books[gameKey]) {
+      delete store.game_books[gameKey];
+      writeLocalStore(store);
+    }
+
+    res.json({ success: true, message: 'Digital product deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting digital book:', err);
+    res.status(500).json({ error: 'Failed to delete digital product' });
+  }
+});
+
+// GET /api/game-books/secure-access/:gameKey - Check if current user or order has purchased access
+router.get('/secure-access/:gameKey', async (req, res) => {
+  try {
+    const { gameKey } = req.params;
+    const orderNumber = req.query.order_number;
+    const userPhone = req.query.phone;
+    const authHeader = req.headers.authorization;
+
+    let hasAccess = false;
+    let accessOrder = null;
+
+    const { isPostgres, pool } = getDB();
+
+    // Check by order number and phone
+    if (orderNumber) {
+      if (isPostgres && pool) {
+        const ordRes = await pool.query(
+          `SELECT * FROM orders WHERE (order_number = $1 OR CAST(id AS TEXT) = $1) LIMIT 1`,
+          [orderNumber.trim()]
+        );
+        if (ordRes.rows.length > 0) {
+          const ord = ordRes.rows[0];
+          const isPaid = ord.payment_status === 'paid' || ['Confirmed', 'Dispatched', 'Delivered'].includes(ord.status);
+          let items = [];
+          try { items = typeof ord.items === 'string' ? JSON.parse(ord.items) : (ord.items || []); } catch {}
+          const matched = items.some(it => it.game_key === gameKey || it.id === `game-book-${gameKey}` || it.id === gameKey);
+          if (matched && isPaid) {
+            hasAccess = true;
+            accessOrder = ord.order_number;
+          }
+        }
+      } else {
+        const store = readLocalStore();
+        const orders = store.orders || [];
+        const ord = orders.find(o => o.order_number === orderNumber.trim() || String(o.id) === orderNumber.trim());
+        if (ord) {
+          const isPaid = ord.payment_status === 'paid' || ['Confirmed', 'Dispatched', 'Delivered'].includes(ord.status);
+          let items = [];
+          try { items = typeof ord.items === 'string' ? JSON.parse(ord.items) : (ord.items || []); } catch {}
+          const matched = items.some(it => it.game_key === gameKey || it.id === `game-book-${gameKey}` || it.id === gameKey);
+          if (matched && isPaid) {
+            hasAccess = true;
+            accessOrder = ord.order_number;
+          }
+        }
+      }
+    }
+
+    // Get the book details
+    let book = DEFAULT_GAME_BOOKS[gameKey];
+    if (isPostgres && pool) {
+      try {
+        const bRes = await pool.query('SELECT * FROM game_books WHERE game_key = $1', [gameKey]);
+        if (bRes.rows.length > 0) book = bRes.rows[0];
+      } catch {}
+    } else {
+      const store = readLocalStore();
+      if (store.game_books?.[gameKey]) book = store.game_books[gameKey];
+    }
+
+    if (!book) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    if (hasAccess) {
+      return res.json({
+        hasAccess: true,
+        downloadUrl: book.pdf_url || '/drawing-book/sample-coloring-book.pdf',
+        title: book.title,
+        orderNumber: accessOrder
+      });
+    }
+
+    return res.json({
+      hasAccess: false,
+      message: 'Purchase required to view or download full PDF document.',
+      samplePreview: book.image_url || '/drawing-book/page-001.jpg'
+    });
+  } catch (err) {
+    console.error('Secure access check error:', err);
+    res.status(500).json({ error: 'Failed to check access' });
   }
 });
 

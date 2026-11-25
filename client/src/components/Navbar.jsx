@@ -335,18 +335,18 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
 
         {/* Right Section: Track | Panda Club | Cart | Panda Points | Login / Profile */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-          {/* Track Order (Desktop Only) */}
+          {/* Digital E-Books / PDFs (Desktop Only) */}
           <button
             className="hide-on-mobile"
-            onClick={() => navigate('track')}
+            onClick={() => navigate('downloads')}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              background: currentRoute === 'track' ? '#ecfdf5' : '#ffffff',
+              background: currentRoute === 'downloads' ? '#ecfdf5' : '#ffffff',
               border: '1.5px solid',
-              borderColor: currentRoute === 'track' ? '#10b981' : '#e2e8f0',
-              color: currentRoute === 'track' ? '#047857' : '#475569',
+              borderColor: currentRoute === 'downloads' ? '#10b981' : '#e2e8f0',
+              color: currentRoute === 'downloads' ? '#047857' : '#475569',
               padding: '8px 14px',
               borderRadius: '9999px',
               fontSize: '0.85rem',
@@ -354,10 +354,10 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
               cursor: 'pointer',
               transition: 'all 0.2s ease'
             }}
-            title="Live Courier Order Tracking"
+            title="Digital Activity Books & Printable PDFs"
           >
-            <Truck size={16} color={currentRoute === 'track' ? '#059669' : '#64748b'} />
-            <span>Track Order</span>
+            <span style={{ fontSize: '1rem' }}>📚</span>
+            <span>Digital Books</span>
           </button>
 
           {/* Panda Club (Desktop Only) */}

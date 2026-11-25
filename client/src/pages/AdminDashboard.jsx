@@ -1243,7 +1243,7 @@ export function AdminDashboard({ onLogout }) {
               icon: <Users size={16} />,
               badge: upcomingBdaysCount > 0 ? `${upcomingBdaysCount} B-Days 🎉` : null
             },
-            { id: 'truth-dare', label: 'Panda Club & Drawing', icon: <Sparkles size={16} /> },
+            { id: 'truth-dare', label: '📚 Digital Books & Club', icon: <BookOpen size={16} /> },
             { id: 'certificates', label: `Certificates (${certificates.length})`, icon: <Award size={16} /> },
             { id: 'videos', label: `Videos & Intro (${videos.length})`, icon: <Video size={16} /> },
             { id: 'categories', label: `Categories (${categories.length})`, icon: <Tag size={16} /> },
@@ -3086,6 +3086,22 @@ export function AdminDashboard({ onLogout }) {
                             [item.key]: { ...current, description: e.target.value }
                           }))}
                           style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#047857', display: 'block', marginBottom: '2px' }}>
+                          Secure PDF File URL (Unlocked only upon purchase) *
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. /drawing-book/sample-coloring-book.pdf or https://drive..."
+                          value={current.pdf_url || ''}
+                          onChange={(e) => setGameBooks(prev => ({
+                            ...prev,
+                            [item.key]: { ...current, pdf_url: e.target.value }
+                          }))}
+                          style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1.5px solid #a7f3d0', fontSize: '0.82rem', background: '#f0fdf4' }}
                         />
                       </div>
 
