@@ -600,10 +600,6 @@ router.put('/galla/:id', requirePagePermission('partner_kharcha', 'edit'), async
     return res.status(500).json({ error: 'Failed to update partner expense.' });
   }
 });
-    console.error('Delete galla expense error:', err);
-    return res.status(500).json({ error: 'Failed to delete expense.' });
-  }
-});
 
 // ============================================================================
 // PAGE 3: VENDOR KHATA & OUTSTANDING BALANCE ("Kitna Rehta Hai")
