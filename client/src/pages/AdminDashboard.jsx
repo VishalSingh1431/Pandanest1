@@ -1567,8 +1567,48 @@ export function AdminDashboard({ onLogout }) {
                 />
               </div>
 
-              {/* Status Filter Buttons */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {/* Status Filter Buttons & Excel/CSV Export */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch('/api/orders/export/csv', {
+                        headers: { Authorization: `Bearer ${token}` }
+                      });
+                      if (!res.ok) throw new Error('Failed to export orders');
+                      const blob = await res.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `pandanest_orders_${new Date().toISOString().slice(0, 10)}.csv`;
+                      document.body.appendChild(a);
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                    } catch (err) {
+                      alert('Failed to export orders: ' + err.message);
+                    }
+                  }}
+                  title="Export orders to Excel / CSV file"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    background: '#047857',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: '700',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(4, 120, 87, 0.25)'
+                  }}
+                >
+                  <Download size={14} />
+                  <span>Export to Excel (CSV)</span>
+                </button>
                 {(() => {
                   const paidCount = orders.filter(o => o.payment_status === 'paid' || ['Confirmed', 'Dispatched', 'Delivered'].includes(o.status)).length;
                   const pendingCount = orders.filter(o => o.payment_status !== 'paid' && o.status === 'Pending').length;

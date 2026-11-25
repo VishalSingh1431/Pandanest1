@@ -5,6 +5,7 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { AbandonedCartToast } from './components/AbandonedCartToast';
+import { WhatsAppButton } from './components/WhatsAppButton';
 import { Catalog } from './pages/Catalog';
 import { useAuth } from './context/AuthContext';
 import { Phone, Mail, MapPin, Heart, Truck, ShieldCheck } from 'lucide-react';
@@ -20,6 +21,8 @@ const Policies = lazy(() => import('./pages/Policies').then(m => ({ default: m.P
 const AuthPage = lazy(() => import('./pages/AuthPage').then(m => ({ default: m.AuthPage || m.default })));
 const UserProfile = lazy(() => import('./pages/UserProfile').then(m => ({ default: m.UserProfile || m.default })));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(m => ({ default: m.AdminDashboard || m.default })));
+const OrderTracking = lazy(() => import('./pages/OrderTracking').then(m => ({ default: m.OrderTracking || m.default })));
+const MyDownloads = lazy(() => import('./pages/MyDownloads').then(m => ({ default: m.MyDownloads || m.default })));
 
 function PageLoader() {
   return (
@@ -58,6 +61,12 @@ export function App() {
     }
     if (params.get('page') === 'drawing' || window.location.hash === '#drawing') {
       return 'drawing';
+    }
+    if (params.get('page') === 'track' || window.location.hash === '#track') {
+      return 'track';
+    }
+    if (params.get('page') === 'downloads' || window.location.hash === '#downloads') {
+      return 'downloads';
     }
     if (params.get('page') === 'admin' || window.location.hash === '#admin') {
       const savedToken = localStorage.getItem('pandanest_admin_token');
@@ -99,6 +108,10 @@ export function App() {
       window.history.pushState({}, '', '?page=games');
     } else if (route === 'drawing') {
       window.history.pushState({}, '', '?page=drawing');
+    } else if (route === 'track') {
+      window.history.pushState({}, '', '?page=track');
+    } else if (route === 'downloads') {
+      window.history.pushState({}, '', '?page=downloads');
     } else if (route === 'profile') {
       window.history.pushState({}, '', '?page=profile');
     } else if (route === 'admin-login' || route === 'admin-dashboard') {
@@ -118,6 +131,8 @@ export function App() {
       else if (page === 'game') setCurrentRoute('truth-or-dare');
       else if (page === 'games') setCurrentRoute('games');
       else if (page === 'drawing') setCurrentRoute('drawing');
+      else if (page === 'track') setCurrentRoute('track');
+      else if (page === 'downloads') setCurrentRoute('downloads');
       else if (page === 'profile') setCurrentRoute(isAuthenticated ? 'profile' : 'admin-login');
       else if (page === 'admin') setCurrentRoute(isAuthenticated ? (isAdmin ? 'admin-dashboard' : 'profile') : 'admin-login');
       else setCurrentRoute('catalog');
@@ -171,6 +186,17 @@ export function App() {
 
           {currentRoute === 'drawing' && (
             <DrawingPage onNavigate={navigate} />
+          )}
+
+          {currentRoute === 'track' && (
+            <OrderTracking onGoToCatalog={() => navigate('catalog')} />
+          )}
+
+          {currentRoute === 'downloads' && (
+            <MyDownloads
+              onGoToCatalog={() => navigate('catalog')}
+              onRequireLogin={() => navigate('login')}
+            />
           )}
 
           {currentRoute === 'about' && (
@@ -250,6 +276,7 @@ export function App() {
       <CartDrawer />
       <CheckoutModal />
       <AbandonedCartToast />
+      <WhatsAppButton />
 
       {/* Clean White & Emerald Consistent Footer */}
       <footer
@@ -367,6 +394,22 @@ export function App() {
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}
               >
                 About Panda Nest
+              </button>
+              <button
+                onClick={() => navigate('track')}
+                style={{ color: '#047857', textAlign: 'left', cursor: 'pointer', fontWeight: '700', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#047857'; e.currentTarget.style.paddingLeft = '0px'; }}
+              >
+                📦 Track Order
+              </button>
+              <button
+                onClick={() => navigate('downloads')}
+                style={{ color: '#334155', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.paddingLeft = '4px'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.paddingLeft = '0px'; }}
+              >
+                📚 My Digital Downloads
               </button>
               <button
                 onClick={() => navigate(isAuthenticated ? (isAdmin ? 'admin-dashboard' : 'profile') : 'admin-login')}

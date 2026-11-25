@@ -15,6 +15,11 @@ import reviewRoutes from './routes/reviews.js';
 import gameBookRoutes from './routes/gameBooks.js';
 import certificateRoutes from './routes/certificates.js';
 import paymentRoutes from './routes/payments.js';
+import adminPortalAuthRoutes from './routes/adminPortalAuth.js';
+import adminPortalUserRoutes from './routes/adminPortalUsers.js';
+import adminPortalAuditRoutes from './routes/adminPortalAudit.js';
+import adminPortalAccountingRoutes from './routes/adminPortalAccounting.js';
+import { initAdminCronScheduler } from './adminCronService.js';
 
 dotenv.config();
 
@@ -35,14 +40,23 @@ if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust reverse proxy headers (Cloudflare, Nginx, Render, Vercel)
+// Ensures correct client IP identification for rate limiters
+app.set('trust proxy', 1);
+
 // Middleware
 const DEFAULT_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
   'https://pandanest.in',
   'http://pandanest.in',
   'https://www.pandanest.in',
-  'http://www.pandanest.in'
+  'http://www.pandanest.in',
+  'https://admin.pandanest.in',
+  'http://admin.pandanest.in'
 ];
 
 const envOrigins = process.env.ALLOWED_ORIGINS
@@ -103,6 +117,12 @@ app.use('/api/game-books', gameBookRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/payments', paymentRoutes);
 
+// Dedicated Admin Portal (admin.pandanest.in) APIs
+app.use('/api/admin-portal/auth', adminPortalAuthRoutes);
+app.use('/api/admin-portal/users', adminPortalUserRoutes);
+app.use('/api/admin-portal/audit-logs', adminPortalAuditRoutes);
+app.use('/api/admin-portal/accounting', adminPortalAccountingRoutes);
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: `Route ${req.originalUrl} not found` });
@@ -136,6 +156,7 @@ app.use((err, req, res, next) => {
 // Start Server and Database
 async function startServer() {
   await initDB();
+  initAdminCronScheduler();
   app.listen(PORT, () => {
     console.log(`🚀 Pandanest Server running on http://localhost:${PORT}`);
     console.log(`🌐 API ready for Pandanest.in storefront and admin`);

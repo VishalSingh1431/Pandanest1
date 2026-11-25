@@ -21,6 +21,185 @@ function normalizePhone(raw) {
 // IMPORTANT: Named routes MUST be declared before /:id routes
 // ─────────────────────────────────────────────────────────
 
+// GET /api/orders/export/csv — Admin: Export all orders as Excel-compatible CSV file
+router.get('/export/csv', authenticateAdmin, async (req, res) => {
+  try {
+    const { isPostgres, pool } = getDB();
+    let orders = [];
+
+    if (isPostgres && pool) {
+      const result = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
+      orders = result.rows;
+    } else {
+      const store = readLocalStore();
+      orders = store.orders || [];
+    }
+
+    // Prepare CSV Header and Rows
+    const headers = [
+      'Order Number',
+      'Date',
+      'Customer Name',
+      'Phone',
+      'Email',
+      'Delivery Address',
+      'City',
+      'Pincode',
+      'Payment Method',
+      'Payment Status',
+      'Order Status',
+      'Courier Name',
+      'Tracking Number',
+      'Total Amount (INR)',
+      'Items Summary'
+    ];
+
+    const escapeCsv = (val) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = orders.map((o) => {
+      let itemsList = [];
+      try {
+        itemsList = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []);
+      } catch {
+        itemsList = [];
+      }
+      const itemsSummary = itemsList
+        .map((it) => `${it.name || 'Item'} (x${it.quantity || 1})`)
+        .join('; ');
+
+      const dateStr = o.created_at ? new Date(o.created_at).toLocaleString('en-IN') : '';
+
+      return [
+        escapeCsv(o.order_number),
+        escapeCsv(dateStr),
+        escapeCsv(o.customer_name),
+        escapeCsv(o.phone),
+        escapeCsv(o.user_email || o.email || ''),
+        escapeCsv(o.address),
+        escapeCsv(o.city),
+        escapeCsv(o.pincode),
+        escapeCsv(o.payment_method),
+        escapeCsv(o.payment_status || 'pending'),
+        escapeCsv(o.status),
+        escapeCsv(o.courier_name || 'Delhivery / Shiprocket'),
+        escapeCsv(o.tracking_number || ''),
+        escapeCsv(o.total_amount),
+        escapeCsv(itemsSummary)
+      ].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+    const filename = `pandanest_orders_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(csvContent);
+  } catch (err) {
+    console.error('Export CSV orders error:', err);
+    res.status(500).json({ error: 'Failed to export orders.' });
+  }
+});
+
+// GET /api/orders/track/:orderQuery — Public/Customer order tracking by order_number or ID
+router.get('/track/:orderQuery', async (req, res) => {
+  try {
+    const rawQuery = String(req.params.orderQuery || '').trim();
+    if (!rawQuery) {
+      return res.status(400).json({ error: 'Order number or ID is required.' });
+    }
+
+    const { isPostgres, pool } = getDB();
+    let order = null;
+
+    if (isPostgres && pool) {
+      const result = await pool.query(
+        `SELECT id, order_number, customer_name, phone, address, city, pincode, 
+                payment_method, payment_status, total_amount, status, items, 
+                courier_name, tracking_number, tracking_url, created_at, updated_at
+         FROM orders 
+         WHERE UPPER(order_number) = UPPER($1) OR id::text = $1
+         LIMIT 1`,
+        [rawQuery]
+      );
+      if (result.rows.length > 0) order = result.rows[0];
+    } else {
+      const store = readLocalStore();
+      order = (store.orders || []).find(
+        o => String(o.order_number || '').toUpperCase() === rawQuery.toUpperCase() || String(o.id) === rawQuery
+      );
+    }
+
+    if (!order) {
+      return res.status(404).json({ error: `Order '${rawQuery}' not found. Please verify your order number.` });
+    }
+
+    // Parse items safely
+    let items = [];
+    try {
+      items = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || []);
+    } catch {
+      items = [];
+    }
+
+    // Compute progress timeline step (1 = Placed, 2 = Confirmed, 3 = Dispatched, 4 = Delivered)
+    const statusMap = {
+      Pending: 1,
+      Confirmed: 2,
+      Dispatched: 3,
+      Delivered: 4,
+      Cancelled: -1
+    };
+
+    const currentStep = statusMap[order.status] ?? 1;
+
+    // Delivery estimate: 3 to 5 days from creation
+    const orderDate = new Date(order.created_at || Date.now());
+    const minDelivery = new Date(orderDate);
+    minDelivery.setDate(orderDate.getDate() + 3);
+    const maxDelivery = new Date(orderDate);
+    maxDelivery.setDate(orderDate.getDate() + 5);
+
+    const deliveryEstimate = `${minDelivery.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${maxDelivery.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`;
+
+    // Mask phone for privacy in public lookup (e.g. 98****3210)
+    const phoneStr = String(order.phone || '');
+    const maskedPhone = phoneStr.length >= 10
+      ? `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`
+      : phoneStr;
+
+    return res.json({
+      success: true,
+      order: {
+        id: order.id,
+        order_number: order.order_number,
+        customer_name: order.customer_name,
+        masked_phone: maskedPhone,
+        address: order.address,
+        city: order.city,
+        pincode: order.pincode,
+        payment_method: order.payment_method,
+        payment_status: order.payment_status || (order.payment_method === 'COD' ? 'Pending' : 'paid'),
+        status: order.status,
+        current_step: currentStep,
+        total_amount: order.total_amount,
+        items,
+        courier_name: order.courier_name || 'BlueDart / Delhivery Express',
+        tracking_number: order.tracking_number || `PN-EXP-${order.order_number.replace(/\D/g, '') || '88392'}`,
+        tracking_url: order.tracking_url || 'https://www.delhivery.com/tracking',
+        created_at: order.created_at,
+        delivery_estimate: deliveryEstimate
+      }
+    });
+  } catch (err) {
+    console.error('Order tracking error:', err);
+    res.status(500).json({ error: 'Failed to retrieve order tracking information.' });
+  }
+});
+
 // GET /api/orders/pincode/:pincode — Auto-detect City, District & State from 6-digit Indian PIN code
 router.get('/pincode/:pincode', async (req, res) => {
   try {

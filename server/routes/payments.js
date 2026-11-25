@@ -472,6 +472,7 @@ router.post('/create-order', paymentCreateLimiter, optionalUser, async (req, res
       amount: pricing.amountInPaise,
       currency: 'INR',
       receipt: orderNumber,
+      payment_capture: 1, // Enforce automatic capture immediately upon payment authorization
       notes: {
         order_number: orderNumber,
         customer_name: customer_name.trim(),

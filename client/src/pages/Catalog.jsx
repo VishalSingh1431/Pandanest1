@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { parseResponse } from '../utils/api';
 import { ToyCard } from '../components/ToyCard';
 import { ProductDetailView } from '../components/ProductDetailView';
+import { JoinWhatsAppGroup } from '../components/JoinWhatsAppGroup';
 import {
   Sparkles,
   ArrowUpDown,
@@ -887,6 +888,9 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             </div>
           );
         })()}
+
+        {/* VIP WhatsApp Community Banner */}
+        <JoinWhatsAppGroup style={{ marginBottom: '28px' }} />
 
         {/* Category Filter Pills */}
         <div style={{ marginBottom: '18px' }}>

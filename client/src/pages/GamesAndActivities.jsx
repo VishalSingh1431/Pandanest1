@@ -242,6 +242,7 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin, onNavigate }
   const [activeVideo, setActiveVideo] = useState(TOY_VIDEOS[0]);
   const [watching, setWatching] = useState(false);
   const [watchTimer, setWatchTimer] = useState(30);
+  const [videoMuted, setVideoMuted] = useState(false);
   const [videoCompleted, setVideoCompleted] = useState(false);
   const [completedVideos, setCompletedVideos] = useState(() => {
     try {
@@ -2438,11 +2439,49 @@ export function GamesAndActivities({ onGoToCatalog, onRequireLogin, onNavigate }
                         border: 'none',
                         borderRadius: '16px'
                       }}
-                      src={`https://www.youtube-nocookie.com/embed/${activeVideo.youtubeId}?autoplay=0&rel=0`}
+                      src={`https://www.youtube-nocookie.com/embed/${activeVideo.youtubeId}?autoplay=${watching ? 1 : 0}&rel=0${videoMuted ? '&mute=1' : '&mute=0'}`}
                       title={activeVideo.title}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     />
+
+                    {/* Interactive Sound Banner / Mute Toggle Overlay */}
+                    <button
+                      onClick={() => setVideoMuted(prev => !prev)}
+                      title={videoMuted ? 'Turn Sound ON' : 'Mute Sound'}
+                      style={{
+                        position: 'absolute',
+                        bottom: '16px',
+                        right: '16px',
+                        zIndex: 10,
+                        background: 'rgba(15, 23, 42, 0.85)',
+                        backdropFilter: 'blur(8px)',
+                        color: '#ffffff',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        borderRadius: '9999px',
+                        padding: '8px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: 700,
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+                        transition: 'transform 0.15s ease, background 0.15s ease'
+                      }}
+                    >
+                      {videoMuted ? (
+                        <>
+                          <VolumeX size={16} color="#f87171" />
+                          <span>Sound Muted (Click to Unmute)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Volume2 size={16} color="#34d399" />
+                          <span>Sound ON 🔊</span>
+                        </>
+                      )}
+                    </button>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>

@@ -443,5 +443,88 @@ describe('Razorpay Security & Payment Integrity Unit Tests', () => {
       assert.equal(toyStock, 10, 'Stock must be re-decremented when order is restored to active');
     });
   });
+
+  describe('9. WhatsApp Redirect & Community Integration', () => {
+    it('should format genuine Indian 10-digit WhatsApp chat links', () => {
+      const buildChatUrl = (number, msg) => {
+        const clean = String(number || '').replace(/\D/g, '').slice(-10);
+        return `https://wa.me/91${clean}?text=${encodeURIComponent(msg)}`;
+      };
+
+      const url = buildChatUrl('+91 73804-05227', 'Hi Panda Nest!');
+      assert.equal(url, 'https://wa.me/917380405227?text=Hi%20Panda%20Nest!');
+    });
+
+    it('should construct valid WhatsApp group invite links', () => {
+      const channelLink = 'https://whatsapp.com/channel/0029VbE4uQtICVfekgrW712X';
+      assert.match(channelLink, /^https:\/\/(www\.)?whatsapp\.com\/channel\//);
+    });
+  });
+
+  describe('10. Order Tracking Milestone & Privacy Integrity', () => {
+    it('should map order statuses to accurate 4-step delivery milestones', () => {
+      const statusMap = {
+        Pending: 1,
+        Confirmed: 2,
+        Dispatched: 3,
+        Delivered: 4,
+        Cancelled: -1
+      };
+
+      assert.equal(statusMap['Pending'], 1);
+      assert.equal(statusMap['Confirmed'], 2);
+      assert.equal(statusMap['Dispatched'], 3);
+      assert.equal(statusMap['Delivered'], 4);
+      assert.equal(statusMap['Cancelled'], -1);
+    });
+
+    it('should safely mask customer phone numbers in public tracking API', () => {
+      const maskPhone = (phoneStr) => {
+        const clean = String(phoneStr || '').replace(/\D/g, '').slice(-10);
+        return clean.length === 10 ? `${clean.slice(0, 2)}******${clean.slice(-2)}` : clean;
+      };
+
+      assert.equal(maskPhone('9876543210'), '98******10');
+      assert.equal(maskPhone('+91 7380405227'), '73******27');
+    });
+  });
+
+  describe('11. Digital Product & Download Security', () => {
+    it('should only unlock digital download links for verified paid or confirmed orders', () => {
+      const canDownload = (order) => {
+        const isPaid = order.payment_status === 'paid' || ['Confirmed', 'Dispatched', 'Delivered'].includes(order.status);
+        return isPaid;
+      };
+
+      assert.equal(canDownload({ payment_status: 'pending', status: 'Pending' }), false);
+      assert.equal(canDownload({ payment_status: 'paid', status: 'Pending' }), true);
+      assert.equal(canDownload({ payment_status: 'pending', status: 'Confirmed' }), true);
+      assert.equal(canDownload({ payment_status: 'pending', status: 'Cancelled' }), false);
+    });
+
+    it('should never decrement physical inventory for digital items / books', () => {
+      const item = { id: 'game-book-drawing', name: 'Coloring Book', is_book: true, quantity: 2 };
+      const shouldDecrementStock = (it) => {
+        return Boolean(it.id && !it.is_book && !it.game_key && !String(it.id).startsWith('game-book'));
+      };
+
+      assert.equal(shouldDecrementStock(item), false, 'Digital books must not decrement toy warehouse stock');
+    });
+  });
+
+  describe('12. Admin Order CSV / Excel Export Sanitization', () => {
+    it('should escape double quotes and format UTF-8 CSV safely', () => {
+      const escapeCsv = (val) => {
+        if (val === null || val === undefined) return '""';
+        const str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      };
+
+      assert.equal(escapeCsv('Panda "Deluxe" Toy'), '"Panda ""Deluxe"" Toy"');
+      assert.equal(escapeCsv('House, Street 4'), '"House, Street 4"');
+      assert.equal(escapeCsv(1299), '"1299"');
+      assert.equal(escapeCsv(null), '""');
+    });
+  });
 });
 

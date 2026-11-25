@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Search, X, Award, User, Gamepad2, Sparkles } from 'lucide-react';
+import { ShoppingBag, Search, X, Award, User, Gamepad2, Sparkles, Truck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -333,8 +333,33 @@ export function Navbar({ onOpenQR, currentRoute, navigate, searchQuery, setSearc
           )}
         </div>
 
-        {/* Right Section: Panda Club | Cart | Panda Points | Login / Profile */}
+        {/* Right Section: Track | Panda Club | Cart | Panda Points | Login / Profile */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          {/* Track Order (Desktop Only) */}
+          <button
+            className="hide-on-mobile"
+            onClick={() => navigate('track')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: currentRoute === 'track' ? '#ecfdf5' : '#ffffff',
+              border: '1.5px solid',
+              borderColor: currentRoute === 'track' ? '#10b981' : '#e2e8f0',
+              color: currentRoute === 'track' ? '#047857' : '#475569',
+              padding: '8px 14px',
+              borderRadius: '9999px',
+              fontSize: '0.85rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            title="Live Courier Order Tracking"
+          >
+            <Truck size={16} color={currentRoute === 'track' ? '#059669' : '#64748b'} />
+            <span>Track Order</span>
+          </button>
+
           {/* Panda Club (Desktop Only) */}
           <button
             className="hide-on-mobile"

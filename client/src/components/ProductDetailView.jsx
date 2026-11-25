@@ -66,8 +66,9 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
     : null;
 
   // Stock calculations
-  const isOutOfStock = typeof toy?.stock === 'number' && toy.stock <= 0;
-  const maxStock = typeof toy?.stock === 'number' && toy.stock > 0 ? Math.min(toy.stock, 10) : 10;
+  const isDigitalProduct = Boolean(toy?.is_book || toy?.is_digital || toy?.category === 'Digital & Books' || String(toy?.id || '').startsWith('game-book'));
+  const isOutOfStock = !isDigitalProduct && typeof toy?.stock === 'number' && toy.stock <= 0;
+  const maxStock = isDigitalProduct ? 1 : (typeof toy?.stock === 'number' && toy.stock > 0 ? Math.min(toy.stock, 10) : 10);
 
   // Format currency
   const formatRs = (val) => {
@@ -676,107 +677,159 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
             </div>
 
             {/* Quantity Selector + ADD TO CART Button Row */}
-            <div
-              style={{
-                display: 'flex',
-                gap: '12px',
-                alignItems: 'center',
-                marginBottom: '14px'
-              }}
-            >
-              {/* Quantity Stepper */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  background: '#f3f4f6',
-                  borderRadius: '6px',
-                  border: '1px solid #e5e7eb',
-                  height: '48px',
-                  width: '120px',
-                  flexShrink: 0
-                }}
-              >
-                <button
-                  type="button"
-                  disabled={isOutOfStock}
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  style={{
-                    width: '36px',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.2rem',
-                    fontWeight: '700',
-                    color: isOutOfStock ? '#cbd5e1' : '#374151',
-                    cursor: isOutOfStock ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  −
-                </button>
+            {isDigitalProduct ? (
+              <div style={{ marginBottom: '16px' }}>
                 <div
                   style={{
-                    flex: 1,
-                    textAlign: 'center',
-                    fontWeight: '700',
-                    fontSize: '0.95rem',
-                    color: isOutOfStock ? '#9ca3af' : '#111827'
+                    background: '#eff6ff',
+                    border: '1.5px solid #bfdbfe',
+                    borderRadius: '10px',
+                    padding: '12px 16px',
+                    marginBottom: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
                   }}
                 >
-                  {isOutOfStock ? 0 : quantity}
+                  <span style={{ fontSize: '1.4rem' }}>📚</span>
+                  <div>
+                    <strong style={{ color: '#1e40af', fontSize: '0.88rem', display: 'block' }}>
+                      Instant Digital Download (Printable PDF)
+                    </strong>
+                    <span style={{ color: '#3b82f6', fontSize: '0.8rem' }}>
+                      No shipping wait. Available immediately in "My Downloads" upon checkout.
+                    </span>
+                  </div>
                 </div>
                 <button
                   type="button"
-                  disabled={isOutOfStock || quantity >= maxStock}
-                  onClick={() => setQuantity((q) => Math.min(maxStock, q + 1))}
+                  className="btn-press"
+                  onClick={handleAddToCart}
                   style={{
-                    width: '36px',
-                    height: '100%',
+                    width: '100%',
+                    height: '48px',
+                    background: '#15803d',
+                    color: '#ffffff',
+                    fontWeight: '800',
+                    fontSize: '0.95rem',
+                    letterSpacing: '0.06em',
+                    borderRadius: '6px',
+                    textTransform: 'uppercase',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '1.2rem',
-                    fontWeight: '700',
-                    color: (isOutOfStock || quantity >= maxStock) ? '#cbd5e1' : '#374151',
-                    cursor: (isOutOfStock || quantity >= maxStock) ? 'not-allowed' : 'pointer'
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(21, 128, 61, 0.25)',
+                    cursor: 'pointer'
                   }}
                 >
-                  +
+                  <ShoppingBag size={18} />
+                  <span>ADD DIGITAL BOOK TO CART</span>
                 </button>
               </div>
-
-              {/* Main Green ADD TO CART Button */}
-              <button
-                type="button"
-                className="btn-press"
-                disabled={isOutOfStock}
-                onClick={handleAddToCart}
+            ) : (
+              <div
                 style={{
-                  flex: 1,
-                  height: '48px',
-                  background: isOutOfStock ? '#94a3b8' : '#15803d',
-                  color: '#ffffff',
-                  fontWeight: '800',
-                  fontSize: '0.95rem',
-                  letterSpacing: '0.06em',
-                  borderRadius: '6px',
-                  textTransform: 'uppercase',
                   display: 'flex',
+                  gap: '12px',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: isOutOfStock ? 'none' : '0 4px 14px rgba(21, 128, 61, 0.25)',
-                  cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.15s ease'
+                  marginBottom: '14px'
                 }}
-                onMouseEnter={(e) => { if (!isOutOfStock) e.currentTarget.style.background = '#14532d'; }}
-                onMouseLeave={(e) => { if (!isOutOfStock) e.currentTarget.style.background = '#15803d'; }}
               >
-                <ShoppingBag size={18} />
-                <span>{isOutOfStock ? 'OUT OF STOCK' : 'ADD TO CART'}</span>
-              </button>
-            </div>
+                {/* Quantity Stepper */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    background: '#f3f4f6',
+                    borderRadius: '6px',
+                    border: '1px solid #e5e7eb',
+                    height: '48px',
+                    width: '120px',
+                    flexShrink: 0
+                  }}
+                >
+                  <button
+                    type="button"
+                    disabled={isOutOfStock}
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    style={{
+                      width: '36px',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.2rem',
+                      fontWeight: '700',
+                      color: isOutOfStock ? '#cbd5e1' : '#374151',
+                      cursor: isOutOfStock ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    −
+                  </button>
+                  <div
+                    style={{
+                      flex: 1,
+                      textAlign: 'center',
+                      fontWeight: '700',
+                      fontSize: '0.95rem',
+                      color: isOutOfStock ? '#9ca3af' : '#111827'
+                    }}
+                  >
+                    {isOutOfStock ? 0 : quantity}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isOutOfStock || quantity >= maxStock}
+                    onClick={() => setQuantity((q) => Math.min(maxStock, q + 1))}
+                    style={{
+                      width: '36px',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.2rem',
+                      fontWeight: '700',
+                      color: (isOutOfStock || quantity >= maxStock) ? '#cbd5e1' : '#374151',
+                      cursor: (isOutOfStock || quantity >= maxStock) ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Main Green ADD TO CART Button */}
+                <button
+                  type="button"
+                  className="btn-press"
+                  disabled={isOutOfStock}
+                  onClick={handleAddToCart}
+                  style={{
+                    flex: 1,
+                    height: '48px',
+                    background: isOutOfStock ? '#94a3b8' : '#15803d',
+                    color: '#ffffff',
+                    fontWeight: '800',
+                    fontSize: '0.95rem',
+                    letterSpacing: '0.06em',
+                    borderRadius: '6px',
+                    textTransform: 'uppercase',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: isOutOfStock ? 'none' : '0 4px 14px rgba(21, 128, 61, 0.25)',
+                    cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => { if (!isOutOfStock) e.currentTarget.style.background = '#14532d'; }}
+                  onMouseLeave={(e) => { if (!isOutOfStock) e.currentTarget.style.background = '#15803d'; }}
+                >
+                  <ShoppingBag size={18} />
+                  <span>{isOutOfStock ? 'OUT OF STOCK' : 'ADD TO CART'}</span>
+                </button>
+              </div>
+            )}
 
             {/* Buy Now Direct Button */}
             <button
@@ -805,7 +858,7 @@ export function ProductDetailView({ toy, allToys = [], onClose, onSelectToy }) {
               onMouseLeave={(e) => { if (!isOutOfStock) e.currentTarget.style.background = '#2563eb'; }}
             >
               <Zap size={18} />
-              <span>{isOutOfStock ? 'SOLD OUT / RESTOCKING SOON' : 'BUY IT NOW (EXPRESS CHECKOUT)'}</span>
+              <span>{isOutOfStock ? 'SOLD OUT / RESTOCKING SOON' : (isDigitalProduct ? 'BUY DIGITAL BOOK NOW (EXPRESS)' : 'BUY IT NOW (EXPRESS CHECKOUT)')}</span>
             </button>
 
             {/* Delivery & Trust Highlights (Exact Match From Screenshot 1) */}

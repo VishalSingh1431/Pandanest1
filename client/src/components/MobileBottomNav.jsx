@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingBag, Gamepad2, Home, User, Sparkles } from 'lucide-react';
+import { ShoppingBag, Home, User, Sparkles, Truck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -23,7 +23,7 @@ export function MobileBottomNav({ currentRoute, navigate }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-around',
-        padding: '0 8px',
+        padding: '0 4px',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)'
       }}
     >
@@ -38,12 +38,14 @@ export function MobileBottomNav({ currentRoute, navigate }) {
           gap: '3px',
           color: currentRoute === 'catalog' ? '#059669' : '#64748b',
           fontWeight: currentRoute === 'catalog' ? '800' : '600',
-          fontSize: '0.72rem',
+          fontSize: '0.7rem',
           cursor: 'pointer',
-          padding: '4px 0'
+          padding: '4px 0',
+          background: 'none',
+          border: 'none'
         }}
       >
-        <Home size={20} color={currentRoute === 'catalog' ? '#059669' : '#64748b'} />
+        <Home size={19} color={currentRoute === 'catalog' ? '#059669' : '#64748b'} />
         <span>Shop</span>
       </button>
 
@@ -58,13 +60,37 @@ export function MobileBottomNav({ currentRoute, navigate }) {
           gap: '3px',
           color: currentRoute === 'games' ? '#d97706' : '#64748b',
           fontWeight: currentRoute === 'games' ? '800' : '600',
-          fontSize: '0.72rem',
+          fontSize: '0.7rem',
           cursor: 'pointer',
-          padding: '4px 0'
+          padding: '4px 0',
+          background: 'none',
+          border: 'none'
         }}
       >
-        <Sparkles size={20} color={currentRoute === 'games' ? '#d97706' : '#64748b'} />
+        <Sparkles size={19} color={currentRoute === 'games' ? '#d97706' : '#64748b'} />
         <span>Panda Club</span>
+      </button>
+
+      <button
+        onClick={() => navigate('track')}
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '3px',
+          color: currentRoute === 'track' ? '#059669' : '#64748b',
+          fontWeight: currentRoute === 'track' ? '800' : '600',
+          fontSize: '0.7rem',
+          cursor: 'pointer',
+          padding: '4px 0',
+          background: 'none',
+          border: 'none'
+        }}
+      >
+        <Truck size={19} color={currentRoute === 'track' ? '#059669' : '#64748b'} />
+        <span>Track</span>
       </button>
 
       <button
@@ -78,14 +104,16 @@ export function MobileBottomNav({ currentRoute, navigate }) {
           gap: '3px',
           color: '#0f172a',
           fontWeight: '600',
-          fontSize: '0.72rem',
+          fontSize: '0.7rem',
           cursor: 'pointer',
           position: 'relative',
-          padding: '4px 0'
+          padding: '4px 0',
+          background: 'none',
+          border: 'none'
         }}
       >
         <div style={{ position: 'relative' }}>
-          <ShoppingBag size={20} color="#0f172a" />
+          <ShoppingBag size={19} color="#0f172a" />
           {cartCount > 0 && (
             <span
               style={{
@@ -94,11 +122,11 @@ export function MobileBottomNav({ currentRoute, navigate }) {
                 right: '-8px',
                 background: '#ef4444',
                 color: '#ffffff',
-                fontSize: '0.65rem',
+                fontSize: '0.62rem',
                 fontWeight: '800',
                 borderRadius: '9999px',
                 padding: '1px 5px',
-                minWidth: '16px',
+                minWidth: '15px',
                 textAlign: 'center'
               }}
             >
@@ -120,12 +148,14 @@ export function MobileBottomNav({ currentRoute, navigate }) {
           gap: '3px',
           color: (currentRoute === 'profile' || currentRoute === 'admin-dashboard' || currentRoute === 'admin-login') ? '#059669' : '#64748b',
           fontWeight: (currentRoute === 'profile' || currentRoute === 'admin-dashboard' || currentRoute === 'admin-login') ? '800' : '600',
-          fontSize: '0.72rem',
+          fontSize: '0.7rem',
           cursor: 'pointer',
-          padding: '4px 0'
+          padding: '4px 0',
+          background: 'none',
+          border: 'none'
         }}
       >
-        <User size={20} color={(currentRoute === 'profile' || currentRoute === 'admin-dashboard' || currentRoute === 'admin-login') ? '#059669' : '#64748b'} />
+        <User size={19} color={(currentRoute === 'profile' || currentRoute === 'admin-dashboard' || currentRoute === 'admin-login') ? '#059669' : '#64748b'} />
         <span>{isAuthenticated ? 'Account' : 'Login'}</span>
       </button>
     </div>

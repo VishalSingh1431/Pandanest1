@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { initAdminPortalSchema } from './dbAdminPortal.js';
 
 dotenv.config();
 
@@ -437,6 +438,7 @@ export async function initDB() {
     console.log('✅ PostgreSQL connected successfully to Aiven Cloud database!');
 
     await initPostgresSchema();
+    await initAdminPortalSchema(pool);
   } catch (err) {
     isPostgresConnected = false;
     console.warn('⚠️  PostgreSQL connection issue (' + err.message + ').');
