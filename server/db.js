@@ -598,17 +598,25 @@ async function initPostgresSchema() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS game_books (
         id SERIAL PRIMARY KEY,
-        game_key VARCHAR(50) UNIQUE NOT NULL,
+        game_key VARCHAR(100) UNIQUE NOT NULL,
         title VARCHAR(255) NOT NULL,
         price NUMERIC(10,2) NOT NULL DEFAULT 9,
         original_price NUMERIC(10,2) NOT NULL DEFAULT 99,
         image_url TEXT,
+        images TEXT,
+        category VARCHAR(100) DEFAULT 'Activity & Coloring',
+        age_group VARCHAR(50) DEFAULT 'All Ages',
+        pages_count VARCHAR(50) DEFAULT '50+ Pages',
         description TEXT,
         pdf_url TEXT,
         enabled BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    await pool.query('ALTER TABLE game_books ADD COLUMN IF NOT EXISTS images TEXT;');
+    await pool.query('ALTER TABLE game_books ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT \'Activity & Coloring\';');
+    await pool.query('ALTER TABLE game_books ADD COLUMN IF NOT EXISTS age_group VARCHAR(50) DEFAULT \'All Ages\';');
+    await pool.query('ALTER TABLE game_books ADD COLUMN IF NOT EXISTS pages_count VARCHAR(50) DEFAULT \'50+ Pages\';');
     await pool.query(`
       CREATE TABLE IF NOT EXISTS certificates (
         id SERIAL PRIMARY KEY,

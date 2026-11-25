@@ -283,6 +283,26 @@ export function AdminDashboard({ onLogout }) {
   const [gameBooks, setGameBooks] = useState({});
   const [savingGameBookKey, setSavingGameBookKey] = useState(null);
   const [gameBookMsg, setGameBookMsg] = useState('');
+  const [isBookModalOpen, setIsBookModalOpen] = useState(false);
+  const [editingBook, setEditingBook] = useState(null);
+  const [bookForm, setBookForm] = useState({
+    game_key: '',
+    title: '',
+    category: 'Activity & Coloring',
+    age_group: '3-8 yrs',
+    price: 9,
+    original_price: 99,
+    pages_count: '100+ Pages',
+    description: '',
+    pdf_url: '',
+    image_url_manual: '',
+    existing_images: [],
+    enabled: true
+  });
+  const [bookSelectedFiles, setBookSelectedFiles] = useState([]);
+  const [bookImagePreviews, setBookImagePreviews] = useState([]);
+  const [bookFormLoading, setBookFormLoading] = useState(false);
+  const [bookFormError, setBookFormError] = useState('');
 
   // Certificates state
   const [certificates, setCertificates] = useState([]);
@@ -341,6 +361,171 @@ export function AdminDashboard({ onLogout }) {
       console.error('Failed saving game book:', err);
     } finally {
       setSavingGameBookKey(null);
+    }
+  };
+
+  const handleOpenBookModal = (book = null) => {
+    setBookFormError('');
+    if (book) {
+      setEditingBook(book);
+      let parsedImages = [];
+      if (book.images) {
+        try {
+          parsedImages = Array.isArray(book.images) ? book.images : JSON.parse(book.images);
+        } catch {
+          parsedImages = [];
+        }
+      }
+      if (parsedImages.length === 0 && book.image_url) {
+        parsedImages = [book.image_url];
+      }
+
+      setBookForm({
+        game_key: book.game_key || '',
+        title: book.title || '',
+        category: book.category || 'Activity & Coloring',
+        age_group: book.age_group || '3-8 yrs',
+        price: book.price !== undefined ? book.price : 9,
+        original_price: book.original_price !== undefined ? book.original_price : 99,
+        pages_count: book.pages_count || '100+ Pages',
+        description: book.description || '',
+        pdf_url: book.pdf_url || '',
+        image_url_manual: '',
+        existing_images: parsedImages,
+        enabled: book.enabled !== false
+      });
+      setBookImagePreviews([...parsedImages]);
+    } else {
+      setEditingBook(null);
+      setBookForm({
+        game_key: '',
+        title: '',
+        category: 'Activity & Coloring',
+        age_group: '3-8 yrs',
+        price: 9,
+        original_price: 99,
+        pages_count: '100+ Pages',
+        description: '',
+        pdf_url: '',
+        image_url_manual: '',
+        existing_images: [],
+        enabled: true
+      });
+      setBookImagePreviews([]);
+    }
+    setBookSelectedFiles([]);
+    setIsBookModalOpen(true);
+  };
+
+  const handleBookFileChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      try {
+        const compressed = await Promise.all(files.map((f) => compressImage(f)));
+        setBookSelectedFiles((prev) => [...prev, ...compressed]);
+        const newUrls = compressed.map((f) => URL.createObjectURL(f));
+        setBookImagePreviews((prev) => [...prev, ...newUrls]);
+      } catch (err) {
+        console.error('Book image compression error:', err);
+        setBookSelectedFiles((prev) => [...prev, ...files]);
+        const newUrls = files.map((f) => URL.createObjectURL(f));
+        setBookImagePreviews((prev) => [...prev, ...newUrls]);
+      }
+    }
+  };
+
+  const handleRemoveBookPreview = (index) => {
+    setBookImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    setBookForm((prev) => ({
+      ...prev,
+      existing_images: prev.existing_images ? prev.existing_images.filter((_, i) => i !== index) : []
+    }));
+    setBookSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleBookSubmit = async (e) => {
+    e.preventDefault();
+    setBookFormError('');
+
+    if (!bookForm.title || !bookForm.price || !bookForm.pdf_url) {
+      setBookFormError('Book Title, Price, and Secure PDF File URL are required.');
+      return;
+    }
+
+    setBookFormLoading(true);
+
+    try {
+      const formData = new FormData();
+      if (editingBook) {
+        formData.append('game_key', editingBook.game_key);
+      } else if (bookForm.game_key) {
+        formData.append('game_key', bookForm.game_key);
+      }
+      formData.append('title', bookForm.title);
+      formData.append('category', bookForm.category);
+      formData.append('age_group', bookForm.age_group);
+      formData.append('price', bookForm.price);
+      formData.append('original_price', bookForm.original_price || 99);
+      formData.append('pages_count', bookForm.pages_count || '100+ Pages');
+      formData.append('description', bookForm.description || '');
+      formData.append('pdf_url', bookForm.pdf_url);
+      formData.append('enabled', bookForm.enabled ? 'true' : 'false');
+      formData.append('image_url_manual', bookForm.image_url_manual || '');
+
+      if (bookForm.existing_images && bookForm.existing_images.length > 0) {
+        formData.append('existing_images', JSON.stringify(bookForm.existing_images));
+      }
+
+      for (const file of bookSelectedFiles) {
+        formData.append('images', file);
+      }
+
+      const url = editingBook ? `/api/game-books/${editingBook.game_key}` : '/api/game-books';
+      const method = editingBook ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to save digital book');
+      }
+
+      const savedData = await res.json();
+      const savedKey = savedData.game_key || editingBook?.game_key;
+      setGameBooks((prev) => ({ ...prev, [savedKey]: savedData }));
+      setIsBookModalOpen(false);
+      setGameBookMsg(editingBook ? 'Digital book updated successfully!' : 'New digital book added to catalog!');
+      setTimeout(() => setGameBookMsg(''), 4000);
+      fetchData();
+    } catch (err) {
+      setBookFormError(err.message);
+    } finally {
+      setBookFormLoading(false);
+    }
+  };
+
+  const handleDeleteDigitalBook = async (key, title) => {
+    if (!window.confirm(`Are you sure you want to delete digital product "${title || key}"?`)) return;
+    try {
+      const res = await fetch(`/api/game-books/${key}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setGameBooks((prev) => {
+          const updated = { ...prev };
+          delete updated[key];
+          return updated;
+        });
+        setGameBookMsg('Digital book deleted successfully.');
+        setTimeout(() => setGameBookMsg(''), 3000);
+      }
+    } catch (err) {
+      alert('Failed to delete digital book: ' + err.message);
     }
   };
 
@@ -2946,177 +3131,173 @@ export function AdminDashboard({ onLogout }) {
               </div>
             </div>
 
-            {/* Game Activity Books & Store Guides Manager (Buy with Price) */}
+            {/* Digital Books & Activity Catalog Manager (Table with Add/Edit/Delete + Multi-Image) */}
             <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-                  Game Activity Books Store Manager 📖🛒
-                </h3>
-                {gameBookMsg && (
-                  <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#059669', background: '#ecfdf5', padding: '4px 12px', borderRadius: '12px' }}>
-                    {gameBookMsg}
-                  </span>
-                )}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.3rem', fontWeight: '900', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>📚 Digital Products & Activity Books Catalog</span>
+                    <span style={{ fontSize: '0.8rem', background: '#ecfdf5', color: '#059669', padding: '3px 10px', borderRadius: '12px', fontWeight: 800 }}>
+                      {Object.keys(gameBooks).length} Books Live
+                    </span>
+                  </h3>
+                  <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 0' }}>
+                    Manage downloadable PDF activity books, quizzes, and game cards. Customers can view Front, Back, TOC & Sample pages before buying!
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {gameBookMsg && (
+                    <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#059669', background: '#ecfdf5', padding: '6px 14px', borderRadius: '12px', border: '1px solid #a7f3d0' }}>
+                      {gameBookMsg}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => handleOpenBookModal()}
+                    style={{ background: '#10b981', borderColor: '#10b981', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Plus size={16} />
+                    <span>+ Add New Digital Book</span>
+                  </button>
+                </div>
               </div>
-              <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 20px' }}>
-                Set a buyable Book, Activity PDF, or Game Guide for each game with custom sale price, MRP, and cover image. Players can buy books directly within the game!
-              </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
-                {[
-                  { key: 'drawing', label: '🎨 Drawing Studio Book', defaultTitle: 'Panda Nest 118-Page Jumbo Activity & Coloring Book (PDF Download)' },
-                  { key: 'truthDare', label: '🎯 Truth or Dare Party Book', defaultTitle: 'Panda 100 Family Truth & Dare Party Cards Book' },
-                  { key: 'balloon', label: '🎈 Balloon Popper Activity Book', defaultTitle: 'Panda Pop & Learn Math & Colors Activity Book' },
-                  { key: 'bamboo', label: '🎍 Bamboo Catcher Maze Book', defaultTitle: 'Panda Bamboo Forest Adventure & Maze Book' },
-                  { key: 'spin', label: '🎡 Lucky Spin Wheel Game Book', defaultTitle: 'Panda Spin & Win Family Board Game Book' },
-                  { key: 'memory', label: '🃏 Memory Match Brain Book', defaultTitle: 'Panda Memory Champions Brain Booster Book' },
-                  { key: 'trivia', label: '🧠 Panda Trivia Quiz Book', defaultTitle: '500 Fun Panda Kids Trivia & Quiz Book' }
-                ].map((item) => {
-                  const current = gameBooks[item.key] || {
-                    title: item.defaultTitle,
-                    price: 9,
-                    original_price: 99,
-                    image_url: '/drawing-book/page-001.jpg',
-                    description: '',
-                    pdf_url: '',
-                    enabled: true
-                  };
+              {/* Books Table */}
+              <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', overflow: 'hidden', marginTop: '16px' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontWeight: '700' }}>
+                        <th style={{ padding: '12px 16px' }}>Book Cover & Pages</th>
+                        <th style={{ padding: '12px 16px' }}>Title & Description</th>
+                        <th style={{ padding: '12px 16px' }}>Category</th>
+                        <th style={{ padding: '12px 16px' }}>Age Group</th>
+                        <th style={{ padding: '12px 16px' }}>Price</th>
+                        <th style={{ padding: '12px 16px' }}>Secure PDF</th>
+                        <th style={{ padding: '12px 16px' }}>Status</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.keys(gameBooks).length === 0 ? (
+                        <tr>
+                          <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: '#94a3b8' }}>
+                            No digital products found. Click "+ Add New Digital Book" to create one!
+                          </td>
+                        </tr>
+                      ) : (
+                        Object.entries(gameBooks).map(([key, book]) => {
+                          let imagesList = [];
+                          if (book.images) {
+                            try { imagesList = Array.isArray(book.images) ? book.images : JSON.parse(book.images); } catch {}
+                          }
+                          if (imagesList.length === 0 && book.image_url) {
+                            imagesList = [book.image_url];
+                          }
 
-                  return (
-                    <div
-                      key={item.key}
-                      style={{
-                        background: '#f8fafc',
-                        border: '1.5px solid #e2e8f0',
-                        borderRadius: '14px',
-                        padding: '16px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '10px'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.95rem' }}>
-                          {item.label}
-                        </span>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: '700', color: '#475569', cursor: 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={current.enabled !== false}
-                            onChange={(e) => setGameBooks(prev => ({
-                              ...prev,
-                              [item.key]: { ...current, enabled: e.target.checked }
-                            }))}
-                            style={{ accentColor: '#10b981' }}
-                          />
-                          Available for purchase
-                        </label>
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '2px' }}>
-                          Book Title
-                        </label>
-                        <input
-                          type="text"
-                          value={current.title || ''}
-                          onChange={(e) => setGameBooks(prev => ({
-                            ...prev,
-                            [item.key]: { ...current, title: e.target.value }
-                          }))}
-                          style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
-                        />
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                        <div>
-                          <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '2px' }}>
-                            Sale Price (₹)
-                          </label>
-                          <input
-                            type="number"
-                            value={current.price !== undefined ? current.price : 9}
-                            onChange={(e) => setGameBooks(prev => ({
-                              ...prev,
-                              [item.key]: { ...current, price: e.target.value }
-                            }))}
-                            style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: '800', color: '#059669' }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '2px' }}>
-                            MRP Original Price (₹)
-                          </label>
-                          <input
-                            type="number"
-                            value={current.original_price !== undefined ? current.original_price : 99}
-                            onChange={(e) => setGameBooks(prev => ({
-                              ...prev,
-                              [item.key]: { ...current, original_price: e.target.value }
-                            }))}
-                            style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '2px' }}>
-                          Cover Image URL
-                        </label>
-                        <input
-                          type="text"
-                          value={current.image_url || ''}
-                          onChange={(e) => setGameBooks(prev => ({
-                            ...prev,
-                            [item.key]: { ...current, image_url: e.target.value }
-                          }))}
-                          style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '2px' }}>
-                          Description
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={current.description || ''}
-                          onChange={(e) => setGameBooks(prev => ({
-                            ...prev,
-                            [item.key]: { ...current, description: e.target.value }
-                          }))}
-                          style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#047857', display: 'block', marginBottom: '2px' }}>
-                          Secure PDF File URL (Unlocked only upon purchase) *
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="e.g. /drawing-book/sample-coloring-book.pdf or https://drive..."
-                          value={current.pdf_url || ''}
-                          onChange={(e) => setGameBooks(prev => ({
-                            ...prev,
-                            [item.key]: { ...current, pdf_url: e.target.value }
-                          }))}
-                          style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1.5px solid #a7f3d0', fontSize: '0.82rem', background: '#f0fdf4' }}
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        disabled={savingGameBookKey === item.key}
-                        onClick={() => handleSaveGameBook(item.key, current)}
-                        className="btn btn-primary btn-sm"
-                        style={{ marginTop: 'auto', fontWeight: '800' }}
-                      >
-                        {savingGameBookKey === item.key ? 'Saving Book...' : `Save ${item.label.split(' ')[0]} Book`}
-                      </button>
-                    </div>
-                  );
-                })}
+                          return (
+                            <tr key={key} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '12px 16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <img
+                                    src={book.image_url || '/drawing-book/page-001.jpg'}
+                                    alt={book.title}
+                                    style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc' }}
+                                    onError={(e) => { e.currentTarget.src = '/drawing-book/page-001.jpg'; }}
+                                  />
+                                  {imagesList.length > 1 && (
+                                    <span style={{ fontSize: '0.72rem', background: '#e0f2fe', color: '#0369a1', fontWeight: 800, padding: '2px 6px', borderRadius: '6px' }}>
+                                      +{imagesList.length - 1} photos
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td style={{ padding: '12px 16px', maxWidth: '280px' }}>
+                                <div style={{ fontWeight: '800', color: '#0f172a', lineHeight: 1.3 }}>{book.title || 'Untitled Book'}</div>
+                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {book.description || 'No description provided'}
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700, marginTop: '2px' }}>
+                                  Key: {book.game_key || key} &bull; {book.pages_count || '100+ Pages'}
+                                </div>
+                              </td>
+                              <td style={{ padding: '12px 16px' }}>
+                                <span style={{ background: '#f1f5f9', color: '#334155', padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+                                  {book.category || 'Activity & Coloring'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>
+                                {book.age_group || '3-8 yrs'}
+                              </td>
+                              <td style={{ padding: '12px 16px' }}>
+                                <div style={{ fontWeight: '900', color: '#059669', fontSize: '0.95rem' }}>
+                                  ₹{book.price !== undefined ? book.price : 9}
+                                </div>
+                                {book.original_price && (
+                                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                                    ₹{book.original_price}
+                                  </div>
+                                )}
+                              </td>
+                              <td style={{ padding: '12px 16px' }}>
+                                {book.pdf_url ? (
+                                  <a
+                                    href={book.pdf_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#0284c7', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'none' }}
+                                  >
+                                    <FileText size={13} />
+                                    <span>PDF Ready</span>
+                                  </a>
+                                ) : (
+                                  <span style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 700 }}>No PDF</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '12px 16px' }}>
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 800,
+                                    background: book.enabled !== false ? '#ecfdf5' : '#fef2f2',
+                                    color: book.enabled !== false ? '#065f46' : '#991b1b'
+                                  }}
+                                >
+                                  {book.enabled !== false ? 'Live In Store' : 'Disabled'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                                <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenBookModal({ ...book, game_key: book.game_key || key })}
+                                    style={{ color: '#0284c7', background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}
+                                    title="Edit Book Details & Photos"
+                                  >
+                                    <Edit size={16} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteDigitalBook(book.game_key || key, book.title)}
+                                    style={{ color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}
+                                    title="Delete Digital Book"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
@@ -4458,6 +4639,301 @@ export function AdminDashboard({ onLogout }) {
                   style={{ flex: 2, background: '#10b981', borderColor: '#10b981' }}
                 >
                   {newReviewLoading ? 'Publishing...' : 'Publish Custom Review'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Digital Book Modal with Multi-Photo Upload (Front cover, Back cover, TOC, Sample pages) */}
+      {isBookModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsBookModalOpen(false)}>
+          <div
+            className="modal-card"
+            style={{ maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase' }}>
+                  {editingBook ? '✏️ Edit Digital Product' : '➕ Add Digital Book to Catalog'}
+                </span>
+                <h2 style={{ fontSize: '1.4rem', color: '#0f172a', margin: '4px 0 0' }}>
+                  {editingBook ? bookForm.title || 'Edit Book' : 'New Digital Product / PDF'}
+                </h2>
+              </div>
+              <button className="modal-close" onClick={() => setIsBookModalOpen(false)} style={{ position: 'static' }}>
+                ✕
+              </button>
+            </div>
+
+            {bookFormError && (
+              <div style={{ background: '#fee2e2', color: '#991b1b', padding: '10px 14px', borderRadius: '10px', fontSize: '0.85rem', marginBottom: '16px' }}>
+                {bookFormError}
+              </div>
+            )}
+
+            <form onSubmit={handleBookSubmit}>
+              <div className="form-group">
+                <label className="form-label">Book Title *</label>
+                <input
+                  type="text"
+                  required
+                  className="form-input"
+                  placeholder="e.g. 500 Fun Panda Kids Trivia & Quiz Book"
+                  value={bookForm.title}
+                  onChange={(e) => setBookForm({ ...bookForm, title: e.target.value })}
+                />
+              </div>
+
+              <div className="admin-form-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label">Category *</label>
+                  <select
+                    className="form-input"
+                    value={bookForm.category}
+                    onChange={(e) => setBookForm({ ...bookForm, category: e.target.value })}
+                  >
+                    <option value="Activity & Coloring">Activity & Coloring</option>
+                    <option value="Fun & Games">Fun & Games</option>
+                    <option value="Learning & Math">Learning & Math</option>
+                    <option value="Brain & Memory">Brain & Memory</option>
+                    <option value="Story & Comic Books">Story & Comic Books</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Age Group</label>
+                  <select
+                    className="form-input"
+                    value={bookForm.age_group}
+                    onChange={(e) => setBookForm({ ...bookForm, age_group: e.target.value })}
+                  >
+                    <option value="All Ages">All Ages</option>
+                    <option value="2-4 yrs">2-4 yrs</option>
+                    <option value="3-6 yrs">3-6 yrs</option>
+                    <option value="5-8 yrs">5-8 yrs</option>
+                    <option value="8-12 yrs">8-12 yrs</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Pages / Sheets Count</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. 118 Pages"
+                    value={bookForm.pages_count}
+                    onChange={(e) => setBookForm({ ...bookForm, pages_count: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="admin-form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label">Sale Price (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    className="form-input"
+                    placeholder="9"
+                    value={bookForm.price}
+                    onChange={(e) => setBookForm({ ...bookForm, price: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">MRP Original Price (₹)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="form-input"
+                    placeholder="99"
+                    value={bookForm.original_price}
+                    onChange={(e) => setBookForm({ ...bookForm, original_price: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Secure PDF Download URL */}
+              <div className="form-group">
+                <label className="form-label" style={{ color: '#047857', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ShieldCheck size={16} />
+                  <span>Secure PDF File URL (Unlocked only upon purchase) *</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  className="form-input"
+                  style={{ background: '#f0fdf4', borderColor: '#a7f3d0' }}
+                  placeholder="e.g. /drawing-book/sample-coloring-book.pdf or https://drive.google.com/..."
+                  value={bookForm.pdf_url}
+                  onChange={(e) => setBookForm({ ...bookForm, pdf_url: e.target.value })}
+                />
+                <span style={{ fontSize: '0.73rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                  🔒 Customers can only view or download this full PDF file after successful payment.
+                </span>
+              </div>
+
+              {/* Multiple Book Photos Upload (Front cover, Back cover, TOC, Sample preview pages) */}
+              <div className="form-group">
+                <label className="form-label">
+                  Book Preview Images ({bookImagePreviews.length} selected - First photo is Front Cover)
+                </label>
+                <div
+                  style={{
+                    border: '2px dashed #10b981',
+                    borderRadius: '14px',
+                    padding: '16px',
+                    textAlign: 'center',
+                    background: '#f0fdf4',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => document.getElementById('bookFileInput').click()}
+                >
+                  <input
+                    id="bookFileInput"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={handleBookFileChange}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                    <Upload size={24} color="#059669" />
+                    <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#065f46' }}>
+                      Click to choose Book Photos (Front cover, Back cover, Table of Contents, Sample pages)
+                    </span>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                      Multi-select files to upload all preview pages to Cloudinary CDN
+                    </span>
+                  </div>
+                </div>
+
+                {bookImagePreviews.length > 0 && (
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '12px' }}>
+                    {bookImagePreviews.map((url, idx) => {
+                      let tagLabel = 'Sample';
+                      if (idx === 0) tagLabel = 'Front Cover';
+                      else if (idx === 1) tagLabel = 'Back / TOC';
+
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            position: 'relative',
+                            width: '90px',
+                            height: '90px',
+                            borderRadius: '10px',
+                            overflow: 'hidden',
+                            border: idx === 0 ? '2.5px solid #10b981' : '1px solid #e2e8f0',
+                            background: '#fff'
+                          }}
+                        >
+                          <img
+                            src={url}
+                            alt={`Page Preview ${idx + 1}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                          <span
+                            style={{
+                              position: 'absolute',
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              background: idx === 0 ? '#10b981' : 'rgba(15, 23, 42, 0.75)',
+                              color: '#fff',
+                              fontSize: '0.62rem',
+                              textAlign: 'center',
+                              padding: '2px 0',
+                              fontWeight: 800
+                            }}
+                          >
+                            {tagLabel}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveBookPreview(idx)}
+                            style={{
+                              position: 'absolute',
+                              top: '3px',
+                              right: '3px',
+                              background: 'rgba(239, 68, 68, 0.9)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: '18px',
+                              height: '18px',
+                              fontSize: '11px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Or manual images URL */}
+              <div className="form-group">
+                <label className="form-label">Or Image URL(s) (Optional manual links, comma separated)</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="/drawing-book/page-001.jpg, /drawing-book/page-002.jpg"
+                  value={bookForm.image_url_manual}
+                  onChange={(e) => setBookForm({ ...bookForm, image_url_manual: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Description &amp; Highlights</label>
+                <textarea
+                  rows={3}
+                  className="form-input"
+                  placeholder="Detail what is inside this digital book (e.g. 500 questions, animal coloring, printable game rules, mazes)..."
+                  value={bookForm.description}
+                  onChange={(e) => setBookForm({ ...bookForm, description: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+                <input
+                  type="checkbox"
+                  id="bookEnabledCheck"
+                  checked={bookForm.enabled}
+                  onChange={(e) => setBookForm({ ...bookForm, enabled: e.target.checked })}
+                  style={{ width: '18px', height: '18px', accentColor: '#10b981' }}
+                />
+                <label htmlFor="bookEnabledCheck" style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', cursor: 'pointer' }}>
+                  Enable this book for purchase immediately on storefront
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setIsBookModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={bookFormLoading}
+                  className="btn btn-primary"
+                  style={{ flex: 2, background: '#10b981', borderColor: '#10b981' }}
+                >
+                  {bookFormLoading ? 'Uploading & Saving...' : editingBook ? 'Save Digital Book Changes' : 'Create & Publish Digital Book'}
                 </button>
               </div>
             </form>

@@ -1,8 +1,22 @@
 import express from 'express';
+import multer from 'multer';
 import { getDB, readLocalStore, writeLocalStore } from '../db.js';
 import { authenticateAdmin } from '../middleware/auth.js';
+import { uploadToCloudinary } from '../cloudinary.js';
 
 const router = express.Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB per file
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed.'));
+    }
+  }
+});
 
 export const DEFAULT_GAME_BOOKS = {
   drawing: {
@@ -132,34 +146,93 @@ router.get('/:gameKey', async (req, res) => {
   }
 });
 
-// PUT /api/game-books/:gameKey - Update/upsert book for specific game (Admin only)
-router.put('/:gameKey', authenticateAdmin, async (req, res) => {
+// PUT /api/game-books/:gameKey - Update/upsert book with multi-image support (Admin only)
+router.put('/:gameKey', authenticateAdmin, upload.array('images', 15), async (req, res) => {
   try {
     const { gameKey } = req.params;
-    const { title, price, original_price, image_url, description, pdf_url, enabled } = req.body;
+    const {
+      title,
+      price,
+      original_price,
+      image_url,
+      image_url_manual,
+      images_manual,
+      existing_images,
+      description,
+      pdf_url,
+      category,
+      age_group,
+      pages_count,
+      enabled
+    } = req.body;
+
+    const uploadedUrls = [];
+    if (req.files && req.files.length > 0) {
+      const uploadPromises = req.files.map((file) => uploadToCloudinary(file.buffer, file.mimetype));
+      const results = await Promise.all(uploadPromises);
+      for (const result of results) {
+        if (result && result.url) uploadedUrls.push(result.url);
+      }
+    }
+
+    let manualList = [];
+    if (images_manual) {
+      try {
+        manualList = Array.isArray(images_manual) ? images_manual : JSON.parse(images_manual);
+      } catch (e) {
+        manualList = images_manual.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    } else if (image_url_manual) {
+      manualList = image_url_manual.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    let keptImages = [];
+    if (existing_images) {
+      try {
+        keptImages = Array.isArray(existing_images) ? existing_images : JSON.parse(existing_images);
+      } catch (e) {
+        keptImages = [];
+      }
+    }
+
+    const allImages = Array.from(new Set([...keptImages, ...uploadedUrls, ...manualList]));
+    const finalImageUrl = allImages[0] || image_url || '/drawing-book/page-001.jpg';
+    if (!allImages.includes(finalImageUrl)) {
+      allImages.unshift(finalImageUrl);
+    }
 
     const numPrice = price !== undefined ? parseFloat(price) : 9;
     const numOriginal = original_price !== undefined ? parseFloat(original_price) : 99;
-    const isEnabled = enabled !== undefined ? Boolean(enabled) : true;
+    const isEnabled = enabled !== undefined ? (enabled === 'true' || enabled === true) : true;
+    const bookCategory = category || 'Activity & Coloring';
+    const bookAge = age_group || 'All Ages';
+    const bookPages = pages_count || '50+ Pages';
+    const bookDesc = description || '';
+    const bookPdf = pdf_url || '';
+    const imagesJson = JSON.stringify(allImages);
 
     const { isPostgres, pool } = getDB();
 
     if (isPostgres && pool) {
       try {
         const result = await pool.query(
-          `INSERT INTO game_books (game_key, title, price, original_price, image_url, description, pdf_url, enabled)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          `INSERT INTO game_books (game_key, title, price, original_price, image_url, images, category, age_group, pages_count, description, pdf_url, enabled)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            ON CONFLICT (game_key)
            DO UPDATE SET
              title = EXCLUDED.title,
              price = EXCLUDED.price,
              original_price = EXCLUDED.original_price,
              image_url = EXCLUDED.image_url,
+             images = EXCLUDED.images,
+             category = EXCLUDED.category,
+             age_group = EXCLUDED.age_group,
+             pages_count = EXCLUDED.pages_count,
              description = EXCLUDED.description,
              pdf_url = EXCLUDED.pdf_url,
              enabled = EXCLUDED.enabled
            RETURNING *`,
-          [gameKey, title || 'Activity Book', numPrice, numOriginal, image_url || '', description || '', pdf_url || '', isEnabled]
+          [gameKey, title || 'Activity Book', numPrice, numOriginal, finalImageUrl, imagesJson, bookCategory, bookAge, bookPages, bookDesc, bookPdf, isEnabled]
         );
         return res.json(result.rows[0]);
       } catch (e) {
@@ -173,13 +246,18 @@ router.put('/:gameKey', authenticateAdmin, async (req, res) => {
     }
 
     store.game_books[gameKey] = {
+      ...(store.game_books[gameKey] || {}),
       game_key: gameKey,
       title: title || store.game_books[gameKey]?.title || 'Activity Book',
       price: numPrice,
       original_price: numOriginal,
-      image_url: image_url || store.game_books[gameKey]?.image_url || '/drawing-book/page-001.jpg',
-      description: description || store.game_books[gameKey]?.description || '',
-      pdf_url: pdf_url || store.game_books[gameKey]?.pdf_url || '',
+      image_url: finalImageUrl,
+      images: imagesJson,
+      category: bookCategory,
+      age_group: bookAge,
+      pages_count: bookPages,
+      description: bookDesc,
+      pdf_url: bookPdf,
       enabled: isEnabled
     };
 
@@ -191,29 +269,76 @@ router.put('/:gameKey', authenticateAdmin, async (req, res) => {
   }
 });
 
-// POST /api/game-books - Create a new digital product / book
-router.post('/', authenticateAdmin, async (req, res) => {
+// POST /api/game-books - Create a new digital product / book with multi-image support
+router.post('/', authenticateAdmin, upload.array('images', 15), async (req, res) => {
   try {
-    const { game_key, title, price, original_price, image_url, description, pdf_url, sample_pages, category, enabled } = req.body;
+    const {
+      game_key,
+      title,
+      price,
+      original_price,
+      image_url,
+      image_url_manual,
+      images_manual,
+      description,
+      pdf_url,
+      category,
+      age_group,
+      pages_count,
+      enabled
+    } = req.body;
+
     const key = (game_key || title || 'digital-book')
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '') + '-' + Date.now().toString().slice(-4);
 
+    const uploadedUrls = [];
+    if (req.files && req.files.length > 0) {
+      const uploadPromises = req.files.map((file) => uploadToCloudinary(file.buffer, file.mimetype));
+      const results = await Promise.all(uploadPromises);
+      for (const result of results) {
+        if (result && result.url) uploadedUrls.push(result.url);
+      }
+    }
+
+    let manualList = [];
+    if (images_manual) {
+      try {
+        manualList = Array.isArray(images_manual) ? images_manual : JSON.parse(images_manual);
+      } catch (e) {
+        manualList = images_manual.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    } else if (image_url_manual) {
+      manualList = image_url_manual.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    const allImages = Array.from(new Set([...uploadedUrls, ...manualList]));
+    const finalImageUrl = allImages[0] || image_url || '/drawing-book/page-001.jpg';
+    if (!allImages.includes(finalImageUrl)) {
+      allImages.unshift(finalImageUrl);
+    }
+
     const numPrice = price !== undefined ? parseFloat(price) : 9;
     const numOriginal = original_price !== undefined ? parseFloat(original_price) : 99;
-    const isEnabled = enabled !== undefined ? Boolean(enabled) : true;
+    const isEnabled = enabled !== undefined ? (enabled === 'true' || enabled === true) : true;
+    const bookCategory = category || 'Activity & Coloring';
+    const bookAge = age_group || 'All Ages';
+    const bookPages = pages_count || '50+ Pages';
+    const bookDesc = description || '';
+    const bookPdf = pdf_url || '';
+    const imagesJson = JSON.stringify(allImages);
 
     const { isPostgres, pool } = getDB();
 
     if (isPostgres && pool) {
       try {
         const result = await pool.query(
-          `INSERT INTO game_books (game_key, title, price, original_price, image_url, description, pdf_url, enabled)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          `INSERT INTO game_books (game_key, title, price, original_price, image_url, images, category, age_group, pages_count, description, pdf_url, enabled)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            RETURNING *`,
-          [key, title || 'Panda Nest Activity Book', numPrice, numOriginal, image_url || '', description || '', pdf_url || '', isEnabled]
+          [key, title || 'Panda Nest Activity Book', numPrice, numOriginal, finalImageUrl, imagesJson, bookCategory, bookAge, bookPages, bookDesc, bookPdf, isEnabled]
         );
         return res.status(201).json(result.rows[0]);
       } catch (e) {
@@ -231,11 +356,13 @@ router.post('/', authenticateAdmin, async (req, res) => {
       title: title || 'Panda Nest Activity Book',
       price: numPrice,
       original_price: numOriginal,
-      image_url: image_url || '/drawing-book/page-001.jpg',
-      description: description || '',
-      pdf_url: pdf_url || '',
-      category: category || 'Activity & Coloring',
-      sample_pages: sample_pages || [],
+      image_url: finalImageUrl,
+      images: imagesJson,
+      category: bookCategory,
+      age_group: bookAge,
+      pages_count: bookPages,
+      description: bookDesc,
+      pdf_url: bookPdf,
       enabled: isEnabled,
       created_at: new Date().toISOString()
     };

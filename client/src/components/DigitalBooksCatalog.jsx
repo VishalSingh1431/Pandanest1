@@ -7,6 +7,7 @@ export function DigitalBooksCatalog({ onNavigate }) {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedBookModal, setSelectedBookModal] = useState(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [unlockedKeys, setUnlockedKeys] = useState([]);
   const { addToCart, buyNow } = useCart();
@@ -332,7 +333,10 @@ export function DigitalBooksCatalog({ onNavigate }) {
 
                   {/* Preview Button */}
                   <button
-                    onClick={() => setSelectedBookModal(book)}
+                    onClick={() => {
+                      setActiveImageIndex(0);
+                      setSelectedBookModal(book);
+                    }}
                     style={{
                       position: 'absolute',
                       bottom: '10px',
@@ -512,46 +516,134 @@ export function DigitalBooksCatalog({ onNavigate }) {
               </button>
             </div>
 
-            {/* Preview Page Image */}
-            <div style={{ position: 'relative', width: '100%', height: '320px', background: '#f8fafc', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0', marginBottom: '18px' }}>
-              <img
-                src={selectedBookModal.image_url || '/drawing-book/page-001.jpg'}
-                alt="Sample Page"
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'rgba(255,255,255,0.1)',
-                  pointerEvents: 'none'
-                }}
-              >
-                <div
-                  style={{
-                    transform: 'rotate(-25deg)',
-                    fontSize: '2rem',
-                    fontWeight: 900,
-                    color: 'rgba(15, 23, 42, 0.18)',
-                    letterSpacing: '2px',
-                    border: '3px dashed rgba(15, 23, 42, 0.2)',
-                    padding: '8px 24px',
-                    borderRadius: '12px'
-                  }}
-                >
-                  SAMPLE PREVIEW &bull; PANDANEST.IN
+            {/* Multi-Image Gallery with Thumbnails (Front Cover, Back Cover, TOC, Sample Pages) */}
+            {(() => {
+              let modalImages = [];
+              if (selectedBookModal.images) {
+                try {
+                  modalImages = Array.isArray(selectedBookModal.images) ? selectedBookModal.images : JSON.parse(selectedBookModal.images);
+                } catch {}
+              }
+              if (modalImages.length === 0 && selectedBookModal.image_url) {
+                modalImages = [selectedBookModal.image_url];
+              }
+              const currentImg = modalImages[activeImageIndex] || modalImages[0] || '/drawing-book/page-001.jpg';
+
+              let currentTag = 'Sample Page';
+              if (activeImageIndex === 0) currentTag = 'Front Cover';
+              else if (activeImageIndex === 1) currentTag = 'Back Cover / Table of Contents';
+
+              return (
+                <div>
+                  {/* Main Preview Container */}
+                  <div style={{ position: 'relative', width: '100%', height: '340px', background: '#f8fafc', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
+                    <img
+                      src={currentImg}
+                      alt="Sample Page"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      onError={(e) => { e.currentTarget.src = '/drawing-book/page-001.jpg'; }}
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '12px',
+                        left: '12px',
+                        background: 'rgba(15, 23, 42, 0.85)',
+                        backdropFilter: 'blur(4px)',
+                        color: '#34d399',
+                        padding: '4px 10px',
+                        borderRadius: '8px',
+                        fontSize: '0.74rem',
+                        fontWeight: 800
+                      }}
+                    >
+                      {currentTag} ({activeImageIndex + 1}/{modalImages.length})
+                    </div>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(255,255,255,0.06)',
+                        pointerEvents: 'none'
+                      }}
+                    >
+                      <div
+                        style={{
+                          transform: 'rotate(-25deg)',
+                          fontSize: '1.8rem',
+                          fontWeight: 900,
+                          color: 'rgba(15, 23, 42, 0.16)',
+                          letterSpacing: '2px',
+                          border: '3px dashed rgba(15, 23, 42, 0.18)',
+                          padding: '8px 24px',
+                          borderRadius: '12px'
+                        }}
+                      >
+                        SAMPLE PREVIEW &bull; PANDANEST.IN
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Thumbnails Row if multiple images */}
+                  {modalImages.length > 1 && (
+                    <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '12px' }}>
+                      {modalImages.map((img, idx) => {
+                        let thumbLabel = `Page ${idx + 1}`;
+                        if (idx === 0) thumbLabel = 'Front';
+                        else if (idx === 1) thumbLabel = 'Back/TOC';
+
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setActiveImageIndex(idx)}
+                            style={{
+                              position: 'relative',
+                              width: '68px',
+                              height: '68px',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              border: activeImageIndex === idx ? '2.5px solid #10b981' : '1.5px solid #cbd5e1',
+                              padding: 0,
+                              background: '#fff',
+                              cursor: 'pointer',
+                              flexShrink: 0
+                            }}
+                          >
+                            <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <span
+                              style={{
+                                position: 'absolute',
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                background: activeImageIndex === idx ? '#10b981' : 'rgba(15, 23, 42, 0.7)',
+                                color: '#fff',
+                                fontSize: '0.6rem',
+                                padding: '1px 0',
+                                fontWeight: 800,
+                                textAlign: 'center'
+                              }}
+                            >
+                              {thumbLabel}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Locked Notice */}
             <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '12px', padding: '12px 16px', marginBottom: '18px', display: 'flex', gap: '10px', alignItems: 'center' }}>
               <Lock size={20} color="#b45309" style={{ flexShrink: 0 }} />
               <p style={{ margin: 0, fontSize: '0.84rem', color: '#92400e', lineHeight: 1.4 }}>
-                This is a 1-page sample preview. Buy for just <strong>₹{selectedBookModal.price || 9}</strong> to unlock the complete high-resolution PDF download with all pages!
+                This is a sample preview. Buy for just <strong>₹{selectedBookModal.price || 9}</strong> to unlock the complete printable high-resolution PDF download with all {selectedBookModal.pages_count || '100+'} pages!
               </p>
             </div>
 
@@ -580,7 +672,7 @@ export function DigitalBooksCatalog({ onNavigate }) {
                 }}
               >
                 <ShoppingBag size={16} />
-                <span>Unlock &amp; Download Now for ₹{selectedBookModal.price || 9}</span>
+                <span>Unlock &amp; Download Full PDF for ₹{selectedBookModal.price || 9}</span>
               </button>
             </div>
           </div>
