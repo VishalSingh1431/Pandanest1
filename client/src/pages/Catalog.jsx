@@ -21,7 +21,9 @@ import {
   Gift,
   Star,
   Lock,
-  AlertTriangle
+  AlertTriangle,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -64,6 +66,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [hasInteractedExitWarning, setHasInteractedExitWarning] = useState(false);
   const [introVideo, setIntroVideo] = useState({ youtube_id: '39x-D2bO_s8' });
+  const [isHeroVideoMuted, setIsHeroVideoMuted] = useState(true);
 
   // Today's Sale live countdown timer till midnight
   const [saleCountdown, setSaleCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
@@ -370,7 +373,8 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
             {showVideo ? (
               <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
                 <iframe
-                  src={`https://www.youtube-nocookie.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=1&volume=0&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
+                  key={isHeroVideoMuted ? 'muted' : 'unmuted'}
+                  src={`https://www.youtube-nocookie.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=${isHeroVideoMuted ? '1&volume=0' : '0'}&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
                   title="Panda Nest Showcase Video"
                   style={{
                     width: '100%',
@@ -383,6 +387,45 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
                   }}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 />
+
+                {/* Floating Sound Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsHeroVideoMuted(prev => !prev)}
+                  title={isHeroVideoMuted ? "Click to Unmute / Turn Sound ON 🔊" : "Mute Sound 🔇"}
+                  style={{
+                    position: 'absolute',
+                    bottom: '10px',
+                    right: '10px',
+                    zIndex: 10,
+                    background: isHeroVideoMuted ? 'rgba(15, 23, 42, 0.85)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: '#ffffff',
+                    border: '1.5px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '9999px',
+                    padding: '5px 12px',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    backdropFilter: 'blur(6px)',
+                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {isHeroVideoMuted ? (
+                    <>
+                      <VolumeX size={14} color="#fca5a5" />
+                      <span>Unmute 🔊</span>
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 size={14} color="#ffffff" />
+                      <span>Sound ON 🎵</span>
+                    </>
+                  )}
+                </button>
               </div>
             ) : (
               <>
@@ -535,9 +578,10 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
                 </div>
 
                 {/* Mobile inside TV: shows video preview */}
-                <div className="hero-tv-mobile-video" style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'none' }}>
+                <div className="hero-tv-mobile-video" style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'none', position: 'relative' }}>
                   <iframe
-                    src={`https://www.youtube-nocookie.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=1&volume=0&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
+                    key={isHeroVideoMuted ? 'mobile-muted' : 'mobile-unmuted'}
+                    src={`https://www.youtube-nocookie.com/embed/${introVideo?.youtube_id || '39x-D2bO_s8'}?autoplay=1&mute=${isHeroVideoMuted ? '1&volume=0' : '0'}&loop=1&playlist=${introVideo?.youtube_id || '39x-D2bO_s8'}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
                     title="Panda Nest Showcase Video"
                     style={{
                       width: '100%',
@@ -550,6 +594,30 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
                     }}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setIsHeroVideoMuted(prev => !prev)}
+                    style={{
+                      position: 'absolute',
+                      bottom: '8px',
+                      right: '8px',
+                      zIndex: 10,
+                      background: isHeroVideoMuted ? 'rgba(15, 23, 42, 0.85)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#ffffff',
+                      border: '1.5px solid rgba(255, 255, 255, 0.3)',
+                      borderRadius: '9999px',
+                      padding: '4px 10px',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    {isHeroVideoMuted ? <VolumeX size={12} color="#fca5a5" /> : <Volume2 size={12} color="#ffffff" />}
+                    <span>{isHeroVideoMuted ? 'Unmute' : 'Sound ON'}</span>
+                  </button>
                 </div>
               </>
             )}
