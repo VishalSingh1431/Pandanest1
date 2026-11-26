@@ -471,10 +471,7 @@ export function AdminDashboard({ onLogout }) {
         body: formData
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to upload PDF file.');
-      }
+      const data = await parseResponse(res, 'Failed to upload PDF file.');
 
       setBookForm((prev) => ({
         ...prev,
@@ -537,12 +534,7 @@ export function AdminDashboard({ onLogout }) {
         body: formData
       });
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Failed to save digital book');
-      }
-
-      const savedData = await res.json();
+      const savedData = await parseResponse(res, 'Failed to save digital book.');
       const savedKey = savedData.game_key || editingBook?.game_key;
       setGameBooks((prev) => ({ ...prev, [savedKey]: savedData }));
       setIsBookModalOpen(false);
