@@ -691,34 +691,65 @@ html {
   animation: greenGlowPulse 2.8s infinite ease-in-out;
 }
 
-/* Mobile Bottom Navigation Clearance */
+/* Mobile Bottom Navigation Clearance & Sticky Action Layering */
 @media (max-width: 768px) {
   body {
     padding-bottom: 74px; /* Space for MobileBottomNav */
   }
 
   .sticky-bottom-bar-mobile {
-    bottom: 60px !important; /* Position just above MobileBottomNav */
+    bottom: 64px !important; /* Position just above MobileBottomNav */
+    z-index: 998 !important;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    backdrop-filter: blur(12px) !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
+    border-top: 1px solid #e2e8f0 !important;
   }
 
   /* Compact 2-column mobile toy card text */
   .toy-card-title {
-    font-size: 0.82rem !important;
+    font-size: 0.84rem !important;
     line-height: 1.35 !important;
-    height: 2.7em !important;
+    min-height: 2.7em !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
   }
 
   /* Responsive Mobile Form Fields (Stack 2-col grids to 1-col on small screens) */
   .checkout-form-grid,
   .admin-form-grid-2 {
     grid-template-columns: 1fr !important;
-    gap: 8px !important;
+    gap: 10px !important;
   }
 
   .admin-form-grid-3 {
     grid-template-columns: 1fr !important;
-    gap: 8px !important;
+    gap: 10px !important;
   }
+}
+
+/* Shimmering Skeleton Loader */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite ease-in-out;
+}
+
+/* Responsive Table Wrapper for Tablet & Desktop */
+.table-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
 }
 
 /* =========================================================

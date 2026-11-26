@@ -359,12 +359,14 @@ export function MyDownloads({ onGoToCatalog, onRequireLogin }) {
                   style={{
                     position: 'relative',
                     width: '100%',
-                    height: '180px',
-                    borderRadius: '12px',
+                    aspectRatio: '3/4',
+                    maxHeight: '260px',
+                    borderRadius: '14px',
                     overflow: 'hidden',
-                    background: '#f1f5f9',
+                    background: '#f8fafc',
                     marginBottom: '14px',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06)'
                   }}
                   onClick={() => openPreview(book)}
                 >
@@ -514,13 +516,13 @@ export function MyDownloads({ onGoToCatalog, onRequireLogin }) {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(15, 23, 42, 0.85)',
-            backdropFilter: 'blur(8px)',
+            background: 'rgba(15, 23, 42, 0.72)',
+            backdropFilter: 'blur(10px)',
             zIndex: 10000,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '20px'
+            padding: '16px'
           }}
           onClick={() => setPreviewBook(null)}
         >
@@ -532,7 +534,7 @@ export function MyDownloads({ onGoToCatalog, onRequireLogin }) {
               width: '100%',
               maxHeight: '90vh',
               overflowY: 'auto',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
               position: 'relative',
               display: 'flex',
               flexDirection: 'column'
@@ -570,11 +572,11 @@ export function MyDownloads({ onGoToCatalog, onRequireLogin }) {
             </div>
 
             {/* Preview Image Carousel View */}
-            <div style={{ position: 'relative', background: '#0f172a', minHeight: '340px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'relative', background: '#f8fafc', minHeight: '360px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
               <img
                 src={previewBook.previewImages[activePreviewIdx]}
                 alt="Book Sample Page"
-                style={{ maxHeight: '420px', maxWidth: '100%', objectFit: 'contain' }}
+                style={{ maxHeight: '440px', maxWidth: '100%', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
               />
 
               {previewBook.previewImages.length > 1 && (

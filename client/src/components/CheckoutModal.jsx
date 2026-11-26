@@ -856,29 +856,43 @@ export function CheckoutModal() {
                 </>
               )}
 
-              {/* Payment Method Selector */}
+              {/* Payment Method Selector & Trust Badges */}
               <div className="form-group">
-                <label className="form-label">Payment Method</label>
+                <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: 800, color: '#334155' }}>Payment Method</label>
                 <div
                   style={{
-                    border: '2px solid #10b981',
-                    background: '#ecfdf5',
-                    borderRadius: '12px',
+                    border: '1.5px solid #10b981',
+                    background: '#f0fdf4',
+                    borderRadius: '14px',
                     padding: '12px 14px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between'
+                    justifyContent: 'space-between',
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <CreditCard size={18} color="#059669" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ecfdf5', border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <CreditCard size={18} color="#059669" />
+                    </div>
                     <div>
                       <strong style={{ fontSize: '0.9rem', color: '#0f172a', display: 'block' }}>Online Payment (Prepaid)</strong>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Instant secure checkout via UPI, Cards, NetBanking</span>
+                      <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Instant UPI (GPay/PhonePe/Paytm), Cards, NetBanking</span>
                     </div>
                   </div>
                   <span className="badge badge-green" style={{ fontSize: '0.72rem', fontWeight: '800' }}>
                     FAST &amp; SECURE
+                  </span>
+                </div>
+
+                {/* Trust Badges Row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginTop: '10px', fontSize: '0.72rem', color: '#64748b' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    🔒 256-bit SSL Encryption
+                  </span>
+                  <span>•</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    ⚡ Powered by Razorpay
                   </span>
                 </div>
               </div>
@@ -887,7 +901,16 @@ export function CheckoutModal() {
                 type="submit"
                 disabled={loading}
                 className="btn btn-primary"
-                style={{ width: '100%', padding: '14px', fontSize: '1.05rem', marginTop: '10px' }}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  fontSize: '1.02rem',
+                  fontWeight: 800,
+                  marginTop: '12px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)',
+                  borderRadius: '12px'
+                }}
               >
                 {loading ? 'Opening Secure Payment...' : `🔒 Pay & Place Order (₹${finalPayable.toLocaleString('en-IN')})`}
               </button>
