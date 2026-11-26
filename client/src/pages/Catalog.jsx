@@ -198,24 +198,75 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
       if (sortBy !== 'recommended') params.append('sort', sortBy);
 
       const res = await fetch(`/api/toys?${params.toString()}`);
+      let fetchedToys = [];
       if (res.ok) {
-        const data = await res.json();
-        setToys(data);
+        fetchedToys = await res.json();
+      }
 
-        // Auto-open product if linked directly in URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const prodId = urlParams.get('product') || urlParams.get('toy');
-        if (prodId) {
-          const match = data.find((t) => String(t.id) === String(prodId)) || allToys.find((t) => String(t.id) === String(prodId));
-          if (match) {
-            setSelectedToyModal(match);
-          } else {
-            // Direct fetch fallback if current filter excluded this toy
-            fetch(`/api/toys/${prodId}`)
-              .then(r => r.ok ? r.json() : null)
-              .then(directToy => { if (directToy) setSelectedToyModal(directToy); })
-              .catch(() => {});
-          }
+      // Fetch digital activity books to seamlessly display in main catalog
+      let digitalBooks = [];
+      try {
+        const booksRes = await fetch('/api/game-books');
+        if (booksRes.ok) {
+          const rawBooks = await booksRes.json();
+          const list = Array.isArray(rawBooks) ? rawBooks : Object.values(rawBooks || {});
+          digitalBooks = list
+            .filter(b => b.enabled !== false)
+            .map(b => ({
+              id: `game-book-${b.game_key}`,
+              game_key: b.game_key,
+              name: b.title,
+              category: 'Digital & Books',
+              price: b.price || 9,
+              original_price: b.original_price || 99,
+              age_group: b.age_group || '3-8 yrs',
+              description: b.description || 'Instant downloadable PDF activity and story book for kids.',
+              image_url: b.image_url || '/drawing-book/page-001.jpg',
+              images: b.images ? (typeof b.images === 'string' ? JSON.parse(b.images) : b.images) : [b.image_url || '/drawing-book/page-001.jpg'],
+              stock: 9999,
+              featured: true,
+              is_book: true,
+              is_digital: true,
+              pdf_url: b.pdf_url || '/drawing-book/sample-coloring-book.pdf',
+              rating: 5.0,
+              review_count: 14
+            }));
+        }
+      } catch (bookErr) {
+        console.warn('Could not load game books for catalog:', bookErr);
+      }
+
+      // Filter digital books according to active filters
+      const matchingDigitalBooks = digitalBooks.filter(b => {
+        if (selectedCategory !== 'All' && selectedCategory !== 'Digital & Books') return false;
+        if (selectedAge !== 'All' && b.age_group !== selectedAge) return false;
+        if (searchQuery && !b.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
+      });
+
+      // Merge toys and digital books
+      let combined = [];
+      if (selectedCategory === 'Digital & Books') {
+        combined = matchingDigitalBooks;
+      } else {
+        combined = [...matchingDigitalBooks, ...fetchedToys];
+      }
+
+      setToys(combined);
+
+      // Auto-open product if linked directly in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const prodId = urlParams.get('product') || urlParams.get('toy');
+      if (prodId) {
+        const match = combined.find((t) => String(t.id) === String(prodId));
+        if (match) {
+          setSelectedToyModal(match);
+        } else {
+          // Direct fetch fallback if current filter excluded this toy
+          fetch(`/api/toys/${prodId}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(directToy => { if (directToy) setSelectedToyModal(directToy); })
+            .catch(() => {});
         }
       }
     } catch (err) {
@@ -268,8 +319,11 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
-            const names = ['All', ...data.map(c => c.name)];
-            setCategories(names);
+            const fetchedNames = data.map(c => c.name);
+            const merged = ['All', 'Digital & Books', ...fetchedNames.filter(n => n !== 'Digital & Books')];
+            setCategories(merged);
+          } else {
+            setCategories(['All', 'Digital & Books', ...DEFAULT_CATEGORIES]);
           }
         }
       } catch (err) {

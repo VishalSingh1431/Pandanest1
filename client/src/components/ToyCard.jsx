@@ -225,6 +225,26 @@ export function ToyCard({ toy, onSelectToy }) {
 
         {/* Top-Left Badges */}
         <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', flexDirection: 'column', gap: '5px', zIndex: 2 }}>
+          {(toy.is_book || toy.category === 'Digital & Books' || String(toy.id).startsWith('game-book')) && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                color: '#ffffff',
+                fontSize: '0.68rem',
+                fontWeight: '800',
+                padding: '3px 8px',
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.35)',
+                letterSpacing: '0.2px'
+              }}
+            >
+              <Sparkles size={11} />
+              PDF Digital Book
+            </span>
+          )}
           {toy.featured && (
             <span
               style={{
