@@ -303,6 +303,8 @@ export function AdminDashboard({ onLogout }) {
   const [bookImagePreviews, setBookImagePreviews] = useState([]);
   const [bookFormLoading, setBookFormLoading] = useState(false);
   const [bookFormError, setBookFormError] = useState('');
+  const [isPdfUploading, setIsPdfUploading] = useState(false);
+  const [pdfUploadStatus, setPdfUploadStatus] = useState('');
 
   // Certificates state
   const [certificates, setCertificates] = useState([]);
@@ -441,6 +443,52 @@ export function AdminDashboard({ onLogout }) {
       existing_images: prev.existing_images ? prev.existing_images.filter((_, i) => i !== index) : []
     }));
     setBookSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handlePdfUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      setBookFormError('Please select a valid PDF file (.pdf).');
+      return;
+    }
+
+    try {
+      setIsPdfUploading(true);
+      setPdfUploadStatus(`Uploading ${file.name} to Cloudinary...`);
+      setBookFormError('');
+
+      const formData = new FormData();
+      formData.append('pdf', file);
+
+      const token = localStorage.getItem('pandanest_admin_token');
+      const res = await fetch('/api/game-books/upload-pdf', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to upload PDF file.');
+      }
+
+      setBookForm((prev) => ({
+        ...prev,
+        pdf_url: data.url
+      }));
+      setPdfUploadStatus(`✓ Uploaded "${file.name}" to Cloudinary!`);
+    } catch (err) {
+      console.error('PDF upload error:', err);
+      setBookFormError(err.message || 'Could not upload PDF document.');
+      setPdfUploadStatus('');
+    } finally {
+      setIsPdfUploading(false);
+      e.target.value = '';
+    }
   };
 
   const handleBookSubmit = async (e) => {
@@ -4757,24 +4805,67 @@ export function AdminDashboard({ onLogout }) {
                 </div>
               </div>
 
-              {/* Secure PDF Download URL */}
-              <div className="form-group">
-                <label className="form-label" style={{ color: '#047857', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ShieldCheck size={16} />
-                  <span>Secure PDF File URL (Unlocked only upon purchase) *</span>
-                </label>
+              {/* Secure PDF Download URL & Direct PDF Upload */}
+              <div className="form-group" style={{ background: '#f8fafc', padding: '14px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
+                  <label className="form-label" style={{ color: '#047857', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                    <ShieldCheck size={16} />
+                    <span>Secure PDF Document (Unlocked only upon purchase) *</span>
+                  </label>
+
+                  {/* Direct PDF File Upload Button */}
+                  <div>
+                    <input
+                      id="directPdfInput"
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      style={{ display: 'none' }}
+                      onChange={handlePdfUpload}
+                    />
+                    <button
+                      type="button"
+                      disabled={isPdfUploading}
+                      onClick={() => document.getElementById('directPdfInput').click()}
+                      style={{
+                        background: '#ecfdf5',
+                        border: '1.5px solid #10b981',
+                        color: '#047857',
+                        padding: '5px 12px',
+                        borderRadius: '8px',
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Upload size={13} />
+                      <span>{isPdfUploading ? 'Uploading PDF...' : 'Upload PDF from Computer'}</span>
+                    </button>
+                  </div>
+                </div>
+
                 <input
                   type="text"
                   required
                   className="form-input"
-                  style={{ background: '#f0fdf4', borderColor: '#a7f3d0' }}
-                  placeholder="e.g. /drawing-book/sample-coloring-book.pdf or https://drive.google.com/..."
+                  style={{ background: '#ffffff', borderColor: '#a7f3d0' }}
+                  placeholder="Paste Google Drive link, Cloudinary URL, or use Upload button above"
                   value={bookForm.pdf_url}
                   onChange={(e) => setBookForm({ ...bookForm, pdf_url: e.target.value })}
                 />
-                <span style={{ fontSize: '0.73rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
-                  🔒 Customers can only view or download this full PDF file after successful payment.
-                </span>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', flexWrap: 'wrap', gap: '4px' }}>
+                  <span style={{ fontSize: '0.73rem', color: '#64748b' }}>
+                    🔒 Customers can only view or download this full PDF after successful payment.
+                  </span>
+                  {pdfUploadStatus && (
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
+                      {pdfUploadStatus}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Multiple Book Photos Upload (Front cover, Back cover, TOC, Sample preview pages) */}

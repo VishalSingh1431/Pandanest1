@@ -1,19 +1,20 @@
 import express from 'express';
 import multer from 'multer';
+import jwt from 'jsonwebtoken';
 import { getDB, readLocalStore, writeLocalStore } from '../db.js';
-import { authenticateAdmin } from '../middleware/auth.js';
-import { uploadToCloudinary } from '../cloudinary.js';
+import { authenticateAdmin, JWT_SECRET } from '../middleware/auth.js';
+import { uploadToCloudinary, uploadRawToCloudinary } from '../cloudinary.js';
 
 const router = express.Router();
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB per file
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB per file
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed.'));
+      cb(new Error('Only image and PDF files are allowed.'));
     }
   }
 });
@@ -91,7 +92,17 @@ export const DEFAULT_GAME_BOOKS = {
   }
 };
 
-// GET /api/game-books - List all game books
+// Helper: mask pdf_url for public consumption
+function sanitizeBookForPublic(book) {
+  if (!book) return book;
+  const clone = { ...book };
+  // Hide actual secret pdf_url from public visitor APIs, replacing with boolean flag
+  clone.has_pdf = Boolean(clone.pdf_url);
+  delete clone.pdf_url;
+  return clone;
+}
+
+// GET /api/game-books - List all game books (public safe)
 router.get('/', async (req, res) => {
   try {
     const { isPostgres, pool } = getDB();
@@ -100,7 +111,7 @@ router.get('/', async (req, res) => {
         const result = await pool.query('SELECT * FROM game_books ORDER BY id ASC');
         if (result.rows.length > 0) {
           const map = {};
-          result.rows.forEach(r => { map[r.game_key] = r; });
+          result.rows.forEach(r => { map[r.game_key] = sanitizeBookForPublic(r); });
           return res.json(map);
         }
       } catch (e) {
@@ -110,14 +121,18 @@ router.get('/', async (req, res) => {
 
     const store = readLocalStore();
     const books = store.game_books || DEFAULT_GAME_BOOKS;
-    return res.json(books);
+    const sanitizedMap = {};
+    Object.keys(books).forEach(k => {
+      sanitizedMap[k] = sanitizeBookForPublic(books[k]);
+    });
+    return res.json(sanitizedMap);
   } catch (err) {
     console.error('Error fetching game books:', err);
     res.status(500).json({ error: 'Failed to fetch game books' });
   }
 });
 
-// GET /api/game-books/:gameKey - Get book for specific game
+// GET /api/game-books/:gameKey - Get book for specific game (public safe)
 router.get('/:gameKey', async (req, res) => {
   try {
     const { gameKey } = req.params;
@@ -127,7 +142,7 @@ router.get('/:gameKey', async (req, res) => {
       try {
         const result = await pool.query('SELECT * FROM game_books WHERE game_key = $1', [gameKey]);
         if (result.rows.length > 0) {
-          return res.json(result.rows[0]);
+          return res.json(sanitizeBookForPublic(result.rows[0]));
         }
       } catch (e) {
         // fallback
@@ -137,12 +152,35 @@ router.get('/:gameKey', async (req, res) => {
     const store = readLocalStore();
     const books = store.game_books || DEFAULT_GAME_BOOKS;
     const book = books[gameKey] || DEFAULT_GAME_BOOKS[gameKey];
-    if (book) return res.json(book);
+    if (book) return res.json(sanitizeBookForPublic(book));
 
     res.status(404).json({ error: 'Game book not found' });
   } catch (err) {
     console.error('Error fetching game book:', err);
     res.status(500).json({ error: 'Failed to fetch game book' });
+  }
+});
+
+// POST /api/game-books/upload-pdf - Dedicated direct PDF file upload to Cloudinary (Admin only)
+router.post('/upload-pdf', authenticateAdmin, upload.single('pdf'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No PDF file uploaded.' });
+    }
+    if (req.file.mimetype !== 'application/pdf') {
+      return res.status(400).json({ error: 'Only PDF documents (.pdf) are allowed.' });
+    }
+
+    const uploadResult = await uploadRawToCloudinary(req.file.buffer, req.file.originalname);
+    return res.json({
+      success: true,
+      url: uploadResult.url,
+      filename: req.file.originalname,
+      size: req.file.size
+    });
+  } catch (err) {
+    console.error('Error uploading PDF document:', err);
+    return res.status(500).json({ error: err.message || 'Failed to upload PDF file to secure storage.' });
   }
 });
 
@@ -415,7 +453,56 @@ router.get('/secure-access/:gameKey', async (req, res) => {
 
     const { isPostgres, pool } = getDB();
 
-    // Check by order number and phone
+    let userEmail = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
+        userEmail = decoded.email || decoded.user?.email;
+        if (!userPhone && decoded.phone) userPhone = decoded.phone;
+      } catch (tokenErr) {
+        // invalid token, proceed with order check
+      }
+    }
+
+    // Check by user email or phone across all paid orders
+    if (!hasAccess && (userEmail || userPhone)) {
+      if (isPostgres && pool) {
+        const userOrdRes = await pool.query(
+          `SELECT * FROM orders WHERE (LOWER(customer_email) = LOWER($1) OR customer_phone = $2) AND (payment_status = 'paid' OR status IN ('Confirmed', 'Dispatched', 'Delivered')) ORDER BY id DESC`,
+          [userEmail || '', userPhone || '']
+        );
+        for (const ord of userOrdRes.rows) {
+          let items = [];
+          try { items = typeof ord.items === 'string' ? JSON.parse(ord.items) : (ord.items || []); } catch {}
+          const matched = items.some(it => it.game_key === gameKey || it.id === `game-book-${gameKey}` || it.id === gameKey);
+          if (matched) {
+            hasAccess = true;
+            accessOrder = ord.order_number;
+            break;
+          }
+        }
+      } else {
+        const store = readLocalStore();
+        const orders = store.orders || [];
+        const matchingOrders = orders.filter(o => {
+          const matchEmail = userEmail && (o.customer_email || '').toLowerCase() === userEmail.toLowerCase();
+          const matchPhone = userPhone && String(o.customer_phone || '').trim() === String(userPhone).trim();
+          const isPaid = o.payment_status === 'paid' || ['Confirmed', 'Dispatched', 'Delivered'].includes(o.status);
+          return (matchEmail || matchPhone) && isPaid;
+        });
+
+        for (const ord of matchingOrders) {
+          let items = [];
+          try { items = typeof ord.items === 'string' ? JSON.parse(ord.items) : (ord.items || []); } catch {}
+          const matched = items.some(it => it.game_key === gameKey || it.id === `game-book-${gameKey}` || it.id === gameKey);
+          if (matched) {
+            hasAccess = true;
+            accessOrder = ord.order_number;
+            break;
+          }
+        }
+      }
+    }
     if (orderNumber) {
       if (isPostgres && pool) {
         const ordRes = await pool.query(

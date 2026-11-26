@@ -65,4 +65,36 @@ export async function uploadToCloudinary(fileBuffer, mimeType = 'image/jpeg') {
   };
 }
 
+export async function uploadRawToCloudinary(fileBuffer, originalFilename = 'document.pdf') {
+  if (isCloudinaryConfigured) {
+    try {
+      return await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'pandanest_digital_books',
+            resource_type: 'raw',
+            public_id: `${Date.now()}_${originalFilename.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+          },
+          (error, result) => {
+            if (error) {
+              console.error('Cloudinary raw upload error:', error);
+              reject(error);
+            } else {
+              resolve({
+                url: result.secure_url,
+                public_id: result.public_id,
+              });
+            }
+          }
+        );
+        uploadStream.end(fileBuffer);
+      });
+    } catch (uploadErr) {
+      console.warn('Cloudinary raw upload failed:', uploadErr.message);
+      throw uploadErr;
+    }
+  }
+  throw new Error('Cloudinary not configured for direct raw document uploads.');
+}
+
 export { cloudinary, isCloudinaryConfigured };

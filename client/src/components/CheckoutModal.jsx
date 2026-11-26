@@ -210,10 +210,10 @@ export function CheckoutModal() {
     });
   };
 
-  const isDigitalOnlyOrder = itemsToCheckout.length > 0 && itemsToCheckout.every(it => 
-    it.is_book || 
-    it.is_digital || 
-    it.game_key || 
+  const isDigitalOnlyOrder = itemsToCheckout.length > 0 && itemsToCheckout.every(it =>
+    it.is_book ||
+    it.is_digital ||
+    it.game_key ||
     String(it.id || '').startsWith('game-book') ||
     it.category === 'Digital Books' ||
     it.category === 'Digital & Books'
@@ -487,8 +487,8 @@ export function CheckoutModal() {
                 {isDigitalOnlyOrder ? 'Checkout' : 'Delivery & Checkout'}
               </h2>
               <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
-                {isDigitalOnlyOrder 
-                  ? 'Enter your contact details to complete your order.' 
+                {isDigitalOnlyOrder
+                  ? 'Enter your contact details to complete your order.'
                   : 'Free shipping across all pincodes in India.'}
               </p>
             </div>
