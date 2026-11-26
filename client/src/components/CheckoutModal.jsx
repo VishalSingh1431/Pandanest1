@@ -7,17 +7,39 @@ import { parseResponse } from '../utils/api';
 
 export function CheckoutModal() {
   const { isCheckoutOpen, closeCheckout, cart, cartTotal, clearCart, checkoutItem } = useCart();
-  const { admin } = useAuth();
+  const { admin, user } = useAuth();
 
-  const [formData, setFormData] = useState({
-    customer_name: '',
-    phone: '',
-    email: admin?.email || '',
-    address: '',
-    city: '',
-    pincode: '',
-    payment_method: 'Online'
+  const [formData, setFormData] = useState(() => {
+    const profile = admin || user;
+    const storedPhone = localStorage.getItem('pandanest_member_phone') || profile?.phone || '';
+    const storedName = localStorage.getItem('pandanest_member_child') || profile?.name || '';
+    return {
+      customer_name: storedName,
+      phone: storedPhone,
+      email: profile?.email || '',
+      address: '',
+      city: '',
+      pincode: '',
+      payment_method: 'Online'
+    };
   });
+
+  // Keep form data auto-filled whenever modal opens or user profile is loaded
+  useEffect(() => {
+    if (isCheckoutOpen) {
+      const profile = admin || user;
+      const storedPhone = localStorage.getItem('pandanest_member_phone') || profile?.phone || '';
+      const storedName = localStorage.getItem('pandanest_member_child') || profile?.name || '';
+      const storedEmail = profile?.email || '';
+
+      setFormData(prev => ({
+        ...prev,
+        customer_name: prev.customer_name || storedName,
+        phone: prev.phone || storedPhone,
+        email: prev.email || storedEmail
+      }));
+    }
+  }, [isCheckoutOpen, admin, user]);
 
   const [usePandaPoints, setUsePandaPoints] = useState(false);
   const [availablePoints, setAvailablePoints] = useState(0);
@@ -683,46 +705,77 @@ export function CheckoutModal() {
             </div>
 
             <form onSubmit={handleSubmit}>
-              <div className="checkout-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label className="form-label">Full Name *</label>
-                  <input
-                    type="text"
-                    name="customer_name"
-                    required
-                    className="form-input"
-                    placeholder="e.g. Rahul Sharma"
-                    value={formData.customer_name}
-                    onChange={handleChange}
-                  />
+              {/* For digital products when signed in, display sleek prefilled profile chip */}
+              {isDigitalOnlyOrder && (admin || user) && formData.email && formData.phone ? (
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '12px 14px',
+                    marginBottom: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
+                      {formData.customer_name || 'Valued Customer'}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
+                      {formData.phone} • {formData.email}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#059669', background: '#ecfdf5', padding: '3px 8px', borderRadius: '6px' }}>
+                    Auto-Filled
+                  </span>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Contact / WhatsApp Number *</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    required
-                    className="form-input"
-                    placeholder="e.g. 7380405227"
-                    value={formData.phone}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="checkout-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div className="form-group">
+                      <label className="form-label">Full Name *</label>
+                      <input
+                        type="text"
+                        name="customer_name"
+                        required
+                        className="form-input"
+                        placeholder="e.g. Rahul Sharma"
+                        value={formData.customer_name}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Contact / WhatsApp Number *</label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        required
+                        className="form-input"
+                        placeholder="e.g. 7380405227"
+                        value={formData.phone}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
 
-              <div className="form-group">
-                <label className="form-label">
-                  Email Address <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 'normal' }}>(Optional — for order receipt & dispatch updates)</span>
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  className="form-input"
-                  placeholder="e.g. pooja@gmail.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
-              </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Email Address <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 'normal' }}>(For download link &amp; receipt)</span>
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      className="form-input"
+                      placeholder="e.g. pooja@gmail.com"
+                      value={formData.email}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </>
+              )}
 
               {/* Physical Delivery Address Fields — Only shown for physical toy orders */}
               {!isDigitalOnlyOrder && (
