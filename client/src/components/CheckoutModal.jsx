@@ -705,7 +705,7 @@ export function CheckoutModal() {
             </div>
 
             <form onSubmit={handleSubmit}>
-              {/* For digital products when signed in, display sleek prefilled profile chip */}
+              {/* If order is purely digital AND signed in, show prefilled profile chip */}
               {isDigitalOnlyOrder && (admin || user) && formData.email && formData.phone ? (
                 <div
                   style={{
@@ -763,7 +763,7 @@ export function CheckoutModal() {
 
                   <div className="form-group">
                     <label className="form-label">
-                      Email Address <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 'normal' }}>(For download link &amp; receipt)</span>
+                      Email Address <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 'normal' }}>(Optional — for order receipt &amp; dispatch updates)</span>
                     </label>
                     <input
                       type="email"
@@ -777,7 +777,7 @@ export function CheckoutModal() {
                 </>
               )}
 
-              {/* Physical Delivery Address Fields — Only shown for physical toy orders */}
+              {/* Physical Delivery Address Fields — ALWAYS required and shown for all physical toy orders */}
               {!isDigitalOnlyOrder && (
                 <>
                   <div className="form-group">
