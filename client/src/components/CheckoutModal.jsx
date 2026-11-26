@@ -420,13 +420,17 @@ export function CheckoutModal() {
             </div>
 
             <div className="badge badge-green" style={{ marginBottom: '8px' }}>
-              Order Confirmed & Received!
+              {isDigitalOnlyOrder ? 'Payment Successful! 🎉' : 'Order Confirmed & Received!'}
             </div>
             <h2 style={{ fontSize: '1.6rem', color: '#0f172a', marginBottom: '8px' }}>
-              Woohoo! Your Toys are on the Way! 🚀
+              {isDigitalOnlyOrder ? 'Your Digital Book is Ready!' : 'Woohoo! Your Toys are on the Way! 🚀'}
             </h2>
             <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '20px' }}>
-              Thank you, <strong>{orderSuccess.customer_name}</strong>. Our Panchkula dispatch center is preparing your toys with love!
+              {isDigitalOnlyOrder ? (
+                <>Thank you, <strong>{orderSuccess.customer_name}</strong>. Your instant PDF download access is unlocked!</>
+              ) : (
+                <>Thank you, <strong>{orderSuccess.customer_name}</strong>. Our Panchkula dispatch center is preparing your toys with love!</>
+              )}
             </p>
 
             <div
@@ -454,18 +458,22 @@ export function CheckoutModal() {
                 <span style={{ fontWeight: '700', color: '#334155' }}>06BBZPY5715M1ZI</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
-                <span style={{ color: '#64748b' }}>Shipping:</span>
-                <span style={{ fontWeight: '700', color: '#059669' }}>FREE Delivery 🎉</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
-                <span style={{ color: '#64748b' }}>Delivery Address:</span>
-                <span style={{ fontWeight: '500', color: '#334155', maxWidth: '60%', textAlign: 'right' }}>
-                  {orderSuccess.address}, {orderSuccess.city} - {orderSuccess.pincode}
+                <span style={{ color: '#64748b' }}>Delivery:</span>
+                <span style={{ fontWeight: '700', color: '#059669' }}>
+                  {isDigitalOnlyOrder ? 'Instant Digital Download ⚡' : 'FREE Shipping Across India 🎉'}
                 </span>
               </div>
+              {!isDigitalOnlyOrder && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
+                  <span style={{ color: '#64748b' }}>Delivery Address:</span>
+                  <span style={{ fontWeight: '500', color: '#334155', maxWidth: '60%', textAlign: 'right' }}>
+                    {orderSuccess.address}, {orderSuccess.city} - {orderSuccess.pincode}
+                  </span>
+                </div>
+              )}
               {formData.email && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
-                  <span style={{ color: '#64748b' }}>Receipt & Updates:</span>
+                  <span style={{ color: '#64748b' }}>Receipt &amp; Updates:</span>
                   <span style={{ fontWeight: '600', color: '#047857' }}>Sent to {formData.email} ✉️</span>
                 </div>
               )}
@@ -475,9 +483,22 @@ export function CheckoutModal() {
               </div>
             </div>
 
-            <button className="btn btn-primary" style={{ width: '100%', padding: '12px' }} onClick={handleClose}>
-              Continue Shopping at Panda Nest
-            </button>
+            {isDigitalOnlyOrder ? (
+              <button
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '12px', background: 'linear-gradient(135deg, #059669, #10b981)', fontWeight: 800 }}
+                onClick={() => {
+                  handleClose();
+                  window.location.href = '/my-downloads';
+                }}
+              >
+                Go to My Digital Library 📚
+              </button>
+            ) : (
+              <button className="btn btn-primary" style={{ width: '100%', padding: '12px' }} onClick={handleClose}>
+                Continue Shopping at Panda Nest
+              </button>
+            )}
           </div>
         ) : (
           /* Standard Checkout Form */
