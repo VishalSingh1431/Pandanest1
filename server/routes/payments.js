@@ -387,9 +387,27 @@ router.post('/create-order', paymentCreateLimiter, optionalUser, async (req, res
       points_used
     } = req.body;
 
-    if (!customer_name || !phone || !address || !city || !pincode || !items || !items.length) {
-      return res.status(400).json({ error: 'Please provide full delivery details and at least one item.' });
+    // Check if order contains only digital/book items (no physical shipping needed)
+    const isOnlyDigital = items.every(it => 
+      it.is_book || 
+      it.is_digital || 
+      it.game_key || 
+      String(it.id || '').startsWith('game-book') || 
+      it.category === 'Digital Books' ||
+      it.category === 'Digital & Books'
+    );
+
+    if (!customer_name || !phone || !items || !items.length) {
+      return res.status(400).json({ error: 'Please provide your name, mobile number, and at least one item.' });
     }
+
+    if (!isOnlyDigital && (!address || !city || !pincode)) {
+      return res.status(400).json({ error: 'Please provide full delivery address details for physical toy delivery.' });
+    }
+
+    const cleanAddress = isOnlyDigital ? (address ? address.trim() : 'Digital Delivery (Instant Download)') : address.trim();
+    const cleanCity = isOnlyDigital ? (city ? city.trim() : 'Online') : city.trim();
+    const cleanPincode = isOnlyDigital ? (pincode ? pincode.trim() : '000000') : pincode.trim();
 
     const cleanPhone = normalizePhone(phone);
     if (!PHONE_REGEX.test(cleanPhone)) {
@@ -496,9 +514,9 @@ router.post('/create-order', paymentCreateLimiter, optionalUser, async (req, res
           orderNumber,
           customer_name.trim(),
           cleanPhone,
-          address.trim(),
-          city.trim(),
-          pincode.trim(),
+          cleanAddress,
+          cleanCity,
+          cleanPincode,
           'Razorpay',
           'pending',
           rzpOrder.id,
@@ -520,9 +538,9 @@ router.post('/create-order', paymentCreateLimiter, optionalUser, async (req, res
         order_number: orderNumber,
         customer_name: customer_name.trim(),
         phone: cleanPhone,
-        address: address.trim(),
-        city: city.trim(),
-        pincode: pincode.trim(),
+        address: cleanAddress,
+        city: cleanCity,
+        pincode: cleanPincode,
         payment_method: 'Razorpay',
         payment_status: 'pending',
         razorpay_order_id: rzpOrder.id,

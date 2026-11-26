@@ -188,13 +188,27 @@ export function CheckoutModal() {
     });
   };
 
+  const isDigitalOnlyOrder = itemsToCheckout.length > 0 && itemsToCheckout.every(it => 
+    it.is_book || 
+    it.is_digital || 
+    it.game_key || 
+    String(it.id || '').startsWith('game-book') ||
+    it.category === 'Digital Books' ||
+    it.category === 'Digital & Books'
+  );
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setNotice('');
 
-    if (!formData.customer_name || !formData.phone || !formData.address || !formData.city || !formData.pincode) {
-      setError('Please fill out all delivery address fields.');
+    if (!formData.customer_name || !formData.phone) {
+      setError('Please provide your name and phone number.');
+      return;
+    }
+
+    if (!isDigitalOnlyOrder && (!formData.address || !formData.city || !formData.pincode)) {
+      setError('Please fill out all delivery address fields for shipping.');
       return;
     }
 
@@ -204,10 +218,12 @@ export function CheckoutModal() {
       return;
     }
 
-    const cleanPin = String(formData.pincode || '').replace(/\D/g, '');
-    if (cleanPin.length !== 6) {
-      setError('Please enter a valid 6-digit Indian postal PIN code.');
-      return;
+    if (!isDigitalOnlyOrder) {
+      const cleanPin = String(formData.pincode || '').replace(/\D/g, '');
+      if (cleanPin.length !== 6) {
+        setError('Please enter a valid 6-digit Indian postal PIN code.');
+        return;
+      }
     }
 
     setLoading(true);
@@ -219,7 +235,7 @@ export function CheckoutModal() {
         throw new Error('Razorpay payment gateway failed to load. Please check your internet connection.');
       }
 
-      const token = localStorage.getItem('pandanest_admin_token');
+      const token = localStorage.getItem('pandanest_admin_token') || localStorage.getItem('pandanest_user_token');
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -231,9 +247,9 @@ export function CheckoutModal() {
           customer_name: formData.customer_name.trim(),
           phone: cleanPhone,
           email: formData.email.trim(),
-          address: formData.address.trim(),
-          city: formData.city.trim(),
-          pincode: formData.pincode.trim(),
+          address: isDigitalOnlyOrder ? 'Digital Delivery (Instant Download)' : formData.address.trim(),
+          city: isDigitalOnlyOrder ? 'Online' : formData.city.trim(),
+          pincode: isDigitalOnlyOrder ? '000000' : formData.pincode.trim(),
           items: itemsToCheckout,
           coupon_code: appliedCoupon?.code || '',
           points_used: pointsDiscount > 0 ? Math.min(pointsDiscount * 10, MAX_REDEEM_POINTS) : 0
@@ -642,8 +658,10 @@ export function CheckoutModal() {
             {/* Price Summary */}
             <div style={{ background: '#ecfdf5', borderRadius: '12px', padding: '10px 14px', marginBottom: '18px', fontSize: '0.9rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#047857' }}>
-                <span>Shipping Charges:</span>
-                <span style={{ fontWeight: '700' }}>FREE Delivery 🎉</span>
+                <span>Delivery:</span>
+                <span style={{ fontWeight: '700' }}>
+                  {isDigitalOnlyOrder ? 'Instant Digital Download (FREE) ⚡' : 'FREE Shipping Across India 🎉'}
+                </span>
               </div>
               {pointsDiscount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#b45309' }}>
@@ -705,58 +723,84 @@ export function CheckoutModal() {
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Complete Delivery Address *</label>
-                <textarea
-                  name="address"
-                  required
-                  rows={2}
-                  className="form-input"
-                  placeholder="House/Flat No., Street, Landmark"
-                  value={formData.address}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="checkout-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <label className="form-label" style={{ margin: 0 }}>Postal Pincode *</label>
-                    {pincodeLoading && (
-                      <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: '600' }}>
-                        Detecting...
-                      </span>
-                    )}
-                    {!pincodeLoading && pincodeMessage && (
-                      <span style={{ fontSize: '0.72rem', color: pincodeMessage.startsWith('✓') ? '#059669' : '#dc2626', fontWeight: '700' }}>
-                        {pincodeMessage}
-                      </span>
-                    )}
+              {/* Digital Product Instant Access Banner */}
+              {isDigitalOnlyOrder && (
+                <div
+                  style={{
+                    background: '#eff6ff',
+                    border: '1.5px solid #bfdbfe',
+                    borderRadius: '12px',
+                    padding: '12px 14px',
+                    marginBottom: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}
+                >
+                  <Sparkles size={20} color="#2563eb" style={{ flexShrink: 0 }} />
+                  <div style={{ fontSize: '0.84rem', color: '#1e40af', lineHeight: 1.4 }}>
+                    <strong>Instant Digital Delivery:</strong> No physical shipping needed! You will receive instant PDF download access immediately upon checkout.
                   </div>
-                  <input
-                    type="text"
-                    name="pincode"
-                    required
-                    maxLength={6}
-                    className="form-input"
-                    placeholder="e.g. 134114 (Auto-fills city)"
-                    value={formData.pincode}
-                    onChange={(e) => handlePincodeChange(e.target.value)}
-                  />
                 </div>
-                <div className="form-group">
-                  <label className="form-label">City & State *</label>
-                  <input
-                    type="text"
-                    name="city"
-                    required
-                    className="form-input"
-                    placeholder="e.g. Panchkula, Haryana"
-                    value={formData.city}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
+              )}
+
+              {/* Physical Delivery Address Fields — Only shown for physical toy orders */}
+              {!isDigitalOnlyOrder && (
+                <>
+                  <div className="form-group">
+                    <label className="form-label">Complete Delivery Address *</label>
+                    <textarea
+                      name="address"
+                      required
+                      rows={2}
+                      className="form-input"
+                      placeholder="House/Flat No., Street, Landmark"
+                      value={formData.address}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="checkout-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div className="form-group">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label className="form-label" style={{ margin: 0 }}>Postal Pincode *</label>
+                        {pincodeLoading && (
+                          <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: '600' }}>
+                            Detecting...
+                          </span>
+                        )}
+                        {!pincodeLoading && pincodeMessage && (
+                          <span style={{ fontSize: '0.72rem', color: pincodeMessage.startsWith('✓') ? '#059669' : '#dc2626', fontWeight: '700' }}>
+                            {pincodeMessage}
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        name="pincode"
+                        required
+                        maxLength={6}
+                        className="form-input"
+                        placeholder="e.g. 134114 (Auto-fills city)"
+                        value={formData.pincode}
+                        onChange={(e) => handlePincodeChange(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">City & State *</label>
+                      <input
+                        type="text"
+                        name="city"
+                        required
+                        className="form-input"
+                        placeholder="e.g. Panchkula, Haryana"
+                        value={formData.city}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Payment Method Selector */}
               <div className="form-group">
