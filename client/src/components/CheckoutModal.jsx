@@ -461,12 +461,13 @@ export function CheckoutModal() {
           /* Standard Checkout Form */
           <div>
             <div style={{ marginBottom: '20px' }}>
-              <div className="badge badge-amber" style={{ marginBottom: '6px' }}>
-                <Package size={13} /> Panda Nest Express Delivery
-              </div>
-              <h2 style={{ fontSize: '1.5rem', color: '#0f172a' }}>Delivery & Checkout</h2>
-              <p style={{ color: '#64748b', fontSize: '0.85rem' }}>
-                Free shipping across all pincodes in India.
+              <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
+                {isDigitalOnlyOrder ? 'Checkout' : 'Delivery & Checkout'}
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
+                {isDigitalOnlyOrder 
+                  ? 'Enter your contact details to complete your order.' 
+                  : 'Free shipping across all pincodes in India.'}
               </p>
             </div>
 
@@ -722,27 +723,6 @@ export function CheckoutModal() {
                   onChange={handleChange}
                 />
               </div>
-
-              {/* Digital Product Instant Access Banner */}
-              {isDigitalOnlyOrder && (
-                <div
-                  style={{
-                    background: '#eff6ff',
-                    border: '1.5px solid #bfdbfe',
-                    borderRadius: '12px',
-                    padding: '12px 14px',
-                    marginBottom: '16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px'
-                  }}
-                >
-                  <Sparkles size={20} color="#2563eb" style={{ flexShrink: 0 }} />
-                  <div style={{ fontSize: '0.84rem', color: '#1e40af', lineHeight: 1.4 }}>
-                    <strong>Instant Digital Delivery:</strong> No physical shipping needed! You will receive instant PDF download access immediately upon checkout.
-                  </div>
-                </div>
-              )}
 
               {/* Physical Delivery Address Fields — Only shown for physical toy orders */}
               {!isDigitalOnlyOrder && (
