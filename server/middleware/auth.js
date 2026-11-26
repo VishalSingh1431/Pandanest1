@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'pandanest_super_secret_jwt_key_2026_xyz';
+export const JWT_SECRET = process.env.JWT_SECRET || 'pandanest_super_secret_jwt_key_2026_xyz';
 
 // Authenticates ANY valid user (super_admin, admin, or customer/user)
 export function authenticateUser(req, res, next) {
