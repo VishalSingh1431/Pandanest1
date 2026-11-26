@@ -63,6 +63,10 @@ export function calculateOrderTotal({
   let subtotal = 0;
   const verifiedItems = [];
 
+  // Guarantee dbBooks is an array (whether passed as Object map or Array)
+  const booksList = Array.isArray(dbBooks) ? dbBooks : Object.values(dbBooks || {});
+  const toysList = Array.isArray(dbToys) ? dbToys : Object.values(dbToys || {});
+
   for (const item of items) {
     const qty = Math.max(1, parseInt(item.quantity || 1, 10));
 
@@ -77,7 +81,7 @@ export function calculateOrderTotal({
     if (isActivityBook) {
       // Activity book lookup with smart key resolution
       const resolvedGameKey = item.game_key || (String(item.id || '').includes('drawing') ? 'drawing' : 'truthDare');
-      const book = dbBooks.find(b => b.game_key === resolvedGameKey || b.game_key === item.game_key);
+      const book = booksList.find(b => b.game_key === resolvedGameKey || b.game_key === item.game_key);
       const unitPrice = book ? parseFloat(book.price) : 9.00;
       subtotal += unitPrice * qty;
       verifiedItems.push({
@@ -90,7 +94,7 @@ export function calculateOrderTotal({
       });
     } else {
       // Toy lookup
-      const toy = dbToys.find(t => String(t.id) === String(item.id));
+      const toy = toysList.find(t => String(t.id) === String(item.id));
       if (!toy) {
         throw new Error(`Toy with ID "${item.id}" is not available in our catalog.`);
       }
@@ -453,7 +457,8 @@ router.post('/create-order', paymentCreateLimiter, optionalUser, async (req, res
     } else {
       const store = readLocalStore();
       dbToys = store.toys || [];
-      dbBooks = store.game_books || [];
+      const rawBooks = store.game_books || [];
+      dbBooks = Array.isArray(rawBooks) ? rawBooks : Object.values(rawBooks || {});
       if (coupon_code) {
         dbCoupon = (store.coupons || []).find(
           c => c.code.toUpperCase() === String(coupon_code).trim().toUpperCase() && c.is_active
