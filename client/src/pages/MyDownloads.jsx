@@ -135,7 +135,7 @@ export function MyDownloads({ onGoToCatalog, onRequireLogin }) {
   };
 
   return (
-    <div style={{ maxWidth: '980px', margin: '0 auto', padding: '36px 16px 80px' }}>
+    <div className="container" style={{ paddingTop: '28px', paddingBottom: '80px' }}>
       <div style={{ marginBottom: '24px' }}>
         <button
           onClick={onGoToCatalog}
@@ -335,7 +335,7 @@ export function MyDownloads({ onGoToCatalog, onRequireLogin }) {
           </span>
         </div>
 
-        <div className="catalog-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+        <div className="catalog-grid">
           {availableBooks.map((book) => {
             const alreadyPurchased = digitalItems.some(d => d.gameKey === book.game_key && d.isPaid);
 
