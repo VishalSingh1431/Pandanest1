@@ -861,7 +861,7 @@ html {
     display: none !important;
   }
   .hero-tv-mobile-video {
-    display: none !important;
+    display: block !important;
   }
   .hero-tv-mobile-form {
     display: block !important;
@@ -872,7 +872,7 @@ html {
     display: flex !important;
   }
   .hero-tv-mobile-video {
-    display: none !important;
+    display: block !important;
   }
   .hero-tv-mobile-form {
     display: none !important;

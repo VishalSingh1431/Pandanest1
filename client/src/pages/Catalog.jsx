@@ -604,24 +604,24 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
                     onClick={() => setIsHeroVideoMuted(prev => !prev)}
                     style={{
                       position: 'absolute',
-                      bottom: '8px',
-                      right: '8px',
+                      bottom: '6px',
+                      right: '6px',
                       zIndex: 10,
-                      background: isHeroVideoMuted ? 'rgba(15, 23, 42, 0.85)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      background: isHeroVideoMuted ? 'rgba(15, 23, 42, 0.8)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                       color: '#ffffff',
-                      border: '1.5px solid rgba(255, 255, 255, 0.3)',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
                       borderRadius: '9999px',
-                      padding: '4px 10px',
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
+                      padding: '2px 7px',
+                      fontSize: '0.62rem',
+                      fontWeight: 700,
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '4px'
+                      gap: '3px'
                     }}
                   >
-                    {isHeroVideoMuted ? <VolumeX size={12} color="#fca5a5" /> : <Volume2 size={12} color="#ffffff" />}
-                    <span>{isHeroVideoMuted ? 'Unmute' : 'Sound ON'}</span>
+                    {isHeroVideoMuted ? <VolumeX size={10} color="#fca5a5" /> : <Volume2 size={10} color="#ffffff" />}
+                    <span>{isHeroVideoMuted ? 'Unmute' : 'Sound'}</span>
                   </button>
                 </div>
               </>
