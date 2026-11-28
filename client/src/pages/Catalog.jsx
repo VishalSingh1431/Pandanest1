@@ -758,6 +758,7 @@ export function Catalog({ searchQuery, onOpenTruthOrDare, onOpenWelcome, onNavig
 
           return (
             <div
+              className="mobile-compact-banner"
               style={{
                 background: 'linear-gradient(135deg, #fff7ed 0%, #fff1f2 40%, #fefce8 100%)',
                 border: '2.5px solid #f43f5e',
