@@ -357,7 +357,7 @@ export function ToyCard({ toy, onSelectToy }) {
           >
             {toy.category}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.68rem', color: '#0284c7', fontWeight: '700' }}>
+          <span className="hide-on-mobile" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.68rem', color: '#0284c7', fontWeight: '700' }}>
             <ShieldCheck size={12} />
             Safe & Tested
           </span>
@@ -449,13 +449,16 @@ export function ToyCard({ toy, onSelectToy }) {
             {/* In-Stock or Low-Stock Indicator */}
             {toy.stock !== undefined && (
               <span
+                className="toy-card-stock-badge"
                 style={{
                   fontSize: '0.68rem',
                   fontWeight: '700',
                   color: Number(toy.stock) <= 0 ? '#991b1b' : (Number(toy.stock) <= 5 ? '#e11d48' : '#059669'),
                   background: Number(toy.stock) <= 0 ? '#fee2e2' : (Number(toy.stock) <= 5 ? '#ffe4e6' : '#ecfdf5'),
                   padding: '2px 6px',
-                  borderRadius: '5px'
+                  borderRadius: '5px',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
                 }}
               >
                 {Number(toy.stock) <= 0 ? 'Out of Stock' : (Number(toy.stock) <= 5 ? `Only ${toy.stock} left` : 'In Stock')}
@@ -489,17 +492,18 @@ export function ToyCard({ toy, onSelectToy }) {
               </button>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px' }}>
+            <div className="toy-card-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px' }}>
               <button
                 type="button"
-                className="btn btn-secondary btn-sm btn-press"
+                className="btn btn-secondary btn-sm btn-press toy-card-btn"
                 onClick={handleAddToCart}
                 style={{
-                  padding: '8px 10px',
-                  fontSize: '0.82rem',
+                  padding: '8px 6px',
+                  fontSize: '0.8rem',
                   fontWeight: '700',
                   justifyContent: 'center',
                   borderRadius: '12px',
+                  whiteSpace: 'nowrap',
                   background: addedAnim ? '#ecfdf5' : '#f8fafc',
                   borderColor: addedAnim ? '#10b981' : '#e2e8f0',
                   color: addedAnim ? '#059669' : '#0f172a',
@@ -507,17 +511,18 @@ export function ToyCard({ toy, onSelectToy }) {
                 }}
               >
                 <ShoppingBag size={14} />
-                <span>{addedAnim ? 'Added!' : 'Add to Cart'}</span>
+                <span>{addedAnim ? 'Added!' : 'Add'}</span>
               </button>
 
               <button
                 type="button"
-                className="btn btn-primary btn-sm btn-press"
+                className="btn btn-primary btn-sm btn-press toy-card-btn"
                 onClick={handleBuyNow}
                 style={{
-                  padding: '8px 10px',
-                  fontSize: '0.82rem',
+                  padding: '8px 6px',
+                  fontSize: '0.8rem',
                   fontWeight: '800',
+                  whiteSpace: 'nowrap',
                   justifyContent: 'center',
                   borderRadius: '12px',
                   boxShadow: '0 4px 10px rgba(16, 185, 129, 0.28)'
