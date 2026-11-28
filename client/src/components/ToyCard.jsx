@@ -342,17 +342,21 @@ export function ToyCard({ toy, onSelectToy }) {
       {/* Card Content */}
       <div style={{ padding: '14px 14px 12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
         {/* Category & Verified Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px', gap: '6px', minWidth: 0 }}>
           <span
             style={{
-              fontSize: '0.68rem',
+              fontSize: '0.62rem',
               fontWeight: '800',
               textTransform: 'uppercase',
               color: '#059669',
-              letterSpacing: '0.06em',
+              letterSpacing: '0.04em',
               background: '#ecfdf5',
-              padding: '2px 8px',
-              borderRadius: '6px'
+              padding: '2px 7px',
+              borderRadius: '6px',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '100%'
             }}
           >
             {toy.category}
