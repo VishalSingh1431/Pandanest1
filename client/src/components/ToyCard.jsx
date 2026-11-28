@@ -434,14 +434,14 @@ export function ToyCard({ toy, onSelectToy }) {
 
         {/* Pricing & Stock Indicator */}
         <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-              <span style={{ fontSize: '1.18rem', fontWeight: '800', color: '#15803d', letterSpacing: '-0.2px' }}>
-                Rs. {Number(toy.price).toLocaleString('en-IN')}.00
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', marginBottom: '10px', flexWrap: 'nowrap' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', whiteSpace: 'nowrap', minWidth: 0 }}>
+              <span style={{ fontSize: '1.08rem', fontWeight: '800', color: '#15803d', letterSpacing: '-0.3px' }}>
+                ₹{Number(toy.price).toLocaleString('en-IN')}
               </span>
               {toy.original_price && Number(toy.original_price) > Number(toy.price) && (
-                <span style={{ fontSize: '0.82rem', color: '#94a3b8', textDecoration: 'line-through', fontWeight: '500' }}>
-                  Rs. {Number(toy.original_price).toLocaleString('en-IN')}.00
+                <span style={{ fontSize: '0.76rem', color: '#94a3b8', textDecoration: 'line-through', fontWeight: '500' }}>
+                  ₹{Number(toy.original_price).toLocaleString('en-IN')}
                 </span>
               )}
             </div>
