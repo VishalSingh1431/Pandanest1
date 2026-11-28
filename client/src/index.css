@@ -753,7 +753,17 @@ html {
 }
 
 /* Checkout Modal & Tablet/Mobile Responsiveness */
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
 @media (max-width: 768px) {
+  .catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
   .modal-overlay {
     padding-bottom: 76px !important;
     align-items: flex-start !important;
