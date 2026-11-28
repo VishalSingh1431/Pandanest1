@@ -335,45 +335,41 @@ export function MyDownloads({ onGoToCatalog, onRequireLogin }) {
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '18px' }}>
+        <div className="catalog-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
           {availableBooks.map((book) => {
             const alreadyPurchased = digitalItems.some(d => d.gameKey === book.game_key && d.isPaid);
 
             return (
               <div
                 key={book.game_key}
+                className="card-hover-lift"
                 style={{
                   background: '#ffffff',
-                  border: '1.5px solid #e2e8f0',
-                  borderRadius: '18px',
-                  padding: '16px',
+                  borderRadius: '22px',
+                  border: '1.5px solid #eef2f6',
+                  overflow: 'hidden',
                   display: 'flex',
                   flexDirection: 'column',
-                  boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
+                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03)',
                   transition: 'all 0.2s ease',
                   position: 'relative'
                 }}
               >
                 {/* Book Thumbnail with Preview Button */}
                 <div
+                  className="toy-card-img-container"
                   style={{
                     position: 'relative',
-                    width: '100%',
-                    aspectRatio: '3/4',
-                    maxHeight: '260px',
-                    borderRadius: '14px',
                     overflow: 'hidden',
-                    background: '#f8fafc',
-                    marginBottom: '14px',
-                    cursor: 'pointer',
-                    boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06)'
+                    backgroundColor: '#f8fafc',
+                    cursor: 'pointer'
                   }}
                   onClick={() => openPreview(book)}
                 >
                   <img
                     src={book.image_url || '/drawing-book/page-001.jpg'}
                     alt={book.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                     onError={(e) => { e.currentTarget.src = '/drawing-book/page-001.jpg'; }}
                   />
                   <div
@@ -435,74 +431,131 @@ export function MyDownloads({ onGoToCatalog, onRequireLogin }) {
                   )}
                 </div>
 
-                {/* Title & Description */}
-                <h3
-                  onClick={() => openPreview(book)}
-                  style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', margin: '0 0 6px', lineHeight: 1.35, minHeight: '2.7em', cursor: 'pointer' }}
-                >
-                  {book.title}
-                </h3>
-                <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '0 0 14px', lineHeight: 1.4, flexGrow: 1, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  {book.description}
-                </p>
-
-                {/* Price & Action Row */}
-                <div style={{ paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
-                  <div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#15803d' }}>
-                      ₹{book.price || 9}
-                    </div>
-                    {book.original_price && (
-                      <div style={{ fontSize: '0.74rem', color: '#94a3b8', textDecoration: 'line-through' }}>
-                        ₹{book.original_price}
-                      </div>
-                    )}
+                {/* Card Content */}
+                <div style={{ padding: '14px 14px 12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px', gap: '6px', minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontSize: '0.62rem',
+                        fontWeight: '800',
+                        textTransform: 'uppercase',
+                        color: '#059669',
+                        letterSpacing: '0.04em',
+                        background: '#ecfdf5',
+                        padding: '2px 7px',
+                        borderRadius: '6px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '100%'
+                      }}
+                    >
+                      {book.category || 'PDF Book'}
+                    </span>
                   </div>
 
-                  {alreadyPurchased ? (
-                    <button
-                      type="button"
-                      disabled={downloadingBookKey === book.game_key}
-                      onClick={() => handleSecureDownload(book.game_key)}
-                      style={{
-                        background: '#059669',
-                        color: '#ffffff',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '9999px',
-                        fontWeight: 800,
-                        fontSize: '0.82rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <Download size={14} /> Download
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleBuyBook(book)}
-                      className="btn-press"
-                      style={{
-                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                        color: '#ffffff',
-                        border: 'none',
-                        padding: '8px 18px',
-                        borderRadius: '9999px',
-                        fontWeight: 800,
-                        fontSize: '0.84rem',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        boxShadow: '0 4px 10px rgba(16, 185, 129, 0.3)'
-                      }}
-                    >
-                      <Zap size={14} /> Buy Now
-                    </button>
-                  )}
+                  {/* Title */}
+                  <h3
+                    className="toy-card-title"
+                    onClick={() => openPreview(book)}
+                    style={{
+                      fontSize: '0.98rem',
+                      fontWeight: '800',
+                      color: '#0f172a',
+                      lineHeight: 1.3,
+                      margin: '4px 0 8px',
+                      cursor: 'pointer',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      minHeight: '2.6em'
+                    }}
+                    title={book.title}
+                  >
+                    {book.title}
+                  </h3>
+
+                  {/* Price & Action Row */}
+                  <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', marginBottom: '10px', flexWrap: 'nowrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', whiteSpace: 'nowrap', minWidth: 0 }}>
+                        <span style={{ fontSize: '1.08rem', fontWeight: '800', color: '#15803d', letterSpacing: '-0.3px' }}>
+                          ₹{Number(book.price || 9).toLocaleString('en-IN')}
+                        </span>
+                        {book.original_price && Number(book.original_price) > Number(book.price || 9) && (
+                          <span style={{ fontSize: '0.76rem', color: '#94a3b8', textDecoration: 'line-through', fontWeight: '500' }}>
+                            ₹{Number(book.original_price).toLocaleString('en-IN')}
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: '700',
+                          color: '#059669',
+                          background: '#ecfdf5',
+                          padding: '2px 6px',
+                          borderRadius: '5px',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0
+                        }}
+                      >
+                        Instant PDF
+                      </span>
+                    </div>
+
+                    {alreadyPurchased ? (
+                      <button
+                        type="button"
+                        disabled={downloadingBookKey === book.game_key}
+                        onClick={() => handleSecureDownload(book.game_key)}
+                        style={{
+                          width: '100%',
+                          background: '#059669',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '8px 12px',
+                          borderRadius: '12px',
+                          fontWeight: 800,
+                          fontSize: '0.82rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <Download size={14} /> Download PDF
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleBuyBook(book)}
+                        className="btn btn-primary btn-sm btn-press"
+                        style={{
+                          width: '100%',
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '8px 12px',
+                          borderRadius: '12px',
+                          fontWeight: 800,
+                          fontSize: '0.82rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 4px 10px rgba(16, 185, 129, 0.3)'
+                        }}
+                      >
+                        <Zap size={14} /> Buy Now
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
