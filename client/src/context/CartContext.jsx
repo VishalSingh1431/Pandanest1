@@ -21,6 +21,11 @@ export function CartProvider({ children }) {
   }, [cart]);
 
   const addToCart = (toy, quantity = 1) => {
+    // Keep physical toy cart strictly separate from digital books
+    if (toy?.is_book || toy?.is_digital || toy?.game_key || String(toy?.id || '').startsWith('game-book')) {
+      buyNow(toy);
+      return;
+    }
     setCart(prev => {
       const existing = prev.find(item => item.id === toy.id);
       const maxStock = typeof toy.stock === 'number' && toy.stock >= 0 ? toy.stock : 99;

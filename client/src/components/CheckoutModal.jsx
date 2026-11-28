@@ -391,7 +391,7 @@ export function CheckoutModal() {
   return (
     <div className="modal-overlay" onClick={handleClose}>
       <div
-        className="modal-card"
+        className="modal-card checkout-modal-card"
         style={{ maxWidth: '580px', padding: '28px' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -589,6 +589,7 @@ export function CheckoutModal() {
             {/* Panda Points Redemption Option (10 Coins = ₹1, Max 300 coins = ₹30 off per order) */}
             {availablePoints >= 10 && (
               <div
+                className="checkout-points-banner"
                 style={{
                   background: '#fef3c7',
                   border: '1.5px solid #fde68a',
@@ -662,7 +663,7 @@ export function CheckoutModal() {
                   </button>
                 </div>
               ) : (
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="checkout-coupon-row" style={{ display: 'flex', gap: '8px' }}>
                   <input
                     type="text"
                     placeholder="Enter code (e.g. PANDA50, WELCOME10)"

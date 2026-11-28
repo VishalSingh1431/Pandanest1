@@ -261,6 +261,56 @@ export function OrderTracking({ onGoToCatalog }) {
           </div>
 
           <div style={{ padding: '32px 24px' }}>
+            {(() => {
+              const itemsList = Array.isArray(order.items) ? order.items : [];
+              const isDigitalOrder =
+                itemsList.length > 0 &&
+                itemsList.every(
+                  (it) => it.is_book || it.is_digital || it.game_key || String(it.id || '').startsWith('game-book')
+                );
+              if (!isDigitalOrder) return null;
+              return (
+                <div
+                  style={{
+                    background: '#ecfdf5',
+                    border: '1.5px solid #a7f3d0',
+                    borderRadius: '14px',
+                    padding: '20px',
+                    marginBottom: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#065f46' }}>
+                      📚 Instant Digital Download
+                    </div>
+                    <div style={{ fontSize: '0.86rem', color: '#047857', marginTop: '4px' }}>
+                      {order.payment_status === 'paid'
+                        ? 'Your PDF is unlocked and ready in My Digital Library.'
+                        : 'Complete payment to unlock instant PDF download.'}
+                    </div>
+                  </div>
+                  <a
+                    href="/my-downloads"
+                    style={{
+                      background: '#059669',
+                      color: '#ffffff',
+                      textDecoration: 'none',
+                      padding: '10px 18px',
+                      borderRadius: '9999px',
+                      fontWeight: 800,
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    Open My Digital Library
+                  </a>
+                </div>
+              );
+            })()}
             {/* Stepper Timeline */}
             <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '24px' }}>
               Delivery Progress
