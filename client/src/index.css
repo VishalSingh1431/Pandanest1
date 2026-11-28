@@ -758,9 +758,18 @@ html {
     padding-bottom: 76px !important;
     align-items: flex-start !important;
   }
+  .modal-card,
   .checkout-modal-card {
     max-height: calc(100dvh - 92px) !important;
     margin-top: 8px !important;
+    overflow-y: auto !important;
+  }
+  /* Ensure floating action buttons & cart drawer clear MobileBottomNav */
+  .fab-green-pulse {
+    bottom: 76px !important;
+  }
+  .cart-drawer-panel {
+    padding-bottom: 72px !important;
   }
 }
 
