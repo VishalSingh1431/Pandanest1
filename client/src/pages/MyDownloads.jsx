@@ -50,13 +50,13 @@ export function MyDownloads({ onGoToCatalog, onRequireLogin }) {
             }
 
             for (const it of items) {
-              if (it.is_book || it.game_key || String(it.id).startsWith('game-book')) {
+              if (isOrderPaid && (it.is_book || it.game_key || String(it.id).startsWith('game-book'))) {
                 downloads.push({
                   order_number: ord.order_number,
                   order_id: ord.id,
                   order_date: ord.created_at,
                   title: it.name || 'Panda Nest Activity Book',
-                  isPaid: isOrderPaid,
+                  isPaid: true,
                   gameKey: it.game_key || (String(it.id).replace('game-book-', '')) || 'drawing'
                 });
               }
