@@ -753,6 +753,17 @@ html {
 }
 
 /* Checkout Modal & Tablet/Mobile Responsiveness */
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding-bottom: 76px !important;
+    align-items: flex-start !important;
+  }
+  .checkout-modal-card {
+    max-height: calc(100dvh - 92px) !important;
+    margin-top: 8px !important;
+  }
+}
+
 @media (max-width: 480px) {
   .checkout-coupon-row {
     flex-direction: column !important;
@@ -770,7 +781,6 @@ html {
   .checkout-modal-card {
     padding: 18px 14px !important;
     border-radius: 18px !important;
-    max-height: 92dvh !important;
   }
 }
 
