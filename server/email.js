@@ -41,6 +41,11 @@ export async function sendOrderEmails({
   const storePhone = process.env.STORE_PHONE || '7380405227';
   const storeEmail = process.env.STORE_EMAIL || process.env.EMAIL_USER || 'acubebeauty@gmail.com';
   const parsedItems = Array.isArray(items) ? items : [];
+  const isDigitalOnly =
+    parsedItems.length > 0 &&
+    parsedItems.every(
+      (it) => it.is_book || it.is_digital || it.game_key || String(it.id || '').startsWith('game-book')
+    );
 
   // Generate table rows for items
   const itemsHtml = parsedItems
@@ -91,7 +96,11 @@ export async function sendOrderEmails({
           <div class="body">
             <h2 style="font-size: 18px; color: #0f172a; margin-top: 0;">Hi ${customerName},</h2>
             <p style="font-size: 15px; line-height: 1.6; color: #475569;">
-              Thank you for choosing Panda Nest! We have received your order <strong>#${orderNum}</strong> and our team is already preparing it for packing and dispatch within 24 hours.
+              ${
+                isDigitalOnly
+                  ? `Thank you for your purchase! Your digital order <strong>#${orderNum}</strong> is confirmed and your PDF download is now unlocked in your Panda Nest Digital Library.`
+                  : `Thank you for choosing Panda Nest! We have received your order <strong>#${orderNum}</strong> and our team is already preparing it for packing and dispatch within 24 hours.`
+              }
             </p>
 
             <div class="order-box">
@@ -104,8 +113,8 @@ export async function sendOrderEmails({
                 <strong style="color: #0f172a;">${paymentMethod === 'COD' ? 'Cash on Delivery (COD)' : 'Prepaid / Online'}</strong>
               </div>
               <div style="display: flex; justify-content: space-between;">
-                <span style="color: #64748b; font-size: 13px;">Estimated Dispatch:</span>
-                <strong style="color: #047857;">Within 24 Hours 🚚</strong>
+                <span style="color: #64748b; font-size: 13px;">${isDigitalOnly ? 'Delivery:' : 'Estimated Dispatch:'}</span>
+                <strong style="color: #047857;">${isDigitalOnly ? 'Instant Digital Download ⚡' : 'Within 24 Hours 🚚'}</strong>
               </div>
             </div>
 
@@ -131,13 +140,20 @@ export async function sendOrderEmails({
               </tfoot>
             </table>
 
-            <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 14px; margin-top: 20px;">
-              <h4 style="margin: 0 0 4px; color: #065f46; font-size: 14px;">📍 Delivery Address:</h4>
-              <p style="margin: 0; font-size: 13px; color: #047857; line-height: 1.5;">
-                <strong>${customerName}</strong> (${phone})<br/>
-                ${address}, ${city} - ${pincode}
-              </p>
-            </div>
+            ${
+              isDigitalOnly
+                ? `<div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 14px; margin-top: 20px; text-align: center;">
+                    <p style="margin: 0 0 10px; font-size: 14px; color: #065f46; font-weight: 700;">📚 Your PDF is ready to download!</p>
+                    <a href="https://pandanest.in/my-downloads" style="display: inline-block; background: #059669; color: #ffffff; text-decoration: none; padding: 10px 22px; border-radius: 9999px; font-weight: 700; font-size: 14px;">Open My Digital Library</a>
+                  </div>`
+                : `<div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 14px; margin-top: 20px;">
+                    <h4 style="margin: 0 0 4px; color: #065f46; font-size: 14px;">📍 Delivery Address:</h4>
+                    <p style="margin: 0; font-size: 13px; color: #047857; line-height: 1.5;">
+                      <strong>${customerName}</strong> (${phone})<br/>
+                      ${address}, ${city} - ${pincode}
+                    </p>
+                  </div>`
+            }
 
             <p style="font-size: 13px; color: #64748b; margin-top: 24px; line-height: 1.5;">
               Need help or urgent delivery assistance? Message us on WhatsApp anytime: 
