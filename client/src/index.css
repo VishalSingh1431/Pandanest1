@@ -861,7 +861,7 @@ html {
     display: none !important;
   }
   .hero-tv-mobile-video {
-    display: block !important;
+    display: none !important;
   }
   .hero-tv-mobile-form {
     display: block !important;
